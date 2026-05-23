@@ -1172,6 +1172,7 @@ function trackLearning(isCorrect) {
   // 오늘 학습 카운트
   const done = Number(localStorage.getItem('vs-today-done')||0) + 1;
   localStorage.setItem('vs-today-done', String(done));
+  saveDailyCount();
 
   // 정답률 계산
   const totalAnswered = Number(localStorage.getItem('vs-total-answered')||0) + 1;
@@ -2333,6 +2334,7 @@ async function recordFlashcardResult(wordId, knew) {
   if(knew) {
     const done = Number(localStorage.getItem('vs-today-done') || 0) + 1;
     localStorage.setItem('vs-today-done', String(done));
+  saveDailyCount();
     // 통계 캐시 무효화
     localStorage.removeItem('vs-stats-cache');
   }
@@ -2758,19 +2760,54 @@ function downloadSample(){
 // ─────────────────────────────────────────────────────
 
 function renderWeekChart(){
-  const chart=document.getElementById('week-chart');
-  const days=document.getElementById('week-days');
-  if(!chart||!days) return;
-  const data=[12,28,35,20,42,30,18];
-  const labels=['월','화','수','목','금','토','일'];
-  const max=Math.max(...data);
-  chart.innerHTML=data.map((v,i)=>`
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px">
-      <span style="font-size:10px;color:var(--tx2)">${v}</span>
-      <div style="width:100%;border-radius:4px 4px 0 0;background:${i===6?'var(--acc-l)':'var(--acc)'};height:${Math.round((v/max)*70)}px"></div>
-    </div>`).join('');
-  days.innerHTML=labels.map(l=>`<span style="flex:1;text-align:center;font-size:11px;color:var(--tx2)">${l}</span>`).join('');
+  const chart = document.getElementById('week-chart');
+  const days  = document.getElementById('week-days');
+  if(!chart || !days) return;
+
+  const labels = ['월','화','수','목','금','토','일'];
+
+  // localStorage에서 이번 주 일별 학습량 읽기
+  const today    = new Date();
+  const todayDay = today.getDay(); // 0=일,1=월...6=토
+  // 이번 주 월요일 기준으로 7일 데이터 구성
+  const data = labels.map((_, i) => {
+    const dayOffset = i - (todayDay === 0 ? 6 : todayDay - 1); // 월=0
+    const d = new Date(today);
+    d.setDate(today.getDate() + dayOffset);
+    const key = 'vs-daily-' + d.toISOString().split('T')[0];
+    return Number(localStorage.getItem(key) || 0);
+  });
+
+  const todayIdx  = todayDay === 0 ? 6 : todayDay - 1; // 오늘 인덱스 (월=0)
+  const maxVal    = Math.max(...data, 1); // 0 방지
+  const dailyGoal = Number(localStorage.getItem('vs-daily-goal') || 30);
+
+  chart.innerHTML = data.map((v, i) => {
+    const isToday  = i === todayIdx;
+    const barColor = isToday ? 'var(--acc)' : v > 0 ? 'var(--acc-l)' : 'var(--sf2)';
+    const barH     = Math.max(4, Math.round((v / maxVal) * 70));
+    return `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px">
+        <span style="font-size:10px;color:${isToday?'var(--acc)':'var(--tx2)'};font-weight:${isToday?'500':'400'}">${v||''}</span>
+        <div style="width:100%;border-radius:4px 4px 0 0;background:${barColor};height:${barH}px;position:relative">
+          ${isToday ? `<div style="position:absolute;top:-3px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:3px;background:var(--acc)"></div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  days.innerHTML = labels.map((l, i) => `
+    <span style="flex:1;text-align:center;font-size:11px;color:${i===todayIdx?'var(--acc)':'var(--tx2)'};font-weight:${i===todayIdx?'500':'400'}">${l}</span>
+  `).join('');
 }
+
+// 오늘 학습량 저장 (trackLearning 호출 시)
+function saveDailyCount(){
+  const today = new Date().toISOString().split('T')[0];
+  const key   = 'vs-daily-' + today;
+  const done  = Number(localStorage.getItem('vs-today-done') || 0);
+  localStorage.setItem(key, String(done));
+}
+
 renderWeekChart();
 checkDailyReset();
 initGoalDisplay();
