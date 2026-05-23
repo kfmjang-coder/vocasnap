@@ -410,7 +410,7 @@ body{
     </div>
   </div>
   <div class="scroll" id="wlist"></div>
-  <div class="bbar"><button class="savbtn" id="savbtn" onclick="nav('s-wslist','wslist')">23개 단어 저장하기</button></div>
+  <div class="bbar"><button class="savbtn" id="savbtn" onclick="saveWordsToSheets('default')">23개 단어 저장하기</button></div>
 </div>
 
 <!-- ══ WORDSET LIST ══ -->
@@ -660,7 +660,7 @@ body{
     <div class="sh"><span class="st">연동 설정</span></div>
     <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
       <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid var(--bd);cursor:pointer">
-        <span style="font-size:18px">📊</span><div style="flex:1"><div style="font-size:14px;color:var(--tx)">Google Sheets 연동</div><div style="font-size:12px;color:var(--tx2)">단어 DB 저장소</div></div><span style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미연결</span>
+        <span style="font-size:18px">📊</span><div style="flex:1" onclick="openSheetsModal()"><div style="font-size:14px;color:var(--tx)">Google Sheets 연동</div><div style="font-size:12px;color:var(--tx2)">단어 DB 저장소</div></div><span data-sheets-badge style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미연결</span>
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid var(--bd);cursor:pointer">
         <span style="font-size:18px">🤖</span><div style="flex:1" onclick="openApiModal()"><div style="font-size:14px;color:var(--tx)">Claude API 키 설정</div><div style="font-size:12px;color:var(--tx2)">단어 자동 추출 AI</div></div><span data-api-badge style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미설정</span>
@@ -687,6 +687,33 @@ body{
   </div>
 </div>
 
+
+
+<!-- ══ SHEETS MODAL ══ -->
+<div id="sheets-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center">
+  <div style="background:var(--sf);border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:430px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:16px;font-weight:500;color:var(--tx)">Google Sheets 연동</div>
+      <div onclick="closeSheetsModal()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i></div>
+    </div>
+    <div style="background:var(--grn-l);border-radius:10px;padding:12px;margin-bottom:16px">
+      <div style="font-size:12px;color:#085041;line-height:1.7">
+        <b>설정 방법:</b><br>
+        1. Google Sheets에서 <b>확장 프로그램 → Apps Script</b><br>
+        2. 제공된 코드 붙여넣기 후 저장<br>
+        3. <b>배포 → 웹 앱으로 배포</b> → 액세스: <b>모든 사용자</b><br>
+        4. 배포 URL을 아래에 붙여넣기
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">Apps Script 배포 URL</div>
+      <input id="sheets-url-input" type="url" placeholder="https://script.google.com/macros/s/.../exec" value="https://script.google.com/macros/s/AKfycbz_DYwee5U9U-ZMwHcGG3-H9LVDdbhsJlFc64CqPcRFTjvpk0_nXG3Ne_GYB2dfOitZ/exec" style="width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none">
+    </div>
+    <div id="sheets-status" style="display:none;margin-bottom:12px"></div>
+    <button onclick="saveSheetsUrl()" style="width:100%;padding:13px;background:var(--grn);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:8px">저장하기</button>
+    <button onclick="testSheets()" style="width:100%;padding:13px;background:var(--sf2);color:var(--tx2);border:none;border-radius:10px;font-size:14px;cursor:pointer">연결 테스트</button>
+  </div>
+</div>
 
 <!-- ══ API KEY MODAL ══ -->
 <div id="api-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center">
@@ -1206,6 +1233,100 @@ function fileToBase64(file){
   if(getApiKey()) updateApiKeyBadge(true);
 })();
 // ───────────────────────────────────────────────────
+
+
+// ── Google Sheets (Apps Script) API ────────────────
+function getSheetsUrl(){ return localStorage.getItem('vs-sheets-url')||''; }
+function openSheetsModal(){
+  document.getElementById('sheets-modal').style.display='flex';
+  const saved=getSheetsUrl();
+  if(saved) document.getElementById('sheets-url-input').value=saved;
+  updateSheetsStatus();
+}
+function closeSheetsModal(){ document.getElementById('sheets-modal').style.display='none'; }
+function updateSheetsStatus(){
+  if(getSheetsUrl()) showSheetsStatus('✅ 연결된 시트가 있어요','ok');
+  else document.getElementById('sheets-status').style.display='none';
+}
+function showSheetsStatus(msg,type){
+  const el=document.getElementById('sheets-status');
+  el.style.cssText=`display:block;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;background:${type==='ok'?'var(--grn-l)':'var(--red-l)'};color:${type==='ok'?'var(--grn)':'var(--red)'}`;
+  el.textContent=msg;
+}
+function saveSheetsUrl(){
+  const url=document.getElementById('sheets-url-input').value.trim();
+  if(!url){showSheetsStatus('URL을 입력해주세요','error');return;}
+  if(!url.includes('script.google.com')){showSheetsStatus('올바른 Apps Script URL이 아니에요','error');return;}
+  localStorage.setItem('vs-sheets-url',url);
+  showSheetsStatus('✅ 저장됐어요!','ok');
+  updateSheetsBadge(true);
+  setTimeout(closeSheetsModal,1200);
+}
+async function testSheets(){
+  const url=document.getElementById('sheets-url-input').value.trim();
+  if(!url){showSheetsStatus('URL을 먼저 입력해주세요','error');return;}
+  showSheetsStatus('⏳ 연결 테스트 중...','ok');
+  try{
+    const res=await sheetsGet('getStats');
+    if(res.error) throw new Error(res.error);
+    showSheetsStatus(`✅ 연결 성공! 총 ${res.total||0}개 단어`,'ok');
+  }catch(e){ showSheetsStatus('❌ 연결 실패: '+e.message,'error'); }
+}
+function updateSheetsBadge(connected){
+  document.querySelectorAll('[data-sheets-badge]').forEach(b=>{
+    b.textContent=connected?'연결됨':'미연결';
+    b.style.color=connected?'var(--grn)':'var(--tx3)';
+    b.style.background=connected?'var(--grn-l)':'var(--sf2)';
+  });
+}
+async function sheetsGet(action,params){
+  const base=getSheetsUrl();
+  if(!base) throw new Error('Sheets URL이 설정되지 않았어요');
+  let url=base+'?action='+action;
+  if(params) Object.entries(params).forEach(([k,v])=>url+=`&${k}=${encodeURIComponent(v)}`);
+  const res=await fetch(url);
+  return res.json();
+}
+async function sheetsPost(body){
+  const url=getSheetsUrl();
+  if(!url) throw new Error('Sheets URL이 설정되지 않았어요');
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return res.json();
+}
+async function saveWordsToSheets(wordSetId){
+  const sheetsUrl=getSheetsUrl();
+  if(!sheetsUrl){
+    if(confirm('Google Sheets가 연결되지 않았어요.\n지금 설정하러 갈까요?')){nav('s-profile');setTimeout(openSheetsModal,400);}
+    return;
+  }
+  const selected=EW.filter(w=>w.checked);
+  if(!selected.length){alert('저장할 단어를 선택해주세요');return;}
+  const btn=document.getElementById('savbtn');
+  const origText=btn.textContent;
+  btn.textContent='저장 중...';btn.disabled=true;
+  try{
+    const res=await sheetsPost({action:'saveWords',words:selected,wordSetId:wordSetId||'default'});
+    if(res.error) throw new Error(res.error);
+    btn.textContent=`✅ ${res.saved}개 저장 완료!`;
+    btn.style.background='var(--grn)';
+    setTimeout(()=>{btn.textContent=origText;btn.style.background='var(--acc)';btn.disabled=false;nav('s-wslist');},1500);
+  }catch(e){
+    btn.textContent='❌ 저장 실패';btn.style.background='var(--red)';
+    setTimeout(()=>{btn.textContent=origText;btn.style.background='var(--acc)';btn.disabled=false;},2500);
+    alert('저장 실패: '+e.message);
+  }
+}
+async function saveReviewToSheets(wordId,sm2Result){
+  if(!getSheetsUrl()) return;
+  try{ await sheetsPost({action:'updateReview',wordId,sm2:sm2Result}); }catch(e){}
+}
+(function(){
+  if(!getSheetsUrl()) {
+    localStorage.setItem('vs-sheets-url', 'https://script.google.com/macros/s/AKfycbz_DYwee5U9U-ZMwHcGG3-H9LVDdbhsJlFc64CqPcRFTjvpk0_nXG3Ne_GYB2dfOitZ/exec');
+  }
+  if(getSheetsUrl()) updateSheetsBadge(true);
+})();
+// ─────────────────────────────────────────────────────
 
 function renderWeekChart(){
   const chart=document.getElementById('week-chart');
