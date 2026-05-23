@@ -554,7 +554,11 @@ body{
   <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
     <div style="height:14px"></div>
     <div class="fc-area">
-      <div class="fc-scene" onclick="fcFlip()">
+      <div id="fc-loading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:10;border-radius:16px;align-items:center;justify-content:center;flex-direction:column;gap:8px">
+          <div style="font-size:24px">⏳</div>
+          <div style="font-size:13px;color:#fff">단어 불러오는 중...</div>
+        </div>
+        <div class="fc-scene" onclick="fcFlip()">
         <div class="fc-inner" id="fc-inner">
           <div class="fc-face fc-front">
             <div style="font-size:11px;color:rgba(255,255,255,.7);letter-spacing:.5px;margin-bottom:12px">ENGLISH WORD</div>
@@ -865,13 +869,9 @@ body{
 
 <script>
 // ── DATA ──
-const WORDS=[
-  {en:'achieve',ph:'/əˈtʃiːv/',ko:'달성하다, 이루다',pos:'verb',ex:'"She achieved her goal." 그녀는 목표를 달성했다.'},
-  {en:'ambiguous',ph:'/æmˈbɪɡjuəs/',ko:'모호한, 애매한',pos:'adj',ex:'"The answer was ambiguous." 답변이 모호했다.'},
-  {en:'circumstance',ph:'/ˈsɜːrkəmstæns/',ko:'상황, 환경, 사정',pos:'noun',ex:'"Under no circumstances should you give up."'},
-  {en:'deduce',ph:'/dɪˈdjuːs/',ko:'추론하다, 연역하다',pos:'verb',ex:'"We can deduce the answer." 우리는 답을 추론할 수 있다.'},
-  {en:'eloquent',ph:'/ˈeləkwənt/',ko:'웅변적인, 유창한',pos:'adj',ex:'"He gave an eloquent speech." 그는 유창한 연설을 했다.'},
-];
+// WORDS: Sheets에서 로드된 단어 (초기엔 빈 배열)
+let WORDS = [];
+let FC_WORDSET_ID = null; // 현재 학습 중인 단어장 ID
 const DIST=['근본적인, 기본적인','달성하다, 이루다','망설이다, 주저하다','조종하다, 다루다','이성적인, 합리적인','지루한, 싫증나는','인식하다, 감지하다','진짜의, 진실한','불가피한, 필연적인'];
 const EW=[
   {en:'achieve',ko:'달성하다',pos:'verb',checked:true},{en:'ambiguous',ko:'모호한',pos:'adj',checked:true},
@@ -891,7 +891,7 @@ const EW=[
 
 // ── STATE ──
 let stack=['s-ob'],obStep=0,isDark=false,allChecked=false;
-let fcIdx=2,fcFlipped=false,fcKnow=5,fcDont=2;
+let fcIdx=0,fcFlipped=false,fcKnow=0,fcDont=0;
 let qIdx=0,qCorrect=0,qTotal=0,qSec=0,qTimer=null,qAnswered=false;
 
 // ── NAVIGATION ──
@@ -970,21 +970,85 @@ function updateSel(){
 
 // ── FLASHCARD ──
 function fcRender(){
-  const w=WORDS[fcIdx%WORDS.length];
-  ['fc-word','fc-ph','fc-meaning','fc-pos','fc-ex'].forEach(id=>{
-    const map={
-      'fc-word':w.en,'fc-ph':w.ph,'fc-meaning':w.ko,
-      'fc-pos':w.pos,'fc-ex':w.ex
-    };
-    document.getElementById(id).textContent=map[id];
-  });
-  document.getElementById('fc-cnt').textContent=(fcIdx+1)+' / 25';
-  document.getElementById('fc-idx').textContent=(fcIdx+1)+'번째 카드';
-  document.getElementById('fc-prog').style.width=Math.round(((fcIdx+1)/25)*100)+'%';
-  document.getElementById('fc-know').textContent=fcKnow;
-  document.getElementById('fc-dont').textContent=fcDont;
-  document.getElementById('fc-hint').textContent=fcFlipped?'알고 있나요?':'↻ 카드를 탭해서 뜻을 확인하세요';
+  if(!WORDS.length){
+    // 단어 없을 때 안내
+    setText('fc-word', '단어 없음');
+    setText('fc-ph', '');
+    setText('fc-meaning', 'Sheets에서 단어를 불러오는 중...');
+    setText('fc-pos', '');
+    setText('fc-ex', '단어장에 단어를 추가해주세요');
+    setText('fc-cnt', '0 / 0');
+    setText('fc-idx', '--');
+    document.getElementById('fc-prog').style.width='0%';
+    return;
+  }
+  const w = WORDS[fcIdx % WORDS.length];
+  setText('fc-word',    w.en   || w.word    || '');
+  setText('fc-ph',      w.ph   || w.phonetic|| '');
+  setText('fc-meaning', w.ko   || w.meaning || '');
+  setText('fc-pos',     w.pos  || '');
+  setText('fc-ex',      w.ex   || w.example || '');
+  setText('fc-cnt',     (fcIdx+1) + ' / ' + WORDS.length);
+  setText('fc-idx',     (fcIdx+1) + '번째 카드');
+  document.getElementById('fc-prog').style.width =
+    Math.round(((fcIdx+1)/WORDS.length)*100) + '%';
+  setText('fc-know', fcKnow);
+  setText('fc-dont', fcDont);
+  setText('fc-hint', fcFlipped ? '알고 있나요?' : '↻ 카드를 탭해서 뜻을 확인하세요');
 }
+
+// ── 플래시카드 단어 Sheets 로드 ──────────────────────
+async function loadFcWords(){
+  const url = getSheetsUrl();
+  if(!url) return; // 미연결시 기존 더미 유지
+
+  // 로딩 표시
+  const loading = document.getElementById('fc-loading');
+  if(loading) loading.style.display='flex';
+
+  try {
+    const wsId = FC_WORDSET_ID || (currentWordSet?.id) || null;
+    const res  = wsId
+      ? await sheetsGet('getWords', {wordSetId: wsId})
+      : await sheetsGet('getWords');
+
+    if(res.error) throw new Error(res.error);
+    if(!res.words?.length) return;
+
+    // Sheets 데이터를 WORDS 형식으로 변환
+    WORDS = res.words.map(w => ({
+      id:  w.id,
+      en:  w.word    || w.en  || '',
+      ko:  w.meaning || w.ko  || '',
+      pos: w.pos     || '',
+      ph:  w.phonetic|| w.ph  || '',
+      ex:  w.example || w.ex  || '',
+    })).filter(w => w.en); // 빈 단어 제외
+
+    // 퀴즈 DIST도 업데이트
+    DIST.length = 0;
+    WORDS.forEach(w => { if(w.ko) DIST.push(w.ko); });
+
+    // 상태 초기화 후 재렌더
+    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
+    document.getElementById('fc-inner').classList.remove('flipped');
+    fcRender();
+
+    // 단어장 제목 업데이트
+    const wsName = currentWordSet?.name || '전체 단어장';
+    const titleEl = document.querySelector('#s-fc .ttl');
+    if(titleEl) titleEl.textContent = wsName;
+    const subtitleEl = document.querySelector('#s-fc .ttl + *') ||
+                       document.querySelector('#s-fc div[style*="font-size:12px;color:var(--tx2)"]');
+
+  } catch(e) {
+    console.warn('플래시카드 단어 로드 실패:', e);
+  } finally {
+    if(loading) loading.style.display='none';
+  }
+}
+// ─────────────────────────────────────────────────────
+
 function fcFlip(){
   fcFlipped=!fcFlipped;
   document.getElementById('fc-inner').classList.toggle('flipped',fcFlipped);
@@ -995,8 +1059,27 @@ function fcAns(type){
   else { fcDont++; trackLearning(false); }
   fcFlipped=false;
   document.getElementById('fc-inner').classList.remove('flipped');
-  fcIdx=(fcIdx+1)%WORDS.length;
-  setTimeout(fcRender,60);
+
+  // 마지막 카드면 완료 화면
+  if(fcIdx >= WORDS.length - 1){
+    showFcResult();
+    return;
+  }
+  fcIdx++;
+  setTimeout(fcRender, 60);
+}
+
+function showFcResult(){
+  const total = WORDS.length;
+  const pct   = total > 0 ? Math.round((fcKnow/total)*100) : 0;
+  // 퀴즈 결과 화면 재활용
+  setText('res-emoji', pct>=80?'🏆':pct>=60?'🎉':'💪');
+  setText('res-title', pct>=80?'완벽해요!':pct>=60?'훌륭해요!':'더 연습해봐요!');
+  setText('res-score', fcKnow+' / '+total);
+  setText('res-pct',   pct+'%');
+  setText('res-time',  '--');
+  setText('res-pts',   '+'+(fcKnow*5));
+  nav('s-qresult');
 }
 
 function trackLearning(isCorrect) {
@@ -1046,8 +1129,20 @@ function updateStreak() {
     if(badge) badge.style.display = 'block';
   }
 }
-function fcNext(){fcIdx=(fcIdx+1)%WORDS.length;fcFlipped=false;document.getElementById('fc-inner').classList.remove('flipped');fcRender();}
-function fcPrev(){fcIdx=(fcIdx-1+WORDS.length)%WORDS.length;fcFlipped=false;document.getElementById('fc-inner').classList.remove('flipped');fcRender();}
+function fcNext(){
+  if(!WORDS.length) return;
+  fcIdx = Math.min(fcIdx+1, WORDS.length-1);
+  fcFlipped=false;
+  document.getElementById('fc-inner').classList.remove('flipped');
+  fcRender();
+}
+function fcPrev(){
+  if(!WORDS.length) return;
+  fcIdx = Math.max(fcIdx-1, 0);
+  fcFlipped=false;
+  document.getElementById('fc-inner').classList.remove('flipped');
+  fcRender();
+}
 
 // ── QUIZ ──
 function qStart(){
@@ -1058,19 +1153,26 @@ function qStart(){
     const el=document.getElementById('q-timer');
     if(el) el.textContent=Math.floor(qSec/60)+':'+(qSec%60<10?'0':'')+qSec%60;
   },1000);
-  qRender();
+  if(!WORDS.length){
+    // 단어 없으면 로드 후 시작
+    loadFcWords().then(()=>{ if(WORDS.length) qRender(); });
+  } else {
+    qRender();
+  }
 }
 function qRender(){
-  const w=WORDS[qIdx];
-  document.getElementById('q-word').textContent=w.en;
-  document.getElementById('q-pos').textContent=w.pos;
+  if(!WORDS.length){ setText('q-word','--'); return; }
+  const w=WORDS[qIdx % WORDS.length];
+  document.getElementById('q-word').textContent=w.en||w.word||'';
+  document.getElementById('q-pos').textContent=w.pos||'';
   document.getElementById('q-num').textContent='문제 '+(qIdx+1)+' / '+WORDS.length;
   document.getElementById('q-score').textContent='맞은 문제: '+qCorrect+' / '+qTotal;
   document.getElementById('q-prog').style.width=Math.round(qIdx/WORDS.length*100)+'%';
   document.getElementById('q-fbk').style.display='none';
   document.getElementById('q-next').style.display='none';
   qAnswered=false;
-  const opts=[w.ko,...DIST.filter(d=>d!==w.ko).sort(()=>Math.random()-.5).slice(0,3)].sort(()=>Math.random()-.5);
+  const ans=w.ko||w.meaning||'';
+  const opts=[ans,...DIST.filter(d=>d!==ans).sort(()=>Math.random()-.5).slice(0,3)].sort(()=>Math.random()-.5);
   document.getElementById('q-choices').innerHTML=opts.map((o,i)=>`
     <div class="choice" onclick="qPick('${o.replace(/'/g,"\\'")}','${w.ko.replace(/'/g,"\\'")}')">
       <div class="clbl">${['①','②','③','④'][i]}</div>
@@ -1078,6 +1180,7 @@ function qRender(){
     </div>`).join('');
 }
 function qPick(chosen,ans){
+  if(!ans) return;
   if(qAnswered) return;
   qAnswered=true;qTotal++;
   document.querySelectorAll('.choice').forEach(c=>{
