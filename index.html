@@ -1109,8 +1109,8 @@ const EXTRACT_PROMPT = `이 이미지에서 영어 단어를 모두 추출해줘
 difficulty: 1=쉬움(중학), 2=보통(수능), 3=어려움(고급)
 중복 제거, 영어 단어만, 숫자/기호 제외.`;
 
-const GEMINI_MODEL = 'gemini-1.5-flash-latest';
-const GEMINI_API   = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent';
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_API   = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 function getApiKey(){
   return localStorage.getItem('vs-gemini-key') || '';
