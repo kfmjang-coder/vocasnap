@@ -1680,13 +1680,30 @@ async function sheetsGet(action,params){
   let url=base+'?action='+action;
   if(params) Object.entries(params).forEach(([k,v])=>url+=`&${k}=${encodeURIComponent(v)}`);
   const res=await fetch(url);
-  return res.json();
+  const text=await res.text();
+  // HTML 응답 감지 (Apps Script 재배포 필요)
+  if(text.trim().startsWith('<')){
+    throw new Error('Apps Script 재배포가 필요해요\n배포 → 배포 관리 → 새 버전으로 재배포해주세요');
+  }
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    throw new Error('응답 파싱 실패: '+text.slice(0,50));
+  }
 }
 async function sheetsPost(body){
   const url=getSheetsUrl();
   if(!url) throw new Error('Sheets URL이 설정되지 않았어요');
   const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  return res.json();
+  const text=await res.text();
+  if(text.trim().startsWith('<')){
+    throw new Error('Apps Script 재배포가 필요해요');
+  }
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    throw new Error('응답 파싱 실패: '+text.slice(0,50));
+  }
 }
 async function saveWordsToSheets(wordSetId){
   const sheetsUrl=getSheetsUrl();
@@ -2062,11 +2079,14 @@ async function showCreateWordSet() {
     return;
   }
   try {
-    const res = await sheetsPost({action:'createWordSet', name: name.trim(), color:'#7F77DD'});
-    if(res.ok) {
-      alert(`"${name}" 단어장이 만들어졌어요!`);
-      loadWordSets(true); // 목록 새로고침
-    }
+    // GET 방식으로 CORS 우회
+    const apiUrl = url + '?action=createWordSet&name=' + encodeURIComponent(name.trim()) + '&color=' + encodeURIComponent('#7F77DD');
+    const res  = await fetch(apiUrl);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    alert(`"${name.trim()}" 단어장이 만들어졌어요!`);
+    localStorage.removeItem('vs-wslist-cache');
+    loadWordSets(true);
   } catch(e) { alert('만들기 실패: ' + e.message); }
 }
 // ─────────────────────────────────────────────────────
@@ -2678,9 +2698,11 @@ async function impSave(){
     if(!wsName){ impShowStatus('⚠️ 새 단어장 이름을 입력해주세요', 'warn'); return; }
     // 새 단어장 생성
     try {
-      const res = await sheetsPost({action:'createWordSet', name:wsName, color:'#7F77DD'});
-      if(res.error) throw new Error(res.error);
-      wsId = res.id;
+      const apiUrl = getSheetsUrl() + '?action=createWordSet&name=' + encodeURIComponent(wsName) + '&color=' + encodeURIComponent('#7F77DD');
+      const cRes = await fetch(apiUrl);
+      const cData = await cRes.json();
+      if(cData.error) throw new Error(cData.error);
+      wsId = cData.id;
     } catch(e){
       impShowStatus('❌ 단어장 생성 실패: '+e.message, 'error');
       return;
