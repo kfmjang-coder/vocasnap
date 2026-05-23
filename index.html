@@ -482,10 +482,16 @@ body{
       <!-- 단어장 목록 (동적) -->
       <div id="wslist-items"></div>
 
-      <!-- 새 단어장 만들기 -->
-      <div onclick="showCreateWordSet()" style="margin:8px 16px 4px;border:1.5px dashed var(--bd);border-radius:12px;padding:14px;display:flex;align-items:center;gap:10px;cursor:pointer;color:var(--tx3)">
-        <i class="ti ti-plus" style="font-size:20px"></i>
-        <span style="font-size:13px">새 단어장 만들기</span>
+      <!-- 추가 버튼 -->
+      <div style="display:flex;gap:8px;margin:8px 16px 4px">
+        <div onclick="showCreateWordSet()" style="flex:1;border:1.5px dashed var(--bd);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;color:var(--tx3)">
+          <i class="ti ti-plus" style="font-size:18px"></i>
+          <span style="font-size:13px">새 단어장</span>
+        </div>
+        <div onclick="openImportModal()" style="flex:1;border:1.5px dashed var(--bd);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--acc-l)">
+          <i class="ti ti-file-upload" style="font-size:18px;color:var(--acc)"></i>
+          <span style="font-size:13px;color:var(--acc)">단어 임포트</span>
+        </div>
       </div>
       <div style="height:20px"></div>
     </div>
@@ -534,7 +540,7 @@ body{
       <div class="mcard" onclick="nav('s-fc')"><i class="ti ti-cards" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">플래시카드</div><div style="font-size:11px;color:var(--tx2)">앞뒤 뒤집기</div></div>
       <div class="mcard" onclick="nav('s-quiz')"><i class="ti ti-list-check" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">퀴즈 모드</div><div style="font-size:11px;color:var(--tx2)">객관식·주관식</div></div>
       <div class="mcard" onclick="nav('s-fc')"><i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">복습 모드</div><div style="font-size:11px;color:var(--tx2)">망각 곡선 기반</div></div>
-      <div class="mcard"><i class="ti ti-pencil" style="font-size:22px;color:var(--amb);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">받아쓰기</div><div style="font-size:11px;color:var(--tx2)">직접 입력</div></div>
+      <div class="mcard" onclick="openImportModal()"><i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">단어 임포트</div><div style="font-size:11px;color:var(--tx2)">CSV/텍스트 추가</div></div>
     </div>
     <div style="height:20px"></div>
   </div>
@@ -852,6 +858,101 @@ body{
     <div id="api-key-status" style="display:none;margin-bottom:12px"></div>
     <button onclick="saveApiKey()" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">저장하기</button>
     <button onclick="testApiKey()" style="width:100%;padding:13px;background:var(--sf2);color:var(--tx2);border:none;border-radius:10px;font-size:14px;margin-top:8px;cursor:pointer">연결 테스트</button>
+  </div>
+</div>
+
+
+<!-- ══ IMPORT MODAL ══ -->
+<div id="import-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:flex-end;justify-content:center">
+  <div style="background:var(--sf);border-radius:20px 20px 0 0;width:100%;max-width:430px;max-height:90vh;overflow-y:auto">
+
+    <!-- 헤더 -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 20px 12px">
+      <div style="font-size:17px;font-weight:500;color:var(--tx)">단어 임포트</div>
+      <div onclick="closeImportModal()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
+      </div>
+    </div>
+
+    <!-- 탭 -->
+    <div style="display:flex;border-bottom:0.5px solid var(--bd);margin:0 20px">
+      <div id="imp-tab-csv" onclick="impTab('csv')" style="flex:1;text-align:center;padding:10px;font-size:13px;font-weight:500;color:var(--acc);border-bottom:2px solid var(--acc);cursor:pointer">📄 CSV/Excel</div>
+      <div id="imp-tab-text" onclick="impTab('text')" style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--tx2);border-bottom:2px solid transparent;cursor:pointer">✏️ 직접 입력</div>
+      <div id="imp-tab-url" onclick="impTab('url')" style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--tx2);border-bottom:2px solid transparent;cursor:pointer">🔗 URL</div>
+    </div>
+
+    <!-- CSV 탭 -->
+    <div id="imp-panel-csv" style="padding:16px 20px">
+      <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--acc-d);line-height:1.7">
+          <b>지원 형식:</b> CSV, Excel(.xlsx)<br>
+          <b>필수 컬럼:</b> word (영어 단어), meaning (한국어 뜻)<br>
+          <b>선택 컬럼:</b> pos, difficulty, phonetic, example
+        </div>
+      </div>
+      <!-- 파일 드롭 영역 -->
+      <div id="imp-drop-zone" onclick="document.getElementById('imp-file-input').click()"
+        style="border:2px dashed var(--bd);border-radius:12px;padding:32px 16px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px"
+        ondragover="impDragOver(event)" ondragleave="impDragLeave(event)" ondrop="impDrop(event)">
+        <div style="font-size:36px;margin-bottom:8px">📂</div>
+        <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:4px">파일을 드래그하거나 탭해서 선택</div>
+        <div style="font-size:12px;color:var(--tx2)">CSV, XLSX 지원 · 최대 1,000단어</div>
+      </div>
+      <input type="file" id="imp-file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="impHandleFile(event)">
+      <!-- 미리보기 -->
+      <div id="imp-preview" style="display:none;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">미리보기</div>
+        <div id="imp-preview-list" style="background:var(--sf2);border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto"></div>
+        <div id="imp-preview-info" style="font-size:12px;color:var(--tx2);margin-top:6px;text-align:center"></div>
+      </div>
+      <!-- 샘플 다운로드 -->
+      <div onclick="downloadSample()" style="display:flex;align-items:center;gap:6px;padding:10px;background:var(--sf2);border-radius:8px;cursor:pointer;margin-bottom:12px">
+        <i class="ti ti-download" style="font-size:16px;color:var(--acc)"></i>
+        <span style="font-size:13px;color:var(--acc)">샘플 CSV 다운로드</span>
+      </div>
+    </div>
+
+    <!-- 직접 입력 탭 -->
+    <div id="imp-panel-text" style="display:none;padding:16px 20px">
+      <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--acc-d);line-height:1.7">
+          한 줄에 하나씩 입력하세요<br>
+          <b>형식:</b> 영어단어 = 한국어뜻<br>
+          <b>예시:</b> achieve = 달성하다, 이루다
+        </div>
+      </div>
+      <textarea id="imp-text-input" placeholder="achieve = 달성하다, 이루다&#10;ambiguous = 모호한, 애매한&#10;circumstance = 상황, 환경&#10;..." style="width:100%;height:200px;padding:12px;border:1px solid var(--bd);border-radius:10px;font-size:13px;background:var(--sf2);color:var(--tx);resize:none;outline:none;line-height:1.8" oninput="impParseText()"></textarea>
+      <div id="imp-text-count" style="font-size:12px;color:var(--tx2);margin-top:6px;text-align:right">0개 입력됨</div>
+    </div>
+
+    <!-- URL 탭 -->
+    <div id="imp-panel-url" style="display:none;padding:16px 20px">
+      <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--acc-d);line-height:1.7">
+          Google Sheets 공유 URL을 붙여넣으세요<br>
+          공유 설정이 <b>링크가 있는 모든 사용자</b>여야 해요
+        </div>
+      </div>
+      <input id="imp-url-input" type="url" placeholder="https://docs.google.com/spreadsheets/d/..." style="width:100%;padding:12px;border:1px solid var(--bd);border-radius:10px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none;margin-bottom:10px">
+      <button onclick="impFetchUrl()" style="width:100%;padding:12px;background:var(--sf2);color:var(--tx2);border:0.5px solid var(--bd);border-radius:10px;font-size:14px;cursor:pointer">URL에서 불러오기</button>
+      <div id="imp-url-status" style="font-size:12px;color:var(--tx2);margin-top:8px;text-align:center"></div>
+    </div>
+
+    <!-- 공통 하단 - 단어장 선택 + 저장 -->
+    <div style="padding:0 20px 16px">
+      <div style="margin-bottom:10px">
+        <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">저장할 단어장</div>
+        <div style="display:flex;gap:8px">
+          <select id="imp-ws-select" style="flex:1;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none">
+            <option value="new">+ 새 단어장 만들기</option>
+          </select>
+        </div>
+        <input id="imp-ws-name" placeholder="새 단어장 이름 입력" style="width:100%;margin-top:8px;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none">
+      </div>
+      <div id="imp-status" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:10px"></div>
+      <button id="imp-save-btn" onclick="impSave()" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:8px">단어 저장하기</button>
+      <div style="padding-bottom:env(safe-area-inset-bottom,0px)"></div>
+    </div>
   </div>
 </div>
 
@@ -2305,6 +2406,354 @@ async function loadProfile() {
     setText('profile-mastered', mastered);
     setText('profile-rate',     pct+'%');
   } catch(e) {}
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── 단어 임포트 기능 ────────────────────────────────
+let impWords = []; // 파싱된 단어들
+let impMode  = 'csv'; // 현재 탭
+
+function openImportModal(){
+  const modal = document.getElementById('import-modal');
+  modal.style.display = 'flex';
+  impWords = [];
+  impMode  = 'csv';
+  // 단어장 목록 드롭다운 채우기
+  loadWsSelectOptions();
+}
+
+function closeImportModal(){
+  document.getElementById('import-modal').style.display = 'none';
+  impWords = [];
+  // 미리보기 초기화
+  document.getElementById('imp-preview').style.display = 'none';
+  const ta = document.getElementById('imp-text-input');
+  if(ta) ta.value = '';
+}
+
+function impTab(tab){
+  impMode = tab;
+  ['csv','text','url'].forEach(t => {
+    const panel = document.getElementById('imp-panel-'+t);
+    const tabEl = document.getElementById('imp-tab-'+t);
+    if(panel) panel.style.display = t===tab ? 'block' : 'none';
+    if(tabEl){
+      tabEl.style.color          = t===tab ? 'var(--acc)' : 'var(--tx2)';
+      tabEl.style.borderBottom   = t===tab ? '2px solid var(--acc)' : '2px solid transparent';
+      tabEl.style.fontWeight     = t===tab ? '500' : '400';
+    }
+  });
+}
+
+async function loadWsSelectOptions(){
+  const sel = document.getElementById('imp-ws-select');
+  if(!sel) return;
+  sel.innerHTML = '<option value="new">+ 새 단어장 만들기</option>';
+  const url = getSheetsUrl();
+  if(!url) return;
+  try {
+    const res = await sheetsGet('getWordSets');
+    if(res.wordSets) {
+      res.wordSets.forEach(ws => {
+        const opt = document.createElement('option');
+        opt.value = ws.id;
+        opt.textContent = ws.name;
+        sel.appendChild(opt);
+      });
+    }
+    // 현재 단어장 선택
+    if(currentWordSet?.id) sel.value = currentWordSet.id;
+  } catch(e){}
+
+  // 단어장 선택에 따라 이름 입력창 표시/숨김
+  sel.onchange = () => {
+    const nameEl = document.getElementById('imp-ws-name');
+    if(nameEl) nameEl.style.display = sel.value === 'new' ? 'block' : 'none';
+  };
+  const nameEl = document.getElementById('imp-ws-name');
+  if(nameEl) nameEl.style.display = sel.value === 'new' ? 'block' : 'none';
+}
+
+// ── CSV/파일 처리 ────────────────────────────────────
+function impDragOver(e){
+  e.preventDefault();
+  document.getElementById('imp-drop-zone').style.borderColor = 'var(--acc)';
+  document.getElementById('imp-drop-zone').style.background  = 'var(--acc-l)';
+}
+function impDragLeave(e){
+  document.getElementById('imp-drop-zone').style.borderColor = 'var(--bd)';
+  document.getElementById('imp-drop-zone').style.background  = '';
+}
+function impDrop(e){
+  e.preventDefault();
+  impDragLeave(e);
+  const file = e.dataTransfer.files[0];
+  if(file) impProcessFile(file);
+}
+function impHandleFile(e){
+  const file = e.target.files[0];
+  if(file) impProcessFile(file);
+  e.target.value = '';
+}
+
+function impProcessFile(file){
+  const ext = file.name.split('.').pop().toLowerCase();
+  if(ext === 'csv' || ext === 'txt'){
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target.result;
+      impWords = parseCSV(text);
+      impShowPreview();
+    };
+    reader.readAsText(file, 'UTF-8');
+  } else if(ext === 'xlsx' || ext === 'xls'){
+    impShowStatus('⚠️ Excel 파일은 CSV로 변환 후 업로드해주세요.\nExcel에서 파일 → 다른 이름으로 저장 → CSV', 'warn');
+  } else {
+    impShowStatus('❌ CSV 또는 TXT 파일만 지원해요', 'error');
+  }
+}
+
+function parseCSV(text){
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
+  if(!lines.length) return [];
+
+  // 헤더 감지
+  const firstLine = lines[0].toLowerCase();
+  const hasHeader = firstLine.includes('word') || firstLine.includes('영어') || firstLine.includes('en');
+  const dataLines = hasHeader ? lines.slice(1) : lines;
+
+  // 헤더 컬럼 매핑
+  let cols = {word:0, meaning:1, pos:2, difficulty:3, phonetic:4, example:5};
+  if(hasHeader){
+    const headers = splitCSVLine(lines[0]).map(h=>h.toLowerCase().trim().replace(/['"]/g,''));
+    const map = {
+      word:    ['word','영어','en','english','단어'],
+      meaning: ['meaning','뜻','ko','korean','한국어','meaning'],
+      pos:     ['pos','품사','part'],
+      difficulty:['difficulty','난이도','level'],
+      phonetic:['phonetic','발음','pronunciation'],
+      example: ['example','예문','예시','ex'],
+    };
+    Object.entries(map).forEach(([key, aliases]) => {
+      const idx = headers.findIndex(h => aliases.some(a => h.includes(a)));
+      if(idx >= 0) cols[key] = idx;
+    });
+  }
+
+  return dataLines.map(line => {
+    if(!line.trim()) return null;
+    const parts = splitCSVLine(line);
+    const word = (parts[cols.word]||'').trim().replace(/^["']|["']$/g,'');
+    const meaning = (parts[cols.meaning]||'').trim().replace(/^["']|["']$/g,'');
+    if(!word || !meaning) return null;
+    return {
+      en: word, ko: meaning,
+      pos: (parts[cols.pos]||'').trim().replace(/^["']|["']$/g,'') || 'noun',
+      difficulty: Number((parts[cols.difficulty]||'').trim()) || 2,
+      phonetic: (parts[cols.phonetic]||'').trim().replace(/^["']|["']$/g,''),
+      example:  (parts[cols.example]||'').trim().replace(/^["']|["']$/g,''),
+    };
+  }).filter(Boolean);
+}
+
+function splitCSVLine(line){
+  const result = [];
+  let cur = '', inQuote = false;
+  for(let i=0; i<line.length; i++){
+    const c = line[i];
+    if(c === '"' && !inQuote){ inQuote=true; continue; }
+    if(c === '"' && inQuote){ inQuote=false; continue; }
+    if(c === ',' && !inQuote){ result.push(cur); cur=''; continue; }
+    cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+// ── 직접 입력 파싱 ───────────────────────────────────
+function impParseText(){
+  const ta = document.getElementById('imp-text-input');
+  if(!ta) return;
+  const lines = ta.value.split('\n').filter(l=>l.trim());
+  impWords = lines.map(line => {
+    // "단어 = 뜻" 또는 "단어 : 뜻" 또는 "단어\t뜻" 또는 "단어 뜻"
+    const sep = line.includes('=') ? '=' : line.includes(':') ? ':' : line.includes('\t') ? '\t' : null;
+    let word, meaning;
+    if(sep){
+      const idx = line.indexOf(sep);
+      word    = line.slice(0, idx).trim();
+      meaning = line.slice(idx+1).trim();
+    } else {
+      const parts = line.trim().split(/\s+/);
+      word    = parts[0];
+      meaning = parts.slice(1).join(' ');
+    }
+    if(!word || !meaning) return null;
+    return { en: word, ko: meaning, pos: 'noun', difficulty: 2, phonetic: '', example: '' };
+  }).filter(Boolean);
+
+  const countEl = document.getElementById('imp-text-count');
+  if(countEl) countEl.textContent = impWords.length + '개 입력됨';
+}
+
+// ── URL 임포트 ───────────────────────────────────────
+async function impFetchUrl(){
+  const urlEl = document.getElementById('imp-url-input');
+  const statusEl = document.getElementById('imp-url-status');
+  if(!urlEl?.value.trim()){ if(statusEl) statusEl.textContent='URL을 입력해주세요'; return; }
+
+  const sheetsUrl = urlEl.value.trim();
+  // Google Sheets URL에서 ID 추출
+  const match = sheetsUrl.match(/\/d\/([\w-]+)/);
+  if(!match){ if(statusEl) statusEl.textContent='올바른 Google Sheets URL이 아니에요'; return; }
+
+  if(statusEl) statusEl.textContent = '⏳ 불러오는 중...';
+  const sheetId = match[1];
+  const csvUrl  = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+
+  try {
+    const res = await fetch(csvUrl);
+    if(!res.ok) throw new Error('공유 설정을 확인해주세요 (링크가 있는 모든 사용자)');
+    const text = await res.text();
+    impWords = parseCSV(text);
+    if(statusEl) statusEl.textContent = `✅ ${impWords.length}개 단어를 불러왔어요!`;
+    impShowPreview();
+  } catch(e){
+    if(statusEl) statusEl.textContent = '❌ 실패: ' + e.message;
+  }
+}
+
+// ── 미리보기 ─────────────────────────────────────────
+function impShowPreview(){
+  const previewEl = document.getElementById('imp-preview');
+  const listEl    = document.getElementById('imp-preview-list');
+  const infoEl    = document.getElementById('imp-preview-info');
+  if(!previewEl || !listEl) return;
+
+  if(!impWords.length){
+    impShowStatus('⚠️ 인식된 단어가 없어요. 형식을 확인해주세요.', 'warn');
+    return;
+  }
+
+  previewEl.style.display = 'block';
+  const show = impWords.slice(0, 5);
+  listEl.innerHTML = show.map((w, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;${i<show.length-1?'border-bottom:0.5px solid var(--bd)':''}">
+      <span style="font-size:13px;font-weight:500;color:var(--tx);flex:1">${w.en}</span>
+      <span style="font-size:12px;color:var(--tx2)">${w.ko}</span>
+      <span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--acc-l);color:var(--acc-d)">${w.pos}</span>
+    </div>`).join('');
+
+  if(infoEl) infoEl.textContent = `총 ${impWords.length}개 단어 · 상위 ${show.length}개 미리보기`;
+}
+
+// ── 저장 ─────────────────────────────────────────────
+async function impSave(){
+  // 현재 탭에 맞는 단어 수집
+  if(impMode === 'text') impParseText();
+
+  if(!impWords.length){
+    impShowStatus('⚠️ 저장할 단어가 없어요', 'warn');
+    return;
+  }
+
+  const sheetsUrl = getSheetsUrl();
+  if(!sheetsUrl){
+    impShowStatus('❌ Google Sheets를 먼저 연결해주세요', 'error');
+    return;
+  }
+
+  // 단어장 결정
+  const sel    = document.getElementById('imp-ws-select');
+  const nameEl = document.getElementById('imp-ws-name');
+  const btn    = document.getElementById('imp-save-btn');
+  let wsId     = sel?.value || 'default';
+  let wsName   = '';
+
+  if(wsId === 'new'){
+    wsName = nameEl?.value.trim();
+    if(!wsName){ impShowStatus('⚠️ 새 단어장 이름을 입력해주세요', 'warn'); return; }
+    // 새 단어장 생성
+    try {
+      const res = await sheetsPost({action:'createWordSet', name:wsName, color:'#7F77DD'});
+      if(res.error) throw new Error(res.error);
+      wsId = res.id;
+    } catch(e){
+      impShowStatus('❌ 단어장 생성 실패: '+e.message, 'error');
+      return;
+    }
+  }
+
+  btn.textContent = `저장 중... (0/${impWords.length})`;
+  btn.disabled = true;
+  impShowStatus('⏳ Sheets에 저장하는 중...', 'ok');
+
+  // 배치 저장 (50개씩)
+  const batchSize = 50;
+  let saved = 0;
+  try {
+    for(let i=0; i<impWords.length; i+=batchSize){
+      const batch = impWords.slice(i, i+batchSize);
+      const url = getSheetsUrl() + '?action=saveWords&wordSetId=' + wsId +
+                  '&wordsData=' + encodeURIComponent(JSON.stringify(batch));
+      const res = await fetch(url);
+      const data = await res.json();
+      if(data.error) throw new Error(data.error);
+      saved += data.saved || batch.length;
+      btn.textContent = `저장 중... (${saved}/${impWords.length})`;
+    }
+
+    impShowStatus(`✅ ${saved}개 단어를 저장했어요!`, 'ok');
+    btn.textContent = `✅ ${saved}개 저장 완료!`;
+    btn.style.background = 'var(--grn)';
+
+    // 캐시 초기화 + 단어장 목록 새로고침
+    localStorage.removeItem('vs-wslist-cache');
+    localStorage.removeItem('vs-stats-cache');
+
+    setTimeout(()=>{
+      closeImportModal();
+      loadWordSets(true);
+      btn.textContent = '단어 저장하기';
+      btn.style.background = 'var(--acc)';
+      btn.disabled = false;
+    }, 1500);
+
+  } catch(e){
+    impShowStatus('❌ 저장 실패: '+e.message, 'error');
+    btn.textContent = '단어 저장하기';
+    btn.disabled = false;
+  }
+}
+
+function impShowStatus(msg, type){
+  const el = document.getElementById('imp-status');
+  if(!el) return;
+  el.style.display = 'block';
+  const colors = {ok:'var(--grn-l)/var(--grn)', error:'var(--red-l)/var(--red)', warn:'var(--amb-l)/var(--amb)'};
+  const [bg, color] = (colors[type]||'var(--sf2)/var(--tx2)').split('/');
+  el.style.cssText = `display:block;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:10px;background:${bg};color:${color}`;
+  el.textContent = msg;
+}
+
+// ── 샘플 CSV 다운로드 ────────────────────────────────
+function downloadSample(){
+  const bom = '\uFEFF';
+  const csv = [
+    'word,meaning,pos,difficulty,phonetic,example',
+    'achieve,달성하다 이루다,verb,2,/əˈtʃiːv/,She achieved her goal.',
+    'ambiguous,모호한 애매한,adj,3,/æmˈbɪɡjuəs/,His answer was ambiguous.',
+    'flourish,번창하다,verb,2,/ˈflʌrɪʃ/,Plants flourish in warm weather.',
+    'inevitable,불가피한,adj,3,/ɪnˈevɪtəbl/,Change is inevitable.',
+    'negotiate,협상하다,verb,2,/nɪˈɡoʊʃieɪt/,They agreed to negotiate.',
+  ].join('\n');
+  const blob = new Blob([bom+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'vocasnap_sample.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 // ─────────────────────────────────────────────────────
 
