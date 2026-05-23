@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VocaSnap">
 <meta name="theme-color" content="#7F77DD">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>VocaSnap</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
@@ -708,7 +708,7 @@ tick(); setInterval(tick,10000);
 
 // ── PWA: SERVICE WORKER ──
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').then(r=>console.log('SW registered'));
+  navigator.serviceWorker.register('./sw.js').then(r=>console.log('SW registered'));
 }
 
 // ── PWA: INSTALL BANNER ──
