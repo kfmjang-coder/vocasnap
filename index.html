@@ -49,7 +49,7 @@ body{
 .scroll::-webkit-scrollbar{display:none}
 
 /* status bar */
-.sb{display:flex;justify-content:space-between;align-items:center;padding:12px 20px 6px;font-size:12px;color:var(--tx2);background:var(--sf);flex-shrink:0}
+.sb{display:flex;justify-content:space-between;align-items:center;padding:12px 20px 6px;font-size:12px;color:var(--tx2);background:var(--sf);flex-shrink:0;transition:all .3s}
 .sb-dark{background:var(--acc)!important;color:rgba(255,255,255,.8)!important}
 
 /* topbar */
@@ -228,7 +228,7 @@ body{
       <div class="dot on"></div><div class="dot"></div><div class="dot"></div>
     </div>
     <button class="ob-btn" id="ob-btn" onclick="obNext()">다음 →</button>
-    <div style="font-size:13px;color:rgba(255,255,255,.55);margin-top:14px;cursor:pointer" onclick="nav('s-home')">건너뛰기</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.55);margin-top:14px;cursor:pointer" onclick="(function(){document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));document.getElementById('s-home').classList.add('on');stack=['s-home'];const sb=document.getElementById('sb');if(sb)sb.classList.remove('hidden');setTimeout(()=>{try{loadHomeData();}catch(e){}},100);})()">건너뛰기</div>
   </div>
 </div>
 
@@ -908,10 +908,23 @@ function toggleTheme(){
 // ── ONBOARDING ──
 function obNext(){
   obStep++;
-  for(let i=0;i<3;i++) document.getElementById('ob-p'+i).style.display=i===obStep?'flex':'none';
+  if(obStep > 2){
+    // 온보딩 완료 → 홈으로 강제 이동
+    document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+    const home=document.getElementById('s-home');
+    if(home) home.classList.add('on');
+    stack=['s-home'];
+    const sb=document.getElementById('sb'); if(sb) sb.classList.remove('hidden');
+    setTimeout(()=>{ try{ loadHomeData(); }catch(e){} }, 100);
+    return;
+  }
+  for(let i=0;i<3;i++){
+    const el=document.getElementById('ob-p'+i);
+    if(el) el.style.display=i===obStep?'flex':'none';
+  }
   document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===obStep));
-  if(obStep>=2) document.getElementById('ob-btn').textContent='무료로 시작하기 →';
-  if(obStep>2) nav('s-home');
+  const btn=document.getElementById('ob-btn');
+  if(btn && obStep>=2) btn.textContent='무료로 시작하기 →';
 }
 
 // ── EXTRACT ──
@@ -1813,6 +1826,7 @@ async function showCreateWordSet() {
 
 // ── 홈 실시간 데이터 ────────────────────────────────
 async function loadHomeData() {
+  try { // 전체 오류 방지
   // localStorage 기반 오늘 학습 수치 먼저 표시 (빠름)
   const todayDone = Number(localStorage.getItem('vs-today-done') || 0);
   const dailyGoal = Number(localStorage.getItem('vs-daily-goal') || 30);
@@ -1885,9 +1899,10 @@ async function loadHomeData() {
     if(!wsRes.error && wsRes.wordSets) {
       renderHomeWordSetsDynamic(wsRes.wordSets);
     }
-  } catch(e) {
+    } catch(e) {
     console.warn('홈 데이터 로드 실패:', e);
   }
+  } catch(outerE) { console.warn('loadHomeData 오류:', outerE); }
 }
 
 function renderHomeWordSetsDynamic(wordSets) {
@@ -2126,6 +2141,9 @@ function renderWeekChart(){
 renderWeekChart();
 checkDailyReset();
 initGoalDisplay();
+// 온보딩 시작시 상태바 숨김
+const _initSb=document.getElementById("sb");
+if(_initSb && stack[0]==="s-ob") _initSb.style.display="none";
 
 </script>
 </body>
