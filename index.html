@@ -264,7 +264,10 @@ body{
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:6px"><span>진행률</span><span id="home-pct-txt">0%</span></div>
       <div class="pb-bg" style="margin-bottom:12px"><div class="pb-f" id="home-pct-bar" style="width:0%"></div></div>
-      <button class="cta" id="home-cta" onclick="nav('s-fc')"><i class="ti ti-player-play" style="font-size:16px"></i> 이어서 학습하기</button>
+      <button class="cta" id="home-cta" onclick="nav('s-fc')">
+        <i class="ti ti-player-play" id="home-cta-icon" style="font-size:16px"></i>
+        <span id="home-cta-txt"> 이어서 학습하기</span>
+      </button>
     </div>
     <div class="sh"><span class="st">내 단어장</span><span class="sl2" onclick="nav('s-wslist')">전체 보기 →</span></div>
     <div id="home-wslist">
@@ -290,7 +293,7 @@ body{
     <div class="sh" style="margin-top:4px"><span class="st">복습 알림</span></div>
     <div class="rev-card" onclick="nav('s-fc')">
       <i class="ti ti-brain" style="font-size:26px;color:var(--acc)"></i>
-      <div style="flex:1"><div id="home-due-txt" style="font-size:14px;font-weight:500;color:var(--acc-d);margin-bottom:3px">망각 직전 단어 --개</div><div style="font-size:12px;color:var(--acc)">지금 복습하면 장기 기억 전환 가능!</div></div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--acc-d);margin-bottom:3px">망각 직전 단어 <span id="home-due-num">--</span>개</div><div style="font-size:12px;color:var(--acc)">지금 복습하면 장기 기억 전환 가능!</div></div>
       <i class="ti ti-chevron-right" style="font-size:18px;color:var(--acc)"></i>
     </div>
     <div class="sh"><span class="st">이번 주 통계</span></div>
@@ -1865,12 +1868,16 @@ async function loadHomeData() {
     setText('home-pct-txt', pct + '%');
     setTimeout(()=>{ const b=document.getElementById('home-pct-bar'); if(b) b.style.width=pct+'%'; }, 100);
 
-    // CTA 버튼
+    // CTA 버튼 - innerHTML 누적 방지, 텍스트만 교체
     const remaining = Math.max(0, dailyGoal - todayDone);
-    const cta = document.getElementById('home-cta');
-    if(cta) cta.innerHTML = remaining > 0
-      ? `<i class="ti ti-player-play" style="font-size:16px"></i> 이어서 학습하기 (${remaining}개 남음)`
-      : `<i class="ti ti-check" style="font-size:16px"></i> 오늘 목표 달성! 🎉`;
+    const ctaTxt  = document.getElementById('home-cta-txt');
+    const ctaIcon = document.getElementById('home-cta-icon');
+    if(ctaTxt) ctaTxt.textContent = remaining > 0
+      ? ` 이어서 학습하기 (${remaining}개 남음)`
+      : ` 오늘 목표 달성! 🎉`;
+    if(ctaIcon) ctaIcon.className = remaining > 0
+      ? 'ti ti-player-play'
+      : 'ti ti-check';
 
     // 스트릭 배너
     if(streak > 0) {
@@ -1908,7 +1915,7 @@ async function loadHomeData() {
       setText('home-total-delta', '전체 ' + total + '개 중');
       setText('home-rate',        ratePct + '%');
       setText('home-rate-delta',  '암기 진행률');
-      setText('home-due-txt',     '망각 직전 단어 ' + due + '개');
+      setText('home-due-num', due);
       setText('profile-mastered', mastered);
       setText('profile-rate',     ratePct + '%');
 
