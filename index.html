@@ -1103,11 +1103,17 @@ function simulateCapture(){
 
 
 
-const EXTRACT_PROMPT = `이 이미지에서 영어 단어를 모두 추출해줘.
-각 단어에 대해 아래 형식의 JSON 배열로만 반환해. 다른 텍스트 없이 JSON만:
-[{"en":"단어","ko":"한국어 뜻(핵심만, 2개 이내)","pos":"noun|verb|adj|adv","difficulty":1}]
-difficulty: 1=쉬움(중학), 2=보통(수능), 3=어려움(고급)
-중복 제거, 영어 단어만, 숫자/기호 제외.`;
+const EXTRACT_PROMPT = `이 이미지에서 영어 단어를 추출해줘.
+
+응답 규칙:
+- 반드시 JSON 배열만 반환 (설명, 마크다운 코드블록 없이)
+- 형식: [{"en":"word","ko":"한국어 뜻","pos":"noun","difficulty":2}]
+- pos는 noun/verb/adj/adv 중 하나
+- difficulty: 1=중학, 2=수능, 3=고급
+- 영어 단어만 추출, 중복 제거, 숫자/기호 제외
+- 예시: [{"en":"achieve","ko":"달성하다","pos":"verb","difficulty":2}]
+
+JSON 배열만 출력:`;
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_API   = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -1252,11 +1258,33 @@ async function handleImageFile(e){
     const data = await res.json();
     const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
 
-    // JSON 파싱
+    // JSON 파싱 (마크다운, 싱글쿼트, 불필요 텍스트 모두 처리)
     status.textContent = '결과 정리 중';
     prog.style.width = '90%';
-    const cleaned = raw.replace(/```json|```/g, '').trim();
-    const words   = JSON.parse(cleaned);
+
+    let cleaned = raw
+      .replace(/```json/gi, '')   // ```json 제거
+      .replace(/```/g, '')         // ``` 제거
+      .replace(/'/g, '"')          // 싱글쿼트 → 더블쿼트
+      .trim();
+
+    // 배열 부분만 추출 (앞뒤 텍스트 제거)
+    const arrMatch = cleaned.match(/\[.*\]/s);
+    if(arrMatch) cleaned = arrMatch[0];
+
+    // JSON 파싱 실패시 빈 배열로 fallback
+    let words;
+    try {
+      words = JSON.parse(cleaned);
+    } catch(parseErr) {
+      console.error('JSON 파싱 실패, raw:', raw);
+      // 재시도: 각 객체를 개별 파싱
+      const objMatches = cleaned.match(/\{[^{}]+\}/g) || [];
+      words = objMatches.map(obj => {
+        try { return JSON.parse(obj); } catch(e) { return null; }
+      }).filter(Boolean);
+      if(words.length === 0) throw new Error('단어를 찾을 수 없어요. 영어 단어가 보이는 이미지를 사용해주세요.');
+    }
 
     // extractWords 전역 배열 업데이트
     EW.length = 0;
