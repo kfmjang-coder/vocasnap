@@ -734,7 +734,7 @@ body{
     <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
       <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
         <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">📅</span><div><div style="font-size:14px;color:var(--tx)">하루 목표 단어</div><div style="font-size:12px;color:var(--tx2)">매일 학습할 단어 수</div></div></div>
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:500;color:var(--acc)" id="goal-val">30개</span><span style="color:var(--tx3)">›</span></div>
+        <div style="display:flex;align-items:center;gap:8px" onclick="setDailyGoal()"><span style="font-size:14px;font-weight:500;color:var(--acc)" id="goal-val">30개</span><span style="color:var(--tx3)">›</span></div>
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
         <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔔</span><div><div style="font-size:14px;color:var(--tx)">복습 알림</div><div style="font-size:12px;color:var(--tx2)">오전 9시, 오후 8시</div></div></div>
@@ -754,7 +754,7 @@ body{
         <span style="font-size:18px">🤖</span><div style="flex:1" onclick="openApiModal()"><div style="font-size:14px;color:var(--tx)">Gemini API 키 설정</div><div style="font-size:12px;color:var(--tx2)">Google Gemini (무료)</div></div><span data-api-badge style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미설정</span>
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer">
-        <span style="font-size:18px">📤</span><div style="flex:1"><div style="font-size:14px;color:var(--tx)">데이터 내보내기</div><div style="font-size:12px;color:var(--tx2)">CSV로 백업</div></div><span style="color:var(--tx3)">›</span>
+        <span style="font-size:18px">📤</span><div style="flex:1" onclick="exportCSV()"><div style="font-size:14px;color:var(--tx)">데이터 내보내기</div><div style="font-size:12px;color:var(--tx2)">CSV로 백업</div></div><span style="color:var(--tx3)">›</span>
       </div>
     </div>
     <div class="sh"><span class="st">앱 정보</span></div>
@@ -763,7 +763,7 @@ body{
       <div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="font-size:14px;color:var(--tx)">만든 곳</span><span style="font-size:14px;color:var(--tx2)">VocaSnap Team</span></div>
     </div>
     <div style="margin:0 16px 24px">
-      <button style="width:100%;padding:13px;background:var(--red-l);color:var(--red);border:0.5px solid var(--red);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">로그아웃</button>
+      <button onclick="logout()" style="width:100%;padding:13px;background:var(--red-l);color:var(--red);border:0.5px solid var(--red);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">로그아웃</button>
     </div>
   </div>
   <div class="nav">
@@ -879,6 +879,7 @@ function nav(id){
   if(id==='s-quiz') qStart();
   if(id==='s-stats') loadStats();
   if(id==='s-wslist') loadWordSets();
+  if(id==='s-home') loadHomeData();
   if(id==='s-extract') renderExtract();
   if(id==='s-fc') fcRender();
 }
@@ -1423,16 +1424,28 @@ async function saveWordsToSheets(wordSetId){
   const btn=document.getElementById('savbtn');
   const origText=btn.textContent;
   btn.textContent='저장 중...';btn.disabled=true;
+
+  // 단어장 ID 결정 (currentWordSet 있으면 사용)
+  const wsId = (currentWordSet?.id) || wordSetId || 'default';
+
   try{
-    const res=await sheetsPost({action:'saveWords',words:selected,wordSetId:wordSetId||'default'});
-    if(res.error) throw new Error(res.error);
-    btn.textContent=`✅ ${res.saved}개 저장 완료!`;
+    // GET 방식으로 저장 (CORS 우회) - 단어를 base64 인코딩해서 전달
+    const wordsParam = encodeURIComponent(JSON.stringify(selected));
+    const url = getSheetsUrl() + '?action=saveWords&wordSetId=' + wsId + '&wordsData=' + wordsParam;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+
+    btn.textContent=`✅ ${data.saved}개 저장 완료!`;
     btn.style.background='var(--grn)';
+    // 캐시 무효화
+    localStorage.removeItem('vs-wslist-cache');
+    localStorage.removeItem('vs-stats-cache');
     setTimeout(()=>{btn.textContent=origText;btn.style.background='var(--acc)';btn.disabled=false;nav('s-wslist');},1500);
   }catch(e){
     btn.textContent='❌ 저장 실패';btn.style.background='var(--red)';
     setTimeout(()=>{btn.textContent=origText;btn.style.background='var(--acc)';btn.disabled=false;},2500);
-    alert('저장 실패: '+e.message);
+    alert('저장 실패: '+e.message+'\n\nApps Script를 재배포해보세요.');
   }
 }
 async function saveReviewToSheets(wordId,sm2Result){
@@ -1740,6 +1753,236 @@ async function showCreateWordSet() {
 }
 // ─────────────────────────────────────────────────────
 
+
+// ── 홈 실시간 데이터 ────────────────────────────────
+async function loadHomeData() {
+  const url = getSheetsUrl();
+  if(!url) return;
+
+  // 캐시 활용 (stats)
+  const cached = localStorage.getItem('vs-stats-cache');
+  let stats;
+  if(cached) {
+    const {data, ts} = JSON.parse(cached);
+    if(Date.now() - ts < 5*60*1000) stats = data;
+  }
+  if(!stats) {
+    try { stats = await sheetsGet('getStats'); } catch(e) { return; }
+  }
+  if(!stats || stats.error) return;
+
+  // 오늘 학습 현황
+  const dueToday = stats.dueToday || 0;
+  const mastered = stats.mastered || 0;
+  const total    = stats.total || 0;
+
+  // 복습 배너 업데이트
+  const revTitle = document.querySelector('#s-home .rev-card div div:first-child');
+  if(revTitle && dueToday >= 0) revTitle.textContent = `망각 직전 단어 ${dueToday}개`;
+
+  // 홈 통계 카드 업데이트
+  const statVals = document.querySelectorAll('#s-home .sc .scv');
+  if(statVals[0]) statVals[0].textContent = mastered;              // 총 암기 단어
+  if(statVals[3]) statVals[3].textContent = total > 0 ? Math.round((mastered/total)*100)+'%' : '--%'; // 정답률 대신 진행률
+
+  // 오늘 목표 vs 완료 (localStorage 기반)
+  const todayDone = Number(localStorage.getItem('vs-today-done') || 0);
+  const dailyGoal = Number(localStorage.getItem('vs-daily-goal') || 30);
+  const pct = Math.min(100, Math.round((todayDone / dailyGoal) * 100));
+
+  // 홈 진행률 바
+  const progFill = document.querySelector('#s-home .pb-f');
+  if(progFill) progFill.style.width = pct + '%';
+
+  // 홈 오늘의 학습 수치
+  const homeStatVals = document.querySelectorAll('#s-home .card .sv');
+  if(homeStatVals[0]) homeStatVals[0].textContent = todayDone;
+  if(homeStatVals[1]) homeStatVals[1].textContent = dailyGoal;
+
+  // 남은 단어 수 버튼 업데이트
+  const ctaBtn = document.querySelector('#s-home .cta');
+  const remaining = Math.max(0, dailyGoal - todayDone);
+  if(ctaBtn && remaining > 0) ctaBtn.innerHTML = `<i class="ti ti-player-play" style="font-size:16px"></i> 이어서 학습하기 (${remaining}개 남음)`;
+  else if(ctaBtn) ctaBtn.innerHTML = `<i class="ti ti-check" style="font-size:16px"></i> 오늘 목표 달성! 🎉`;
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── 하루 목표 설정 ──────────────────────────────────
+function setDailyGoal() {
+  const current = localStorage.getItem('vs-daily-goal') || '30';
+  const input = prompt('하루 목표 단어 수를 입력해주세요 (1~100):', current);
+  if(input === null) return;
+  const val = parseInt(input);
+  if(isNaN(val) || val < 1 || val > 100) { alert('1~100 사이 숫자를 입력해주세요'); return; }
+  localStorage.setItem('vs-daily-goal', String(val));
+  const el = document.getElementById('goal-val');
+  if(el) el.textContent = val + '개';
+  // 홈 목표도 업데이트
+  const homeStatVals = document.querySelectorAll('#s-home .card .sv');
+  if(homeStatVals[1]) homeStatVals[1].textContent = val;
+}
+
+function initGoalDisplay() {
+  const val = localStorage.getItem('vs-daily-goal') || '30';
+  const el = document.getElementById('goal-val');
+  if(el) el.textContent = val + '개';
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── CSV 내보내기 ────────────────────────────────────
+async function exportCSV() {
+  const url = getSheetsUrl();
+  if(!url) { alert('Google Sheets를 먼저 연결해주세요'); return; }
+
+  try {
+    const res = await sheetsGet('getWords');
+    if(res.error) throw new Error(res.error);
+    const words = res.words || [];
+    if(!words.length) { alert('내보낼 단어가 없어요'); return; }
+
+    const headers = ['단어', '뜻', '품사', '난이도', '발음기호', '예문', '상태', '복습횟수', '다음복습일'];
+    const rows = words.map(w => [
+      w.word || w.en || '',
+      w.meaning || w.ko || '',
+      w.pos || '',
+      w.difficulty || '',
+      w.phonetic || '',
+      (w.example || '').replace(/,/g, '；'),
+      w.status || '',
+      w.reviewCount || 0,
+      w.nextReview || '',
+    ]);
+
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(','))
+      .join('\n');
+
+    const bom = '\uFEFF'; // UTF-8 BOM (Excel 한글 깨짐 방지)
+    const blob = new Blob([bom + csv], {type: 'text/csv;charset=utf-8;'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `vocasnap_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    alert(`✅ ${words.length}개 단어를 CSV로 내보냈어요!`);
+  } catch(e) {
+    alert('내보내기 실패: ' + e.message);
+  }
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── 로그아웃 ────────────────────────────────────────
+function logout() {
+  if(!confirm('로그아웃 하면 저장된 API 키와 설정이 모두 삭제돼요.\n계속할까요?')) return;
+  const keysToRemove = [
+    'vs-gemini-key', 'vs-sheets-url', 'vs-installed',
+    'vs-dark', 'vs-daily-goal', 'vs-today-done',
+    'vs-stats-cache', 'vs-wslist-cache',
+  ];
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+  alert('로그아웃 됐어요. 앱을 다시 시작해주세요.');
+  // 온보딩으로 이동
+  document.querySelectorAll('.scr').forEach(s => s.classList.remove('on'));
+  document.getElementById('s-ob').classList.add('on');
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── SM-2 망각 곡선 알고리즘 ────────────────────────
+function sm2(card, quality) {
+  // quality: 5=완벽, 4=좋음, 3=어려웠지만 맞음, 2=틀렸지만 기억남, 1=틀림, 0=완전모름
+  let { easeFactor = 2.5, interval = 1, repetitions = 0 } = card;
+
+  if(quality >= 3) {
+    if(repetitions === 0) interval = 1;
+    else if(repetitions === 1) interval = 6;
+    else interval = Math.round(interval * easeFactor);
+    repetitions += 1;
+  } else {
+    repetitions = 0;
+    interval = 1;
+  }
+
+  easeFactor = Math.max(1.3, easeFactor + 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+  easeFactor = Math.round(easeFactor * 1000) / 1000;
+
+  const nextDate = new Date();
+  nextDate.setDate(nextDate.getDate() + interval);
+
+  const status = interval >= 21 ? 'mastered' : repetitions > 0 ? 'review' : 'learning';
+
+  return {
+    easeFactor, interval, repetitions, status,
+    lastReviewed: new Date().toISOString(),
+    nextReview: nextDate.toISOString().split('T')[0],
+  };
+}
+
+// 플래시카드 알아요/몰라요 → SM-2 저장
+async function recordFlashcardResult(wordId, knew) {
+  const quality = knew ? 4 : 1;
+  const result = sm2({}, quality);
+  await saveReviewToSheets(wordId, result);
+
+  // 오늘 학습 카운트 증가
+  if(knew) {
+    const done = Number(localStorage.getItem('vs-today-done') || 0) + 1;
+    localStorage.setItem('vs-today-done', String(done));
+    // 통계 캐시 무효화
+    localStorage.removeItem('vs-stats-cache');
+  }
+}
+
+// 퀴즈 정답률 → quality 변환
+function answerToQuality(isCorrect, timeTakenMs) {
+  if(!isCorrect) return timeTakenMs < 5000 ? 1 : 0;
+  if(timeTakenMs < 3000) return 5;
+  if(timeTakenMs < 6000) return 4;
+  return 3;
+}
+
+// 오늘 날짜 자정 리셋
+function checkDailyReset() {
+  const lastDate = localStorage.getItem('vs-last-date');
+  const today = new Date().toISOString().split('T')[0];
+  if(lastDate !== today) {
+    localStorage.setItem('vs-today-done', '0');
+    localStorage.setItem('vs-last-date', today);
+  }
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── TTS 발음 듣기 ────────────────────────────────────
+function speakWord(word) {
+  if(!word || !window.speechSynthesis) {
+    alert('이 브라우저에서는 발음 듣기가 지원되지 않아요');
+    return;
+  }
+  window.speechSynthesis.cancel(); // 기존 발음 중지
+  const utter = new SpeechSynthesisUtterance(word);
+  utter.lang = 'en-US';
+  utter.rate = 0.85;
+  utter.pitch = 1;
+
+  // 영어 목소리 우선 선택
+  const voices = window.speechSynthesis.getVoices();
+  const enVoice = voices.find(v => v.lang.startsWith('en'));
+  if(enVoice) utter.voice = enVoice;
+
+  window.speechSynthesis.speak(utter);
+}
+
+// 단어장 상세에서도 단어 클릭시 발음
+function speakWordFromList(word) {
+  speakWord(word);
+}
+// ─────────────────────────────────────────────────────
+
 function renderWeekChart(){
   const chart=document.getElementById('week-chart');
   const days=document.getElementById('week-days');
@@ -1755,6 +1998,8 @@ function renderWeekChart(){
   days.innerHTML=labels.map(l=>`<span style="flex:1;text-align:center;font-size:11px;color:var(--tx2)">${l}</span>`).join('');
 }
 renderWeekChart();
+checkDailyReset();
+initGoalDisplay();
 
 </script>
 </body>
