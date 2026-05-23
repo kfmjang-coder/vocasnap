@@ -445,8 +445,8 @@ body{
     <button class="bk" onclick="back()"><i class="ti ti-arrow-left"></i></button>
     <span class="ttl">내 단어장</span>
     <div style="display:flex;gap:8px">
-      <div style="width:36px;height:36px;border-radius:18px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-search" style="color:var(--tx2);font-size:18px"></i></div>
-      <div style="width:36px;height:36px;border-radius:18px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-plus" style="color:var(--tx2);font-size:18px"></i></div>
+      <div onclick="loadWordSets(true)" style="width:36px;height:36px;border-radius:18px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-refresh" style="color:var(--tx2);font-size:18px"></i></div>
+      <div onclick="showCreateWordSet()" style="width:36px;height:36px;border-radius:18px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-plus" style="color:var(--tx2);font-size:18px"></i></div>
     </div>
   </div>
   <div class="scroll" id="wslist-scroll">
@@ -513,17 +513,22 @@ body{
   <div class="wdhero" style="padding-top:calc(env(safe-area-inset-top,0px) + 16px)">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
       <button class="bk" style="background:rgba(255,255,255,.2);border:none" onclick="back()"><i class="ti ti-arrow-left" style="color:#fff"></i></button>
-      <span style="font-size:16px;font-weight:500;color:#fff;flex:1">수능 필수 1800</span>
+      <span id="wsd-title" style="font-size:16px;font-weight:500;color:#fff;flex:1">단어장</span>
       <div style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-dots" style="color:#fff;font-size:18px"></i></div>
     </div>
     <div class="wdstats">
-      <div class="wdst"><div style="font-size:22px;font-weight:500">520</div><div style="font-size:11px;opacity:.75;margin-top:2px">완료</div></div>
-      <div class="wdst"><div style="font-size:22px;font-weight:500">238</div><div style="font-size:11px;opacity:.75;margin-top:2px">학습 중</div></div>
-      <div class="wdst"><div style="font-size:22px;font-weight:500">1042</div><div style="font-size:11px;opacity:.75;margin-top:2px">미학습</div></div>
+      <div class="wdst"><div id="wsd-mastered" style="font-size:22px;font-weight:500">--</div><div style="font-size:11px;opacity:.75;margin-top:2px">완료</div></div>
+      <div class="wdst"><div id="wsd-learning" style="font-size:22px;font-weight:500">--</div><div style="font-size:11px;opacity:.75;margin-top:2px">학습 중</div></div>
+      <div class="wdst"><div id="wsd-new" style="font-size:22px;font-weight:500">--</div><div style="font-size:11px;opacity:.75;margin-top:2px">미학습</div></div>
     </div>
   </div>
   <div class="scroll">
-    <div style="padding:14px 16px 8px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:6px"><span>진행률</span><span>29%</span></div><div class="pb-bg"><div class="pb-f" style="width:29%"></div></div></div>
+    <div style="padding:14px 16px 8px">
+  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:6px">
+    <span>진행률</span><span id="wsd-pct">--%</span>
+  </div>
+  <div class="pb-bg"><div class="pb-f" id="wsd-pct-bar" style="width:0%"></div></div>
+</div>
     <div class="sh"><span class="st">학습 모드 선택</span></div>
     <div class="mgrid">
       <div class="mcard" onclick="nav('s-fc')"><i class="ti ti-cards" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">플래시카드</div><div style="font-size:11px;color:var(--tx2)">앞뒤 뒤집기</div></div>
@@ -531,12 +536,6 @@ body{
       <div class="mcard" onclick="nav('s-fc')"><i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">복습 모드</div><div style="font-size:11px;color:var(--tx2)">망각 곡선 기반</div></div>
       <div class="mcard"><i class="ti ti-pencil" style="font-size:22px;color:var(--amb);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">받아쓰기</div><div style="font-size:11px;color:var(--tx2)">직접 입력</div></div>
     </div>
-    <div class="sh"><span class="st">단어 목록</span><span class="sl2">필터</span></div>
-    <div class="wrow"><div class="wdot" style="background:var(--grn)"></div><div style="flex:1;font-size:14px;font-weight:500;color:var(--tx)">achieve</div><div style="font-size:12px;color:var(--tx2)">달성하다 <span style="color:var(--grn);font-size:11px">✓ 암기</span></div></div>
-    <div class="wrow"><div class="wdot" style="background:var(--grn)"></div><div style="flex:1;font-size:14px;font-weight:500;color:var(--tx)">ambiguous</div><div style="font-size:12px;color:var(--tx2)">모호한 <span style="color:var(--grn);font-size:11px">✓ 암기</span></div></div>
-    <div class="wrow"><div class="wdot" style="background:var(--red)"></div><div style="flex:1;font-size:14px;font-weight:500;color:var(--tx)">circumstance</div><div style="font-size:12px;color:var(--tx2)">상황, 환경 <span style="color:var(--red);font-size:11px">✗ 복습</span></div></div>
-    <div class="wrow"><div class="wdot" style="background:var(--tx3)"></div><div style="flex:1;font-size:14px;font-weight:500;color:var(--tx)">deduce</div><div style="font-size:12px;color:var(--tx2)">추론하다 <span style="color:var(--tx3);font-size:11px">미학습</span></div></div>
-    <div class="wrow" style="border:none"><div class="wdot" style="background:var(--tx3)"></div><div style="flex:1;font-size:14px;font-weight:500;color:var(--tx)">eloquent</div><div style="font-size:12px;color:var(--tx2)">웅변적인 <span style="color:var(--tx3);font-size:11px">미학습</span></div></div>
     <div style="height:20px"></div>
   </div>
 </div>
@@ -872,22 +871,8 @@ body{
 // WORDS: Sheets에서 로드된 단어 (초기엔 빈 배열)
 let WORDS = [];
 let FC_WORDSET_ID = null; // 현재 학습 중인 단어장 ID
-const DIST=['근본적인, 기본적인','달성하다, 이루다','망설이다, 주저하다','조종하다, 다루다','이성적인, 합리적인','지루한, 싫증나는','인식하다, 감지하다','진짜의, 진실한','불가피한, 필연적인'];
-const EW=[
-  {en:'achieve',ko:'달성하다',pos:'verb',checked:true},{en:'ambiguous',ko:'모호한',pos:'adj',checked:true},
-  {en:'circumstance',ko:'상황, 환경',pos:'noun',checked:true},{en:'deduce',ko:'추론하다',pos:'verb',checked:true},
-  {en:'eloquent',ko:'웅변적인',pos:'adj',checked:true},{en:'flourish',ko:'번창하다',pos:'verb',checked:true},
-  {en:'fundamental',ko:'근본적인',pos:'adj',checked:true},{en:'genuine',ko:'진짜의',pos:'adj',checked:true},
-  {en:'hesitate',ko:'망설이다',pos:'verb',checked:true},{en:'inevitable',ko:'불가피한',pos:'adj',checked:true},
-  {en:'justify',ko:'정당화하다',pos:'verb',checked:true},{en:'keen',ko:'예리한',pos:'adj',checked:true},
-  {en:'lenient',ko:'관대한',pos:'adj',checked:true},{en:'manipulate',ko:'조종하다',pos:'verb',checked:true},
-  {en:'negotiate',ko:'협상하다',pos:'verb',checked:true},{en:'obvious',ko:'명백한',pos:'adj',checked:true},
-  {en:'perceive',ko:'인식하다',pos:'verb',checked:true},{en:'quite',ko:'꽤, 상당히',pos:'adv',checked:false},
-  {en:'rational',ko:'이성적인',pos:'adj',checked:true},{en:'skeptical',ko:'회의적인',pos:'adj',checked:true},
-  {en:'tedious',ko:'지루한',pos:'adj',checked:true},{en:'undertake',ko:'착수하다',pos:'verb',checked:true},
-  {en:'vivid',ko:'생생한',pos:'adj',checked:true},{en:'wane',ko:'약해지다',pos:'verb',checked:true},
-  {en:'yield',ko:'산출하다',pos:'verb',checked:false},
-];
+const DIST=[]; // Sheets 단어 로드 후 채워짐
+const EW = []; // Gemini API 추출 결과가 채워짐
 
 // ── STATE ──
 let stack=['s-ob'],obStep=0,isDark=false,allChecked=false;
@@ -1876,51 +1861,94 @@ function renderHomeWordSets(wordSets) {
 }
 
 function openWordSet(id, name, total, done) {
-  currentWordSet = {id, name, total, done};
-  // 상세 화면 헤더 업데이트
-  const titleEl = document.querySelector('#s-wsd .wdhero span');
-  if(titleEl) titleEl.textContent = name;
-  const stats = document.querySelectorAll('#s-wsd .wdst div:first-child');
-  if(stats[0]) stats[0].textContent = done;
-  if(stats[2]) stats[2].textContent = Math.max(0, total - done);
-  const progEl = document.querySelector('#s-wsd .pb-f');
-  const pct = total > 0 ? Math.round((done/total)*100) : 0;
-  if(progEl) progEl.style.width = pct + '%';
+  currentWordSet = {id, name, total: Number(total)||0, done: Number(done)||0};
+  FC_WORDSET_ID = id;
+  WORDS = []; // 단어장 변경 시 초기화
+
+  // 상세 화면 즉시 업데이트
+  setText('wsd-title',   name || '단어장');
+  setText('wsd-mastered', done || 0);
+  setText('wsd-new',      Math.max(0, (Number(total)||0) - (Number(done)||0)));
+  setText('wsd-learning', '--');
+  setText('wsd-pct',     total > 0 ? Math.round((done/total)*100)+'%' : '0%');
+  const bar = document.getElementById('wsd-pct-bar');
+  if(bar) bar.style.width = (total > 0 ? Math.round((done/total)*100) : 0) + '%';
+
+  // 단어목록 로딩 표시
+  const listEl = document.getElementById('wsd-wordlist');
+  if(listEl) listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--tx3);font-size:13px">불러오는 중...</div>';
+
   nav('s-wsd');
   // 단어 목록 비동기 로드
-  loadWordListForSet(id);
+  setTimeout(() => loadWordListForSet(id), 50);
 }
 
 async function loadWordListForSet(wordSetId) {
   const url = getSheetsUrl();
-  if(!url) return;
+  const listEl = document.getElementById('wsd-wordlist');
+  if(!url) {
+    if(listEl) listEl.innerHTML = '<div style="padding:16px;text-align:center;font-size:13px;color:var(--tx2)">Google Sheets 연동 후 단어 목록이 표시돼요</div>';
+    return;
+  }
   try {
     const res = await sheetsGet('getWords', {wordSetId});
-    if(res.error || !res.words?.length) return;
-    renderWordListInDetail(res.words);
-  } catch(e) { console.warn('단어 목록 로드 실패:', e); }
+    if(res.error) throw new Error(res.error);
+
+    const words = res.words || [];
+    // WORDS 배열도 업데이트 (플래시카드/퀴즈용)
+    WORDS = words.map(w => ({
+      id: w.id, en: w.word||w.en||'', ko: w.meaning||w.ko||'',
+      pos: w.pos||'', ph: w.phonetic||'', ex: w.example||'',
+    })).filter(w => w.en);
+    // 퀴즈 오답지 갱신
+    DIST.length = 0;
+    WORDS.forEach(w => { if(w.ko) DIST.push(w.ko); });
+
+    // 통계 업데이트
+    const mastered = words.filter(w=>w.status==='mastered').length;
+    const learning = words.filter(w=>['learning','review'].includes(w.status)).length;
+    const newW     = words.filter(w=>w.status==='new').length;
+    const pct      = words.length>0 ? Math.round((mastered/words.length)*100) : 0;
+    setText('wsd-mastered', mastered);
+    setText('wsd-learning', learning);
+    setText('wsd-new',      newW);
+    setText('wsd-pct',      pct+'%');
+    setText('wsd-word-count', words.length+'개');
+    const bar = document.getElementById('wsd-pct-bar');
+    if(bar) setTimeout(()=>bar.style.width=pct+'%', 100);
+
+    renderWordListInDetail(words);
+  } catch(e) {
+    console.warn('단어 목록 로드 실패:', e);
+    if(listEl) listEl.innerHTML = `<div style="padding:16px;text-align:center;font-size:13px;color:var(--red)">로드 실패: ${e.message}</div>`;
+  }
 }
 
 function renderWordListInDetail(words) {
-  const listEl = document.querySelector('#s-wsd [style*="border-radius:14px;border:0.5px solid var(--bd);overflow:hidden"]');
+  const listEl = document.getElementById('wsd-wordlist');
   if(!listEl) return;
 
-  const dotColor = {mastered:'var(--grn)', learning:'var(--amb)', review:'var(--amb)', new:'var(--tx3)'};
-  const statusLabel = {mastered:'✓ 암기', learning:'학습 중', review:'복습 필요', new:'미학습'};
-  const statusColor = {mastered:'var(--grn)', learning:'var(--amb)', review:'var(--red)', new:'var(--tx3)'};
+  const dotColor   = {mastered:'var(--grn)',learning:'var(--amb)',review:'var(--amb)',new:'var(--tx3)'};
+  const statusLabel= {mastered:'✓ 암기',learning:'학습 중',review:'복습',new:'미학습'};
+  const statusColor= {mastered:'var(--grn)',learning:'var(--amb)',review:'var(--red)',new:'var(--tx3)'};
 
-  listEl.innerHTML = words.slice(0, 20).map((w, i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;${i<words.length-1?'border-bottom:0.5px solid var(--bd)':''}">
+  if(!words.length){
+    listEl.innerHTML='<div style="padding:20px;text-align:center;color:var(--tx3);font-size:13px">단어가 없어요</div>';
+    return;
+  }
+
+  const show = words.slice(0, 30);
+  listEl.innerHTML = show.map((w,i) => `
+    <div onclick="speakWord('${(w.word||w.en||'').replace(/'/g,"\'")}'')" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;${i<show.length-1?'border-bottom:0.5px solid var(--bd)':''}">
       <div style="width:8px;height:8px;border-radius:4px;flex-shrink:0;background:${dotColor[w.status]||'var(--tx3)'}"></div>
-      <div style="flex:1;font-size:14px;font-weight:500;color:var(--tx)">${w.word||w.en}</div>
-      <div style="font-size:12px;color:var(--tx2)">${w.meaning||w.ko||''}
-        <span style="font-size:11px;color:${statusColor[w.status]||'var(--tx3)'}">${statusLabel[w.status]||'미학습'}</span>
+      <div style="flex:1;font-size:14px;font-weight:500;color:var(--tx)">${w.word||w.en||''}</div>
+      <div style="font-size:12px;color:var(--tx2);text-align:right">${w.meaning||w.ko||''}
+        <span style="display:block;font-size:11px;color:${statusColor[w.status]||'var(--tx3)'}">${statusLabel[w.status]||'미학습'}</span>
       </div>
     </div>`).join('');
 
-  if(words.length > 20) {
-    listEl.innerHTML += `<div style="padding:10px 16px;text-align:center;font-size:12px;color:var(--tx2)">외 ${words.length-20}개 더...</div>`;
-  }
+  if(words.length > 30)
+    listEl.innerHTML += `<div style="padding:10px;text-align:center;font-size:12px;color:var(--acc);cursor:pointer">외 ${words.length-30}개 더 있어요</div>`;
 }
 
 async function showCreateWordSet() {
@@ -2252,6 +2280,31 @@ function speakWord(word) {
 // 단어장 상세에서도 단어 클릭시 발음
 function speakWordFromList(word) {
   speakWord(word);
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── 내정보 로드 ──────────────────────────────────────
+async function loadProfile() {
+  // 로컬 데이터 즉시 표시
+  const streak   = Number(localStorage.getItem('vs-streak')     || 0);
+  const goal     = Number(localStorage.getItem('vs-daily-goal') || 30);
+
+  setText('profile-streak', streak > 0 ? streak+'일' : '--');
+  setText('goal-val', goal+'개');
+
+  // Sheets 통계
+  const url = getSheetsUrl();
+  if(!url) return;
+  try {
+    const stats = await sheetsGet('getStats').catch(()=>null);
+    if(!stats || stats.error) return;
+    const total    = stats.total || 0;
+    const mastered = stats.mastered || 0;
+    const pct      = total > 0 ? Math.round((mastered/total)*100) : 0;
+    setText('profile-mastered', mastered);
+    setText('profile-rate',     pct+'%');
+  } catch(e) {}
 }
 // ─────────────────────────────────────────────────────
 
