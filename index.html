@@ -718,7 +718,7 @@ body{
         <span style="font-size:18px">📊</span><div style="flex:1" onclick="openSheetsModal()"><div style="font-size:14px;color:var(--tx)">Google Sheets 연동</div><div style="font-size:12px;color:var(--tx2)">단어 DB 저장소</div></div><span data-sheets-badge style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미연결</span>
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid var(--bd);cursor:pointer">
-        <span style="font-size:18px">🤖</span><div style="flex:1" onclick="openApiModal()"><div style="font-size:14px;color:var(--tx)">Claude API 키 설정</div><div style="font-size:12px;color:var(--tx2)">단어 자동 추출 AI</div></div><span data-api-badge style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미설정</span>
+        <span style="font-size:18px">🤖</span><div style="flex:1" onclick="openApiModal()"><div style="font-size:14px;color:var(--tx)">Gemini API 키 설정</div><div style="font-size:12px;color:var(--tx2)">Google Gemini (무료)</div></div><span data-api-badge style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미설정</span>
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer">
         <span style="font-size:18px">📤</span><div style="flex:1"><div style="font-size:14px;color:var(--tx)">데이터 내보내기</div><div style="font-size:12px;color:var(--tx2)">CSV로 백업</div></div><span style="color:var(--tx3)">›</span>
@@ -774,16 +774,16 @@ body{
 <div id="api-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center">
   <div style="background:var(--sf);border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:430px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <div style="font-size:16px;font-weight:500;color:var(--tx)">Claude API 키 설정</div>
+      <div style="font-size:16px;font-weight:500;color:var(--tx)">Gemini API 키 설정</div>
       <div onclick="closeApiModal()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i></div>
     </div>
     <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:16px">
-      <div style="font-size:12px;color:var(--acc-d);line-height:1.6"><i class="ti ti-info-circle" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>API 키는 기기에만 저장되며 외부로 전송되지 않아요. <a href="https://console.anthropic.com" target="_blank" style="color:var(--acc);text-decoration:none;font-weight:500">console.anthropic.com</a>에서 발급받으세요.</div>
+      <div style="font-size:12px;color:var(--acc-d);line-height:1.6"><i class="ti ti-info-circle" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>API 키는 기기에만 저장되며 외부로 전송되지 않아요. <a href="https://aistudio.google.com" target="_blank" style="color:var(--acc);text-decoration:none;font-weight:500">aistudio.google.com</a>에서 무료로 발급받으세요.</div>
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">API 키</div>
       <div style="position:relative">
-        <input id="api-key-input" type="password" placeholder="sk-ant-api03-..." style="width:100%;padding:12px 44px 12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none">
+        <input id="api-key-input" type="password" placeholder="AIza..." style="width:100%;padding:12px 44px 12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none">
         <div onclick="toggleApiKeyVisible()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2)"><i class="ti ti-eye" id="eye-icon" style="font-size:18px"></i></div>
       </div>
     </div>
@@ -1100,8 +1100,8 @@ function simulateCapture(){
 
 
 // ── Claude Vision API ──────────────────────────────
-const CLAUDE_MODEL = 'claude-opus-4-5';
-const CLAUDE_API   = 'https://api.anthropic.com/v1/messages';
+
+
 
 const EXTRACT_PROMPT = `이 이미지에서 영어 단어를 모두 추출해줘.
 각 단어에 대해 아래 형식의 JSON 배열로만 반환해. 다른 텍스트 없이 JSON만:
@@ -1109,8 +1109,11 @@ const EXTRACT_PROMPT = `이 이미지에서 영어 단어를 모두 추출해줘
 difficulty: 1=쉬움(중학), 2=보통(수능), 3=어려움(고급)
 중복 제거, 영어 단어만, 숫자/기호 제외.`;
 
+const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_API   = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+
 function getApiKey(){
-  return localStorage.getItem('vs-claude-key') || '';
+  return localStorage.getItem('vs-gemini-key') || '';
 }
 
 function openApiModal(){
@@ -1137,8 +1140,8 @@ function toggleApiKeyVisible(){
 function saveApiKey(){
   const key = document.getElementById('api-key-input').value.trim();
   if(!key){ showApiStatus('API 키를 입력해주세요', 'error'); return; }
-  if(!key.startsWith('sk-ant-')){ showApiStatus('올바른 API 키 형식이 아니에요 (sk-ant-로 시작)', 'error'); return; }
-  localStorage.setItem('vs-claude-key', key);
+  if(!key.startsWith('AIza')){ showApiStatus('올바른 API 키 형식이 아니에요 (AIza로 시작)', 'error'); return; }
+  localStorage.setItem('vs-gemini-key', key);
   showApiStatus('✅ 저장됐어요!', 'ok');
   updateApiKeyBadge(true);
   setTimeout(closeApiModal, 1200);
@@ -1160,13 +1163,17 @@ async function testApiKey(){
   if(!key){ showApiStatus('API 키를 먼저 입력해주세요', 'error'); return; }
   showApiStatus('⏳ 연결 테스트 중...', 'ok');
   try {
-    const res = await fetch(CLAUDE_API, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body: JSON.stringify({model:CLAUDE_MODEL,max_tokens:10,messages:[{role:'user',content:'hi'}]})
+    const url = GEMINI_API + '?key=' + key;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: 'hello' }] }],
+        generationConfig: { maxOutputTokens: 5 }
+      })
     });
-    if(res.ok){ showApiStatus('✅ 연결 성공! API 키가 유효해요', 'ok'); }
-    else { const d=await res.json(); showApiStatus('❌ '+( d.error?.message||'연결 실패'), 'error'); }
+    if(res.ok){ showApiStatus('✅ 연결 성공! Gemini API 키가 유효해요', 'ok'); }
+    else { const d=await res.json(); showApiStatus('❌ '+(d.error?.message||'연결 실패'), 'error'); }
   } catch(e){ showApiStatus('❌ 네트워크 오류: '+e.message, 'error'); }
 }
 function updateApiKeyBadge(connected){
@@ -1194,7 +1201,7 @@ async function handleImageFile(e){
   const key = getApiKey();
   if(!key){
     // API 키 없으면 설정 유도
-    if(confirm('Claude API 키가 필요해요.\n지금 설정하러 갈까요?')){
+    if(confirm('Gemini API 키가 필요해요. (무료)\n지금 설정하러 갈까요?')){
       nav('s-profile');
       setTimeout(openApiModal, 400);
     }
@@ -1215,28 +1222,22 @@ async function handleImageFile(e){
     const base64 = await fileToBase64(file);
     const mediaType = file.type || 'image/jpeg';
 
-    // Claude API 호출
-    status.textContent = 'Claude AI 분석 중';
+    // Gemini Vision API 호출
+    status.textContent = 'Gemini AI 분석 중';
     prog.style.width = '40%';
 
-    const res = await fetch(CLAUDE_API, {
+    const url = GEMINI_API + '?key=' + key;
+    const res = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 4096,
-        messages: [{
-          role: 'user',
-          content: [
-            { type:'image', source:{ type:'base64', media_type: mediaType, data: base64 } },
-            { type:'text',  text: EXTRACT_PROMPT }
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: mediaType, data: base64 } },
+            { text: EXTRACT_PROMPT }
           ]
-        }]
+        }],
+        generationConfig: { maxOutputTokens: 4096, temperature: 0.1 }
       })
     });
 
@@ -1249,7 +1250,7 @@ async function handleImageFile(e){
     }
 
     const data = await res.json();
-    const raw  = data.content[0]?.text || '[]';
+    const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
 
     // JSON 파싱
     status.textContent = '결과 정리 중';
@@ -1271,7 +1272,7 @@ async function handleImageFile(e){
 
   } catch(err) {
     overlay.style.display = 'none';
-    alert('단어 추출 실패: ' + err.message + '\n\nAPI 키를 확인하거나 다시 시도해주세요.');
+    alert('단어 추출 실패: ' + err.message + '\n\nGemini API 키를 확인하거나 다시 시도해주세요.');
   }
 }
 
