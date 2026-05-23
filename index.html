@@ -228,7 +228,7 @@ body{
       <div class="dot on"></div><div class="dot"></div><div class="dot"></div>
     </div>
     <button class="ob-btn" id="ob-btn" onclick="obNext()">다음 →</button>
-    <div style="font-size:13px;color:rgba(255,255,255,.55);margin-top:14px;cursor:pointer" onclick="nav('s-home','home')">건너뛰기</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.55);margin-top:14px;cursor:pointer" onclick="nav('s-home')">건너뛰기</div>
   </div>
 </div>
 
@@ -270,7 +270,24 @@ body{
     </div>
     <div class="sh"><span class="st">내 단어장</span><span class="sl2" onclick="nav('s-wslist')">전체 보기 →</span></div>
     <div id="home-wslist">
-      <div style="padding:20px;text-align:center;color:var(--tx3);font-size:13px">단어장 로딩 중...</div>
+      <div class="ws" onclick="nav('s-wslist')">
+        <div class="wsic" style="background:var(--acc-l)"><i class="ti ti-books" style="color:var(--acc);font-size:20px"></i></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:2px">내 단어장 보기</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:4px">Sheets 연동 후 자동 표시</div>
+          <div class="wbar"><div class="wbf" style="width:0%;background:var(--acc)"></div></div>
+        </div>
+        <div><i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3)"></i></div>
+      </div>
+      <div class="ws" onclick="nav('s-cam')">
+        <div class="wsic" style="background:var(--amb-l)"><i class="ti ti-camera-plus" style="color:var(--amb);font-size:20px"></i></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:2px">단어 촬영하기</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:4px">사진 찍어 단어 추가</div>
+          <div class="wbar"><div class="wbf" style="width:0%;background:var(--amb)"></div></div>
+        </div>
+        <div><i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3)"></i></div>
+      </div>
     </div>
     <div class="sh" style="margin-top:4px"><span class="st">복습 알림</span></div>
     <div class="rev-card" onclick="nav('s-fc')">
@@ -288,9 +305,9 @@ body{
     <div style="height:20px"></div>
   </div>
   <div class="nav">
-    <div class="ni on" onclick="nav('s-home','home')"><i class="ti ti-home"></i><span>홈</span></div>
-    <div class="ni" onclick="nav('s-wslist','wslist')"><i class="ti ti-books"></i><span>단어장</span></div>
-    <div class="ni" onclick="nav('s-cam','cam')"><i class="ti ti-camera-plus"></i><span>촬영</span></div>
+    <div class="ni on" onclick="nav('s-home')"><i class="ti ti-home"></i><span>홈</span></div>
+    <div class="ni" onclick="nav('s-wslist')"><i class="ti ti-books"></i><span>단어장</span></div>
+    <div class="ni" onclick="nav('s-cam')"><i class="ti ti-camera-plus"></i><span>촬영</span></div>
     <div class="ni" onclick="nav('s-stats')"><i class="ti ti-chart-bar"></i><span>통계</span></div>
     <div class="ni" onclick="nav('s-profile')"><i class="ti ti-user"></i><span>내 정보</span></div>
   </div>
@@ -462,9 +479,9 @@ body{
 
   </div>
   <div class="nav">
-    <div class="ni" onclick="nav('s-home','home')"><i class="ti ti-home"></i><span>홈</span></div>
+    <div class="ni" onclick="nav('s-home')"><i class="ti ti-home"></i><span>홈</span></div>
     <div class="ni on"><i class="ti ti-books"></i><span>단어장</span></div>
-    <div class="ni" onclick="nav('s-cam','cam')"><i class="ti ti-camera-plus"></i><span>촬영</span></div>
+    <div class="ni" onclick="nav('s-cam')"><i class="ti ti-camera-plus"></i><span>촬영</span></div>
     <div class="ni" onclick="nav('s-stats')"><i class="ti ti-chart-bar"></i><span>통계</span></div>
     <div class="ni" onclick="nav('s-profile')"><i class="ti ti-user"></i><span>내 정보</span></div>
   </div>
@@ -587,7 +604,7 @@ body{
     </div>
     <button class="savbtn" style="margin-bottom:10px" onclick="qRestart()">다시 풀기</button>
     <button class="savbtn" style="background:var(--sf2);color:var(--tx2);margin-bottom:10px;border:0.5px solid var(--bd)" onclick="nav('s-fc')">틀린 단어 복습하기</button>
-    <button class="savbtn" style="background:var(--sf2);color:var(--tx2);border:0.5px solid var(--bd)" onclick="nav('s-home','home')">홈으로 돌아가기</button>
+    <button class="savbtn" style="background:var(--sf2);color:var(--tx2);border:0.5px solid var(--bd)" onclick="nav('s-home')">홈으로 돌아가기</button>
     <div style="height:20px"></div>
   </div>
 </div>
@@ -874,9 +891,11 @@ function nav(id){
 function back(){
   if(stack.length<=1) return;
   stack.pop();
-  const prev=stack[stack.length-1];
+  const prev=stack[stack.length-1]||'s-home';
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
-  document.getElementById(prev).classList.add('on');
+  const el=document.getElementById(prev);
+  if(el) el.classList.add('on');
+  else { document.getElementById('s-home').classList.add('on'); }
 }
 
 // ── THEME ──
@@ -1834,9 +1853,7 @@ async function loadHomeData() {
   // Sheets에서 실제 통계 비동기 로드
   const url = getSheetsUrl();
   if(!url) {
-    // 미연결시 홈 단어장 빈 안내
-    const wsEl = document.getElementById('home-wslist');
-    if(wsEl) wsEl.innerHTML = '<div style="padding:16px;text-align:center"><div style="font-size:13px;color:var(--tx2);margin-bottom:10px">Google Sheets 연결 후 단어장이 표시돼요</div><button onclick="nav('s-profile');setTimeout(openSheetsModal,400)" style="padding:8px 16px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">지금 연결하기</button></div>';
+    // Sheets 미연결 - 로컬 데이터만으로 홈 업데이트 (단어장은 기본 카드 유지)
     return;
   }
 
