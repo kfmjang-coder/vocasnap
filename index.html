@@ -303,33 +303,94 @@ body{
     <div class="ni on" onclick="nav('s-home','home')"><i class="ti ti-home"></i><span>홈</span></div>
     <div class="ni" onclick="nav('s-wslist','wslist')"><i class="ti ti-books"></i><span>단어장</span></div>
     <div class="ni" onclick="nav('s-cam','cam')"><i class="ti ti-camera-plus"></i><span>촬영</span></div>
-    <div class="ni" onclick="nav('s-home','home')"><i class="ti ti-chart-bar"></i><span>통계</span></div>
-    <div class="ni" onclick="nav('s-home','home')"><i class="ti ti-user"></i><span>내 정보</span></div>
+    <div class="ni" onclick="nav('s-stats')"><i class="ti ti-chart-bar"></i><span>통계</span></div>
+    <div class="ni" onclick="nav('s-profile')"><i class="ti ti-user"></i><span>내 정보</span></div>
   </div>
 </div>
 
 <!-- ══ CAMERA ══ -->
 <div class="scr" id="s-cam">
-  <div class="tbar"><button class="bk" onclick="back()"><i class="ti ti-arrow-left"></i></button><span class="ttl">단어 촬영</span></div>
-  <div class="scroll">
-    <div class="vf">
-      <div style="font-size:12px;color:rgba(255,255,255,.3);text-align:center;line-height:2;position:relative;z-index:1">vocabulary<br>achieve · ambiguous<br>circumstance · deduce<br>eloquent · flourish</div>
+  <!-- 탭 전환: 카메라 / 갤러리 -->
+  <div style="background:var(--sf);display:flex;flex-direction:column;flex-shrink:0">
+    <div class="tbar"><button class="bk" onclick="back()"><i class="ti ti-arrow-left"></i></button><span class="ttl">단어 촬영</span>
+      <div style="width:36px;height:36px;border-radius:18px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="toggleFlash()"><i class="ti ti-bolt" id="flash-icon" style="font-size:18px;color:var(--tx2)"></i></div>
+    </div>
+    <div style="display:flex;border-bottom:0.5px solid var(--bd)">
+      <div id="tab-cam" onclick="camTab('cam')" style="flex:1;text-align:center;padding:10px;font-size:13px;font-weight:500;color:var(--acc);border-bottom:2px solid var(--acc);cursor:pointer">카메라</div>
+      <div id="tab-gallery" onclick="camTab('gallery')" style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--tx2);border-bottom:2px solid transparent;cursor:pointer">갤러리</div>
+    </div>
+  </div>
+
+  <!-- 카메라 탭 -->
+  <div id="cam-panel" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div class="vf" style="margin:12px 16px;flex-shrink:0">
+      <div style="font-size:12px;color:rgba(255,255,255,.28);text-align:center;line-height:2;position:relative;z-index:1">vocabulary<br>achieve · ambiguous<br>circumstance · deduce<br>eloquent · flourish</div>
       <div class="corner tl2"></div><div class="corner tr2"></div><div class="corner bl2"></div><div class="corner br2"></div>
       <div class="scanline"></div>
+      <div style="position:absolute;top:12px;left:12px;background:rgba(0,0,0,.45);border-radius:20px;padding:3px 10px;font-size:11px;color:#fff" id="flash-badge">플래시 꺼짐</div>
       <div style="position:absolute;bottom:14px;font-size:12px;color:rgba(255,255,255,.5)">단어장을 프레임 안에 맞춰주세요</div>
     </div>
-    <div style="display:flex;justify-content:space-around;align-items:center;padding:20px 24px">
-      <div class="sbtn"><i class="ti ti-photo" style="font-size:20px"></i></div>
-      <div class="shut" onclick="nav('s-extract')"><i class="ti ti-camera" style="font-size:26px;color:#fff"></i></div>
-      <div class="sbtn"><i class="ti ti-bolt" style="font-size:20px"></i></div>
+    <div style="display:flex;justify-content:space-around;align-items:center;padding:14px 24px;flex-shrink:0">
+      <div class="sbtn" onclick="camTab('gallery')"><i class="ti ti-photo" style="font-size:20px"></i></div>
+      <div class="shut" onclick="simulateCapture()"><i class="ti ti-camera" style="font-size:26px;color:#fff"></i></div>
+      <div class="sbtn" onclick="toggleFlash()"><i class="ti ti-rotate-clockwise" style="font-size:20px"></i></div>
     </div>
-    <div style="margin:0 16px 12px;background:var(--acc-l);border-radius:12px;padding:12px 16px">
-      <div style="font-size:12px;font-weight:500;color:var(--acc-d);margin-bottom:6px"><i class="ti ti-bulb" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>촬영 팁</div>
-      <div style="font-size:12px;color:var(--acc-d);display:flex;gap:6px;align-items:flex-start;margin-bottom:4px"><i class="ti ti-check" style="font-size:12px;margin-top:1px;flex-shrink:0"></i>밝은 곳에서 촬영하면 인식률이 높아요</div>
-      <div style="font-size:12px;color:var(--acc-d);display:flex;gap:6px;align-items:flex-start;margin-bottom:4px"><i class="ti ti-check" style="font-size:12px;margin-top:1px;flex-shrink:0"></i>흔들림 없이 찍어요</div>
-      <div style="font-size:12px;color:var(--acc-d);display:flex;gap:6px;align-items:flex-start"><i class="ti ti-check" style="font-size:12px;margin-top:1px;flex-shrink:0"></i>한 페이지씩 찍어요</div>
+    <div style="flex:1;overflow-y:auto;padding:0 16px 16px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:8px">최근 촬영</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">
+        <div onclick="simulateCapture()" style="width:72px;height:72px;border-radius:10px;background:#1a1a2e;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--acc)">
+          <i class="ti ti-file-text" style="font-size:22px;color:rgba(255,255,255,.4)"></i>
+        </div>
+        <div onclick="simulateCapture()" style="width:72px;height:72px;border-radius:10px;background:#1a2230;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <i class="ti ti-file-text" style="font-size:22px;color:rgba(255,255,255,.3)"></i>
+        </div>
+        <div onclick="simulateCapture()" style="width:72px;height:72px;border-radius:10px;background:#1e1a2e;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <i class="ti ti-file-text" style="font-size:22px;color:rgba(255,255,255,.3)"></i>
+        </div>
+        <div style="width:72px;height:72px;border-radius:10px;border:1.5px dashed var(--bd);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--tx3)">
+          <i class="ti ti-plus" style="font-size:22px"></i>
+        </div>
+      </div>
+      <div style="margin-top:14px;background:var(--acc-l);border-radius:12px;padding:12px 16px">
+        <div style="font-size:12px;font-weight:500;color:var(--acc-d);margin-bottom:6px"><i class="ti ti-bulb" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>촬영 팁</div>
+        <div style="font-size:12px;color:var(--acc-d);display:flex;gap:6px;margin-bottom:3px"><i class="ti ti-check" style="font-size:12px;margin-top:1px;flex-shrink:0"></i>밝은 곳에서 촬영하면 인식률이 높아요</div>
+        <div style="font-size:12px;color:var(--acc-d);display:flex;gap:6px;margin-bottom:3px"><i class="ti ti-check" style="font-size:12px;margin-top:1px;flex-shrink:0"></i>단어가 잘 보이도록 흔들림 없이 찍어요</div>
+        <div style="font-size:12px;color:var(--acc-d);display:flex;gap:6px"><i class="ti ti-check" style="font-size:12px;margin-top:1px;flex-shrink:0"></i>한 페이지씩 찍으면 정확도가 올라가요</div>
+      </div>
     </div>
-    <div style="height:20px"></div>
+  </div>
+
+  <!-- 갤러리 탭 -->
+  <div id="gallery-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+    <div style="flex:1;overflow-y:auto;padding:12px 16px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:10px">사진첩에서 선택</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:14px">
+        <div onclick="simulateCapture()" style="aspect-ratio:1;background:#1a1a2e;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-file-text" style="font-size:24px;color:rgba(255,255,255,.4)"></i></div>
+        <div onclick="simulateCapture()" style="aspect-ratio:1;background:#1a2230;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-file-text" style="font-size:24px;color:rgba(255,255,255,.3)"></i></div>
+        <div onclick="simulateCapture()" style="aspect-ratio:1;background:#1e1a2e;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-file-text" style="font-size:24px;color:rgba(255,255,255,.3)"></i></div>
+        <div onclick="simulateCapture()" style="aspect-ratio:1;background:#12202e;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-file-text" style="font-size:24px;color:rgba(255,255,255,.3)"></i></div>
+        <div onclick="simulateCapture()" style="aspect-ratio:1;background:#201a2e;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-file-text" style="font-size:24px;color:rgba(255,255,255,.3)"></i></div>
+        <div onclick="simulateCapture()" style="aspect-ratio:1;background:#1a2020;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-file-text" style="font-size:24px;color:rgba(255,255,255,.3)"></i></div>
+      </div>
+      <div style="background:var(--sf2);border-radius:12px;padding:14px;text-align:center">
+        <div style="font-size:32px;margin-bottom:8px">📂</div>
+        <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:4px">파일 직접 선택</div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">PDF, JPG, PNG 지원</div>
+        <button onclick="simulateCapture()" style="padding:10px 24px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">파일 선택</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 처리 중 오버레이 -->
+  <div id="ai-loading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.7);z-index:50;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+    <div style="width:64px;height:64px;border-radius:18px;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:28px">🤖</div>
+    <div style="text-align:center">
+      <div style="font-size:16px;font-weight:500;color:#fff;margin-bottom:6px">AI가 단어를 추출하는 중...</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.7)" id="ai-status">이미지 분석 중</div>
+    </div>
+    <div style="width:200px;height:4px;border-radius:2px;background:rgba(255,255,255,.2);overflow:hidden">
+      <div id="ai-prog" style="height:100%;background:var(--acc);border-radius:2px;width:0%;transition:width .3s"></div>
+    </div>
   </div>
 </div>
 
@@ -381,8 +442,8 @@ body{
     <div class="ni" onclick="nav('s-home','home')"><i class="ti ti-home"></i><span>홈</span></div>
     <div class="ni on"><i class="ti ti-books"></i><span>단어장</span></div>
     <div class="ni" onclick="nav('s-cam','cam')"><i class="ti ti-camera-plus"></i><span>촬영</span></div>
-    <div class="ni"><i class="ti ti-chart-bar"></i><span>통계</span></div>
-    <div class="ni"><i class="ti ti-user"></i><span>내 정보</span></div>
+    <div class="ni" onclick="nav('s-stats')"><i class="ti ti-chart-bar"></i><span>통계</span></div>
+    <div class="ni" onclick="nav('s-profile')"><i class="ti ti-user"></i><span>내 정보</span></div>
   </div>
 </div>
 
@@ -505,6 +566,122 @@ body{
     <button class="savbtn" style="background:var(--sf2);color:var(--tx2);margin-bottom:10px;border:0.5px solid var(--bd)" onclick="nav('s-fc')">틀린 단어 복습하기</button>
     <button class="savbtn" style="background:var(--sf2);color:var(--tx2);border:0.5px solid var(--bd)" onclick="nav('s-home','home')">홈으로 돌아가기</button>
     <div style="height:20px"></div>
+  </div>
+</div>
+
+
+<!-- ══ STATS ══ -->
+<div class="scr" id="s-stats">
+  <div class="tbar" style="background:var(--sf)"><button class="bk" onclick="back()"><i class="ti ti-arrow-left"></i></button><span class="ttl">학습 통계</span></div>
+  <div class="scroll">
+    <div style="margin:0 16px 14px;background:var(--acc);border-radius:16px;padding:18px;color:#fff">
+      <div style="font-size:12px;opacity:.75;margin-bottom:6px">이번 달 총 학습</div>
+      <div style="font-size:36px;font-weight:500;margin-bottom:4px">312단어</div>
+      <div style="display:flex;gap:6px;align-items:center"><span style="font-size:13px;opacity:.8">지난달 대비</span><span style="background:rgba(255,255,255,.2);border-radius:20px;padding:2px 10px;font-size:12px">↑ 48개 증가</span></div>
+    </div>
+    <div class="sh"><span class="st">이번 주 학습 현황</span></div>
+    <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;padding:16px;border:0.5px solid var(--bd)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;height:90px;margin-bottom:8px;gap:4px">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px"><div style="width:100%;border-radius:4px 4px 0 0;background:var(--acc-l)" style="height:40%"></div></div>
+      </div>
+      <div id="week-chart" style="display:flex;align-items:flex-end;gap:6px;height:90px;margin-bottom:8px"></div>
+      <div id="week-days" style="display:flex;justify-content:space-between"></div>
+    </div>
+    <div class="sh"><span class="st">학습 요약</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px;margin-bottom:14px">
+      <div style="background:var(--sf2);border-radius:10px;padding:14px"><div style="font-size:18px;margin-bottom:6px">🔥</div><div style="font-size:20px;font-weight:500;color:var(--tx)">12일</div><div style="font-size:11px;color:var(--tx2)">연속 학습 스트릭</div></div>
+      <div style="background:var(--sf2);border-radius:10px;padding:14px"><div style="font-size:18px;margin-bottom:6px">⏱</div><div style="font-size:20px;font-weight:500;color:var(--tx)">3h 42m</div><div style="font-size:11px;color:var(--tx2)">이번 주 학습 시간</div></div>
+      <div style="background:var(--sf2);border-radius:10px;padding:14px"><div style="font-size:18px;margin-bottom:6px">🎯</div><div style="font-size:20px;font-weight:500;color:var(--tx)">88%</div><div style="font-size:11px;color:var(--tx2)">평균 정답률</div></div>
+      <div style="background:var(--sf2);border-radius:10px;padding:14px"><div style="font-size:18px;margin-bottom:6px">📚</div><div style="font-size:20px;font-weight:500;color:var(--tx)">693개</div><div style="font-size:11px;color:var(--tx2)">총 암기 완료</div></div>
+    </div>
+    <div class="sh"><span class="st">복습 현황</span></div>
+    <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:0.5px solid var(--bd)">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--grn-l);display:flex;align-items:center;justify-content:center;font-size:18px">✅</div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--tx)">암기 완료</div><div style="font-size:12px;color:var(--tx2)">장기 기억 전환됨</div></div>
+        <div style="font-size:18px;font-weight:500;color:var(--grn)">520</div>
+      </div>
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:0.5px solid var(--bd)">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--amb-l);display:flex;align-items:center;justify-content:center;font-size:18px">🔄</div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--tx)">복습 필요</div><div style="font-size:12px;color:var(--tx2)">망각 직전 단어</div></div>
+        <div style="font-size:18px;font-weight:500;color:var(--amb)">42</div>
+      </div>
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--sf2);display:flex;align-items:center;justify-content:center;font-size:18px">📖</div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--tx)">미학습</div><div style="font-size:12px;color:var(--tx2)">아직 시작 안 함</div></div>
+        <div style="font-size:18px;font-weight:500;color:var(--tx2)">1,463</div>
+      </div>
+    </div>
+    <div style="height:20px"></div>
+  </div>
+  <div class="nav">
+    <div class="ni" onclick="nav('s-home')"><i class="ti ti-home"></i><span>홈</span></div>
+    <div class="ni" onclick="nav('s-wslist')"><i class="ti ti-books"></i><span>단어장</span></div>
+    <div class="ni" onclick="nav('s-cam')"><i class="ti ti-camera-plus"></i><span>촬영</span></div>
+    <div class="ni on"><i class="ti ti-chart-bar"></i><span>통계</span></div>
+    <div class="ni" onclick="nav('s-profile')"><i class="ti ti-user"></i><span>내 정보</span></div>
+  </div>
+</div>
+
+<!-- ══ PROFILE ══ -->
+<div class="scr" id="s-profile">
+  <div class="scroll">
+    <div style="background:var(--acc);padding:40px 20px 24px;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="width:80px;height:80px;border-radius:40px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:36px">👤</div>
+      <div style="text-align:center">
+        <div style="font-size:20px;font-weight:500;color:#fff">민준 학생</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px">minjun@email.com</div>
+      </div>
+      <div style="display:flex;gap:20px;margin-top:4px">
+        <div style="text-align:center"><div style="font-size:18px;font-weight:500;color:#fff">12일</div><div style="font-size:11px;color:rgba(255,255,255,.7)">스트릭</div></div>
+        <div style="width:0.5px;background:rgba(255,255,255,.3)"></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:500;color:#fff">312</div><div style="font-size:11px;color:rgba(255,255,255,.7)">암기 단어</div></div>
+        <div style="width:0.5px;background:rgba(255,255,255,.3)"></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:500;color:#fff">88%</div><div style="font-size:11px;color:rgba(255,255,255,.7)">정답률</div></div>
+      </div>
+    </div>
+    <div class="sh" style="margin-top:16px"><span class="st">학습 설정</span></div>
+    <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
+      <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">📅</span><div><div style="font-size:14px;color:var(--tx)">하루 목표 단어</div><div style="font-size:12px;color:var(--tx2)">매일 학습할 단어 수</div></div></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:500;color:var(--acc)" id="goal-val">30개</span><span style="color:var(--tx3)">›</span></div>
+      </div>
+      <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔔</span><div><div style="font-size:14px;color:var(--tx)">복습 알림</div><div style="font-size:12px;color:var(--tx2)">오전 9시, 오후 8시</div></div></div>
+        <div id="notif-toggle" onclick="toggleSwitch('notif-toggle')" style="width:44px;height:26px;border-radius:13px;background:var(--acc);cursor:pointer;position:relative;transition:background .2s"><div id="notif-thumb" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:10px;background:#fff;transition:all .2s"></div></div>
+      </div>
+      <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🌙</span><div><div style="font-size:14px;color:var(--tx)">다크 모드</div><div style="font-size:12px;color:var(--tx2)">시스템 설정 따름</div></div></div>
+        <div id="dark-toggle" onclick="toggleSwitch('dark-toggle')" style="width:44px;height:26px;border-radius:13px;background:var(--sf2);border:0.5px solid var(--bd);cursor:pointer;position:relative;transition:background .2s"><div id="dark-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:10px;background:var(--tx3);transition:all .2s"></div></div>
+      </div>
+    </div>
+    <div class="sh"><span class="st">연동 설정</span></div>
+    <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid var(--bd);cursor:pointer">
+        <span style="font-size:18px">📊</span><div style="flex:1"><div style="font-size:14px;color:var(--tx)">Google Sheets 연동</div><div style="font-size:12px;color:var(--tx2)">단어 DB 저장소</div></div><span style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미연결</span>
+      </div>
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid var(--bd);cursor:pointer">
+        <span style="font-size:18px">🤖</span><div style="flex:1"><div style="font-size:14px;color:var(--tx)">Claude API 키 설정</div><div style="font-size:12px;color:var(--tx2)">단어 자동 추출 AI</div></div><span style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미설정</span>
+      </div>
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer">
+        <span style="font-size:18px">📤</span><div style="flex:1"><div style="font-size:14px;color:var(--tx)">데이터 내보내기</div><div style="font-size:12px;color:var(--tx2)">CSV로 백업</div></div><span style="color:var(--tx3)">›</span>
+      </div>
+    </div>
+    <div class="sh"><span class="st">앱 정보</span></div>
+    <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
+      <div style="padding:14px 16px;display:flex;justify-content:space-between;border-bottom:0.5px solid var(--bd)"><span style="font-size:14px;color:var(--tx)">버전</span><span style="font-size:14px;color:var(--tx2)">1.0.0</span></div>
+      <div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="font-size:14px;color:var(--tx)">만든 곳</span><span style="font-size:14px;color:var(--tx2)">VocaSnap Team</span></div>
+    </div>
+    <div style="margin:0 16px 24px">
+      <button style="width:100%;padding:13px;background:var(--red-l);color:var(--red);border:0.5px solid var(--red);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">로그아웃</button>
+    </div>
+  </div>
+  <div class="nav">
+    <div class="ni" onclick="nav('s-home')"><i class="ti ti-home"></i><span>홈</span></div>
+    <div class="ni" onclick="nav('s-wslist')"><i class="ti ti-books"></i><span>단어장</span></div>
+    <div class="ni" onclick="nav('s-cam')"><i class="ti ti-camera-plus"></i><span>촬영</span></div>
+    <div class="ni" onclick="nav('s-stats')"><i class="ti ti-chart-bar"></i><span>통계</span></div>
+    <div class="ni on"><i class="ti ti-user"></i><span>내 정보</span></div>
   </div>
 </div>
 
@@ -756,6 +933,78 @@ if(localStorage.getItem('vs-dark')==='1'){isDark=true;document.body.classList.ad
 
 // ── INIT ──
 renderExtract(); fcRender();
+
+function toggleSwitch(id){
+  const el=document.getElementById(id);
+  const thumb=document.getElementById(id.replace('toggle','thumb'));
+  const isOn=el.style.background===getComputedStyle(document.documentElement).getPropertyValue('--acc').trim()||el.style.background.includes('7F77DD');
+  if(isOn){
+    el.style.background='var(--sf2)';
+    if(thumb){thumb.style.left='3px';thumb.style.right='auto';}
+  } else {
+    el.style.background='var(--acc)';
+    if(thumb){thumb.style.right='3px';thumb.style.left='auto';}
+  }
+}
+
+
+function camTab(tab){
+  const isCam = tab==='cam';
+  document.getElementById('cam-panel').style.display = isCam?'flex':'none';
+  document.getElementById('gallery-panel').style.display = isCam?'none':'flex';
+  document.getElementById('tab-cam').style.cssText += isCam
+    ?';color:var(--acc);border-bottom:2px solid var(--acc)'
+    :';color:var(--tx2);border-bottom:2px solid transparent';
+  document.getElementById('tab-gallery').style.cssText += isCam
+    ?';color:var(--tx2);border-bottom:2px solid transparent'
+    :';color:var(--acc);border-bottom:2px solid var(--acc)';
+}
+
+let flashOn = false;
+function toggleFlash(){
+  flashOn = !flashOn;
+  document.getElementById('flash-badge').textContent = flashOn ? '플래시 켜짐' : '플래시 꺼짐';
+  document.getElementById('flash-icon').style.color = flashOn ? '#EF9F27' : 'var(--tx2)';
+}
+
+function simulateCapture(){
+  const overlay = document.getElementById('ai-loading');
+  overlay.style.display = 'flex';
+  const prog = document.getElementById('ai-prog');
+  const status = document.getElementById('ai-status');
+  const steps = ['이미지 분석 중','단어 경계 감지 중','텍스트 추출 중','한국어 뜻 생성 중','완료!'];
+  let i=0;
+  prog.style.width = '0%';
+  const interval = setInterval(()=>{
+    i++;
+    prog.style.width = (i/steps.length*100)+'%';
+    status.textContent = steps[i-1]||'완료!';
+    if(i>=steps.length){
+      clearInterval(interval);
+      setTimeout(()=>{
+        overlay.style.display='none';
+        nav('s-extract');
+      },500);
+    }
+  },600);
+}
+
+function renderWeekChart(){
+  const chart=document.getElementById('week-chart');
+  const days=document.getElementById('week-days');
+  if(!chart||!days) return;
+  const data=[12,28,35,20,42,30,18];
+  const labels=['월','화','수','목','금','토','일'];
+  const max=Math.max(...data);
+  chart.innerHTML=data.map((v,i)=>`
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px">
+      <span style="font-size:10px;color:var(--tx2)">${v}</span>
+      <div style="width:100%;border-radius:4px 4px 0 0;background:${i===6?'var(--acc-l)':'var(--acc)'};height:${Math.round((v/max)*70)}px"></div>
+    </div>`).join('');
+  days.innerHTML=labels.map(l=>`<span style="flex:1;text-align:center;font-size:11px;color:var(--tx2)">${l}</span>`).join('');
+}
+renderWeekChart();
+
 </script>
 </body>
 </html>
