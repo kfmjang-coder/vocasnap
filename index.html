@@ -238,7 +238,7 @@ body{
     <div style="background:var(--sf);padding:4px 16px 12px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
-          <div style="font-size:13px;color:var(--tx2);margin-bottom:2px">좋은 아침이에요 ☀️</div>
+          <div id="home-greeting" style="font-size:13px;color:var(--tx2);margin-bottom:2px">좋은 아침이에요 ☀️</div>
           <div id="home-username" style="font-size:20px;font-weight:500;color:var(--tx)">나의 VocaSnap</div>
         </div>
         <div style="display:flex;gap:8px">
@@ -248,10 +248,13 @@ body{
       </div>
     </div>
     <div style="height:10px"></div>
-    <div class="streak">
+    <div class="streak" id="home-streak-banner">
       <span style="font-size:22px">🔥</span>
-      <div style="flex:1"><div style="font-size:12px;color:var(--acc-d);margin-bottom:2px">연속 학습 중</div><div style="font-size:15px;font-weight:500;color:var(--acc-d)">12일째 달리는 중!</div></div>
-      <div class="badge">신기록</div>
+      <div style="flex:1">
+        <div style="font-size:12px;color:var(--acc-d);margin-bottom:2px" id="home-streak-label">연속 학습 중</div>
+        <div style="font-size:15px;font-weight:500;color:var(--acc-d)" id="home-streak-txt">오늘 첫 학습을 시작해요!</div>
+      </div>
+      <div class="badge" id="home-streak-badge" style="display:none">🏆 신기록</div>
     </div>
     <div class="sh"><span class="st">오늘의 학습</span><span class="sl2">자세히 →</span></div>
     <div class="card">
@@ -297,10 +300,30 @@ body{
     </div>
     <div class="sh"><span class="st">이번 주 통계</span></div>
     <div class="sg">
-      <div class="sc"><div style="font-size:16px;margin-bottom:6px"><i class="ti ti-check" style="color:var(--grn)"></i></div><div style="font-size:20px;font-weight:500;color:var(--tx)">312</div><div style="font-size:11px;color:var(--tx2)">총 암기 단어</div><div style="font-size:11px;color:var(--grn);margin-top:4px">↑ 48 지난 주 대비</div></div>
-      <div class="sc"><div style="font-size:16px;margin-bottom:6px"><i class="ti ti-flame" style="color:var(--amb)"></i></div><div style="font-size:20px;font-weight:500;color:var(--tx)">6 / 7</div><div style="font-size:11px;color:var(--tx2)">이번 주 출석</div><div style="font-size:11px;color:var(--grn);margin-top:4px">↑ 거의 퍼펙트!</div></div>
-      <div class="sc"><div style="font-size:16px;margin-bottom:6px"><i class="ti ti-clock" style="color:var(--acc)"></i></div><div style="font-size:20px;font-weight:500;color:var(--tx)">3h 42m</div><div style="font-size:11px;color:var(--tx2)">총 학습 시간</div><div style="font-size:11px;color:var(--grn);margin-top:4px">↑ 18분 어제 대비</div></div>
-      <div class="sc"><div style="font-size:16px;margin-bottom:6px"><i class="ti ti-target" style="color:var(--red)"></i></div><div style="font-size:20px;font-weight:500;color:var(--tx)">88%</div><div style="font-size:11px;color:var(--tx2)">주간 정답률</div><div style="font-size:11px;color:var(--red);margin-top:4px">↓ 2% 지난 주 대비</div></div>
+      <div class="sc">
+        <div style="font-size:16px;margin-bottom:6px"><i class="ti ti-check" style="color:var(--grn)"></i></div>
+        <div id="home-total" style="font-size:20px;font-weight:500;color:var(--tx)">--</div>
+        <div style="font-size:11px;color:var(--tx2)">총 암기 단어</div>
+        <div id="home-total-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">로딩 중...</div>
+      </div>
+      <div class="sc">
+        <div style="font-size:16px;margin-bottom:6px"><i class="ti ti-flame" style="color:var(--amb)"></i></div>
+        <div id="home-streak" style="font-size:20px;font-weight:500;color:var(--tx)">--</div>
+        <div style="font-size:11px;color:var(--tx2)">연속 학습</div>
+        <div id="home-streak-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
+      </div>
+      <div class="sc">
+        <div style="font-size:16px;margin-bottom:6px"><i class="ti ti-clock" style="color:var(--acc)"></i></div>
+        <div id="home-study-time" style="font-size:20px;font-weight:500;color:var(--tx)">0분</div>
+        <div style="font-size:11px;color:var(--tx2)">오늘 학습</div>
+        <div id="home-time-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
+      </div>
+      <div class="sc">
+        <div style="font-size:16px;margin-bottom:6px"><i class="ti ti-target" style="color:var(--red)"></i></div>
+        <div id="home-rate" style="font-size:20px;font-weight:500;color:var(--tx)">--%</div>
+        <div style="font-size:11px;color:var(--tx2)">전체 진행률</div>
+        <div id="home-rate-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
+      </div>
     </div>
     <div style="height:20px"></div>
   </div>
@@ -1826,83 +1849,92 @@ async function showCreateWordSet() {
 
 // ── 홈 실시간 데이터 ────────────────────────────────
 async function loadHomeData() {
-  try { // 전체 오류 방지
-  // localStorage 기반 오늘 학습 수치 먼저 표시 (빠름)
-  const todayDone = Number(localStorage.getItem('vs-today-done') || 0);
-  const dailyGoal = Number(localStorage.getItem('vs-daily-goal') || 30);
-  const todayAcc  = Number(localStorage.getItem('vs-today-acc') || 0);  // 오늘 정답률
-  const todayTime = Number(localStorage.getItem('vs-today-time') || 0); // 오늘 학습 분
-  const streak    = Number(localStorage.getItem('vs-streak') || 0);
-
-  setText('home-done', todayDone);
-  setText('home-goal', dailyGoal);
-  setText('home-acc',  todayAcc > 0 ? todayAcc + '%' : '--%');
-  setText('home-time', todayTime > 0 ? todayTime + '분' : '0분');
-  setText('home-study-time', todayTime > 0 ? todayTime + '분' : '0분');
-
-  // 스트릭
-  if(streak > 0) {
-    setText('home-streak-txt', streak + '일째 달리는 중!');
-    setText('home-streak', streak + '일');
-    setText('home-streak-delta', '🔥 연속 학습 중');
-  } else {
-    setText('home-streak-txt', '오늘 첫 학습을 시작해요!');
-    setText('home-streak', '--');
-  }
-
-  // 진행률 바
-  const pct = Math.min(100, Math.round((todayDone / dailyGoal) * 100));
-  setText('home-pct-txt', pct + '%');
-  const bar = document.getElementById('home-pct-bar');
-  if(bar) setTimeout(() => bar.style.width = pct + '%', 100);
-
-  // CTA 버튼
-  const remaining = Math.max(0, dailyGoal - todayDone);
-  const cta = document.getElementById('home-cta');
-  if(cta) {
-    if(remaining <= 0) cta.innerHTML = '<i class="ti ti-check" style="font-size:16px"></i> 오늘 목표 달성! 🎉';
-    else cta.innerHTML = `<i class="ti ti-player-play" style="font-size:16px"></i> 이어서 학습하기 (${remaining}개 남음)`;
-  }
-
-  // Sheets에서 실제 통계 비동기 로드
-  const url = getSheetsUrl();
-  if(!url) {
-    // Sheets 미연결 - 로컬 데이터만으로 홈 업데이트 (단어장은 기본 카드 유지)
-    return;
-  }
-
   try {
+    // ① 시간대별 인사말
+    const h = new Date().getHours();
+    const greeting = h < 6  ? '좋은 새벽이에요 🌙' :
+                     h < 12 ? '좋은 아침이에요 ☀️' :
+                     h < 18 ? '좋은 오후예요 🌤' : '좋은 저녁이에요 🌙';
+    setText('home-greeting', greeting);
+
+    // ② localStorage 기반 즉시 표시
+    const todayDone = Number(localStorage.getItem('vs-today-done') || 0);
+    const dailyGoal = Number(localStorage.getItem('vs-daily-goal') || 30);
+    const todayAcc  = Number(localStorage.getItem('vs-today-acc')  || 0);
+    const todayMins = Number(localStorage.getItem('vs-today-time') || 0);
+    const streak    = Number(localStorage.getItem('vs-streak')     || 0);
+
+    // 오늘의 학습 카드
+    setText('home-done', todayDone);
+    setText('home-goal', dailyGoal);
+    setText('home-acc',  todayAcc > 0 ? todayAcc + '%' : '--%');
+    setText('home-time', todayMins > 0 ? todayMins + '분' : '0분');
+    setText('home-study-time', todayMins > 0 ? todayMins + '분' : '0분');
+
+    // 진행률 바
+    const pct = dailyGoal > 0 ? Math.min(100, Math.round((todayDone/dailyGoal)*100)) : 0;
+    setText('home-pct-txt', pct + '%');
+    setTimeout(()=>{ const b=document.getElementById('home-pct-bar'); if(b) b.style.width=pct+'%'; }, 100);
+
+    // CTA 버튼
+    const remaining = Math.max(0, dailyGoal - todayDone);
+    const cta = document.getElementById('home-cta');
+    if(cta) cta.innerHTML = remaining > 0
+      ? `<i class="ti ti-player-play" style="font-size:16px"></i> 이어서 학습하기 (${remaining}개 남음)`
+      : `<i class="ti ti-check" style="font-size:16px"></i> 오늘 목표 달성! 🎉`;
+
+    // 스트릭 배너
+    if(streak > 0) {
+      setText('home-streak-txt', streak + '일째 달리는 중!');
+      setText('home-streak', streak + '일');
+      setText('home-streak-delta', '🔥 연속 학습');
+      const badge = document.getElementById('home-streak-badge');
+      if(badge) badge.style.display = streak >= 7 ? 'block' : 'none';
+    } else {
+      setText('home-streak-txt', '오늘 첫 학습을 시작해요!');
+      setText('home-streak', '-');
+      setText('home-streak-delta', '오늘 시작!');
+    }
+
+    // ③ Sheets 비동기 로드 (미연결이어도 위 로컬 데이터는 표시됨)
+    const url = getSheetsUrl();
+    if(!url) {
+      // 미연결 - 기본 단어장 카드 유지
+      return;
+    }
+
+    // Sheets에서 통계 + 단어장 병렬 로드
     const [stats, wsRes] = await Promise.all([
-      sheetsGet('getStats'),
-      sheetsGet('getWordSets'),
+      sheetsGet('getStats').catch(()=>null),
+      sheetsGet('getWordSets').catch(()=>null),
     ]);
 
-    if(!stats.error) {
-      const total    = stats.total || 0;
+    if(stats && !stats.error) {
+      const total    = stats.total    || 0;
       const mastered = stats.mastered || 0;
       const due      = stats.dueToday || 0;
       const ratePct  = total > 0 ? Math.round((mastered/total)*100) : 0;
 
-      setText('home-total',    mastered);
+      setText('home-total',       mastered);
       setText('home-total-delta', '전체 ' + total + '개 중');
-      setText('home-rate',     ratePct + '%');
-      setText('home-rate-delta', '암기 진행률');
-      setText('home-due-txt',  '망각 직전 단어 ' + due + '개');
+      setText('home-rate',        ratePct + '%');
+      setText('home-rate-delta',  '암기 진행률');
+      setText('home-due-txt',     '망각 직전 단어 ' + due + '개');
       setText('profile-mastered', mastered);
-      setText('profile-rate',  ratePct + '%');
+      setText('profile-rate',     ratePct + '%');
 
-      // 통계 캐시 저장
+      // 통계 캐시
       localStorage.setItem('vs-stats-cache', JSON.stringify({data:stats, ts:Date.now()}));
     }
 
-    // 홈 단어장 목록 렌더링
-    if(!wsRes.error && wsRes.wordSets) {
+    // 단어장 목록
+    if(wsRes && !wsRes.error && wsRes.wordSets) {
       renderHomeWordSetsDynamic(wsRes.wordSets);
     }
-    } catch(e) {
-    console.warn('홈 데이터 로드 실패:', e);
+
+  } catch(e) {
+    console.warn('loadHomeData 오류:', e);
   }
-  } catch(outerE) { console.warn('loadHomeData 오류:', outerE); }
 }
 
 function renderHomeWordSetsDynamic(wordSets) {
