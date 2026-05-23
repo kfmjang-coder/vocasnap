@@ -332,7 +332,8 @@ body{
     </div>
     <div style="display:flex;justify-content:space-around;align-items:center;padding:14px 24px;flex-shrink:0">
       <div class="sbtn" onclick="camTab('gallery')"><i class="ti ti-photo" style="font-size:20px"></i></div>
-      <div class="shut" onclick="simulateCapture()"><i class="ti ti-camera" style="font-size:26px;color:#fff"></i></div>
+      <div class="shut" onclick="openFilePicker()"><i class="ti ti-camera" style="font-size:26px;color:#fff"></i></div>
+      <input type="file" id="img-input" accept="image/*" capture="environment" style="display:none" onchange="handleImageFile(event)">
       <div class="sbtn" onclick="toggleFlash()"><i class="ti ti-rotate-clockwise" style="font-size:20px"></i></div>
     </div>
     <div style="flex:1;overflow-y:auto;padding:0 16px 16px">
@@ -376,7 +377,8 @@ body{
         <div style="font-size:32px;margin-bottom:8px">📂</div>
         <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:4px">파일 직접 선택</div>
         <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">PDF, JPG, PNG 지원</div>
-        <button onclick="simulateCapture()" style="padding:10px 24px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">파일 선택</button>
+        <button onclick="openGalleryPicker()" style="padding:10px 24px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">파일 선택</button>
+        <input type="file" id="gallery-input" accept="image/*,application/pdf" style="display:none" onchange="handleImageFile(event)">
       </div>
     </div>
   </div>
@@ -661,7 +663,7 @@ body{
         <span style="font-size:18px">📊</span><div style="flex:1"><div style="font-size:14px;color:var(--tx)">Google Sheets 연동</div><div style="font-size:12px;color:var(--tx2)">단어 DB 저장소</div></div><span style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미연결</span>
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid var(--bd);cursor:pointer">
-        <span style="font-size:18px">🤖</span><div style="flex:1"><div style="font-size:14px;color:var(--tx)">Claude API 키 설정</div><div style="font-size:12px;color:var(--tx2)">단어 자동 추출 AI</div></div><span style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미설정</span>
+        <span style="font-size:18px">🤖</span><div style="flex:1" onclick="openApiModal()"><div style="font-size:14px;color:var(--tx)">Claude API 키 설정</div><div style="font-size:12px;color:var(--tx2)">단어 자동 추출 AI</div></div><span data-api-badge style="font-size:12px;color:var(--tx3);background:var(--sf2);padding:2px 8px;border-radius:20px">미설정</span>
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer">
         <span style="font-size:18px">📤</span><div style="flex:1"><div style="font-size:14px;color:var(--tx)">데이터 내보내기</div><div style="font-size:12px;color:var(--tx2)">CSV로 백업</div></div><span style="color:var(--tx3)">›</span>
@@ -682,6 +684,30 @@ body{
     <div class="ni" onclick="nav('s-cam')"><i class="ti ti-camera-plus"></i><span>촬영</span></div>
     <div class="ni" onclick="nav('s-stats')"><i class="ti ti-chart-bar"></i><span>통계</span></div>
     <div class="ni on"><i class="ti ti-user"></i><span>내 정보</span></div>
+  </div>
+</div>
+
+
+<!-- ══ API KEY MODAL ══ -->
+<div id="api-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center">
+  <div style="background:var(--sf);border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:430px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:16px;font-weight:500;color:var(--tx)">Claude API 키 설정</div>
+      <div onclick="closeApiModal()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i></div>
+    </div>
+    <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--acc-d);line-height:1.6"><i class="ti ti-info-circle" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>API 키는 기기에만 저장되며 외부로 전송되지 않아요. <a href="https://console.anthropic.com" target="_blank" style="color:var(--acc);text-decoration:none;font-weight:500">console.anthropic.com</a>에서 발급받으세요.</div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">API 키</div>
+      <div style="position:relative">
+        <input id="api-key-input" type="password" placeholder="sk-ant-api03-..." style="width:100%;padding:12px 44px 12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none">
+        <div onclick="toggleApiKeyVisible()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2)"><i class="ti ti-eye" id="eye-icon" style="font-size:18px"></i></div>
+      </div>
+    </div>
+    <div id="api-key-status" style="display:none;margin-bottom:12px"></div>
+    <button onclick="saveApiKey()" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">저장하기</button>
+    <button onclick="testApiKey()" style="width:100%;padding:13px;background:var(--sf2);color:var(--tx2);border:none;border-radius:10px;font-size:14px;margin-top:8px;cursor:pointer">연결 테스트</button>
   </div>
 </div>
 
@@ -988,6 +1014,198 @@ function simulateCapture(){
     }
   },600);
 }
+
+
+// ── Claude Vision API ──────────────────────────────
+const CLAUDE_MODEL = 'claude-opus-4-5';
+const CLAUDE_API   = 'https://api.anthropic.com/v1/messages';
+
+const EXTRACT_PROMPT = `이 이미지에서 영어 단어를 모두 추출해줘.
+각 단어에 대해 아래 형식의 JSON 배열로만 반환해. 다른 텍스트 없이 JSON만:
+[{"en":"단어","ko":"한국어 뜻(핵심만, 2개 이내)","pos":"noun|verb|adj|adv","difficulty":1}]
+difficulty: 1=쉬움(중학), 2=보통(수능), 3=어려움(고급)
+중복 제거, 영어 단어만, 숫자/기호 제외.`;
+
+function getApiKey(){
+  return localStorage.getItem('vs-claude-key') || '';
+}
+
+function openApiModal(){
+  const modal = document.getElementById('api-modal');
+  modal.style.display = 'flex';
+  const saved = getApiKey();
+  if(saved) document.getElementById('api-key-input').value = saved;
+  updateApiStatus();
+}
+function closeApiModal(){
+  document.getElementById('api-modal').style.display = 'none';
+}
+function toggleApiKeyVisible(){
+  const inp = document.getElementById('api-key-input');
+  const icon = document.getElementById('eye-icon');
+  if(inp.type === 'password'){
+    inp.type = 'text';
+    icon.className = 'ti ti-eye-off';
+  } else {
+    inp.type = 'password';
+    icon.className = 'ti ti-eye';
+  }
+}
+function saveApiKey(){
+  const key = document.getElementById('api-key-input').value.trim();
+  if(!key){ showApiStatus('API 키를 입력해주세요', 'error'); return; }
+  if(!key.startsWith('sk-ant-')){ showApiStatus('올바른 API 키 형식이 아니에요 (sk-ant-로 시작)', 'error'); return; }
+  localStorage.setItem('vs-claude-key', key);
+  showApiStatus('✅ 저장됐어요!', 'ok');
+  updateApiKeyBadge(true);
+  setTimeout(closeApiModal, 1200);
+}
+function showApiStatus(msg, type){
+  const el = document.getElementById('api-key-status');
+  el.style.display = 'block';
+  el.style.cssText = `display:block;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;background:${type==='ok'?'var(--grn-l)':'var(--red-l)'};color:${type==='ok'?'var(--grn)':'var(--red)'}`;
+  el.textContent = msg;
+}
+function updateApiStatus(){
+  const key = getApiKey();
+  const status = document.getElementById('api-key-status');
+  if(key){ showApiStatus('✅ API 키가 설정되어 있어요', 'ok'); }
+  else { status.style.display='none'; }
+}
+async function testApiKey(){
+  const key = document.getElementById('api-key-input').value.trim();
+  if(!key){ showApiStatus('API 키를 먼저 입력해주세요', 'error'); return; }
+  showApiStatus('⏳ 연결 테스트 중...', 'ok');
+  try {
+    const res = await fetch(CLAUDE_API, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({model:CLAUDE_MODEL,max_tokens:10,messages:[{role:'user',content:'hi'}]})
+    });
+    if(res.ok){ showApiStatus('✅ 연결 성공! API 키가 유효해요', 'ok'); }
+    else { const d=await res.json(); showApiStatus('❌ '+( d.error?.message||'연결 실패'), 'error'); }
+  } catch(e){ showApiStatus('❌ 네트워크 오류: '+e.message, 'error'); }
+}
+function updateApiKeyBadge(connected){
+  const badges = document.querySelectorAll('[data-api-badge]');
+  badges.forEach(b => {
+    b.textContent = connected ? '연결됨' : '미설정';
+    b.style.color = connected ? 'var(--grn)' : 'var(--tx3)';
+    b.style.background = connected ? 'var(--grn-l)' : 'var(--sf2)';
+  });
+}
+
+// ── 이미지 → Claude API ─────────────────────────────
+function openFilePicker(){
+  document.getElementById('img-input').click();
+}
+function openGalleryPicker(){
+  document.getElementById('gallery-input').click();
+}
+
+async function handleImageFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  e.target.value = '';
+
+  const key = getApiKey();
+  if(!key){
+    // API 키 없으면 설정 유도
+    if(confirm('Claude API 키가 필요해요.\n지금 설정하러 갈까요?')){
+      nav('s-profile');
+      setTimeout(openApiModal, 400);
+    }
+    return;
+  }
+
+  // 로딩 표시
+  const overlay = document.getElementById('ai-loading');
+  const prog    = document.getElementById('ai-prog');
+  const status  = document.getElementById('ai-status');
+  overlay.style.display = 'flex';
+  prog.style.width = '0%';
+
+  try {
+    // 이미지 → base64
+    status.textContent = '이미지 준비 중';
+    prog.style.width = '15%';
+    const base64 = await fileToBase64(file);
+    const mediaType = file.type || 'image/jpeg';
+
+    // Claude API 호출
+    status.textContent = 'Claude AI 분석 중';
+    prog.style.width = '40%';
+
+    const res = await fetch(CLAUDE_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_tokens: 4096,
+        messages: [{
+          role: 'user',
+          content: [
+            { type:'image', source:{ type:'base64', media_type: mediaType, data: base64 } },
+            { type:'text',  text: EXTRACT_PROMPT }
+          ]
+        }]
+      })
+    });
+
+    status.textContent = '단어 추출 중';
+    prog.style.width = '70%';
+
+    if(!res.ok){
+      const err = await res.json();
+      throw new Error(err.error?.message || 'API 오류');
+    }
+
+    const data = await res.json();
+    const raw  = data.content[0]?.text || '[]';
+
+    // JSON 파싱
+    status.textContent = '결과 정리 중';
+    prog.style.width = '90%';
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    const words   = JSON.parse(cleaned);
+
+    // extractWords 전역 배열 업데이트
+    EW.length = 0;
+    words.forEach(w => EW.push({ en: w.en, ko: w.ko, pos: w.pos || 'noun', checked: true, difficulty: w.difficulty || 1 }));
+
+    prog.style.width = '100%';
+    status.textContent = `${words.length}개 단어 추출 완료!`;
+
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      nav('s-extract');
+    }, 600);
+
+  } catch(err) {
+    overlay.style.display = 'none';
+    alert('단어 추출 실패: ' + err.message + '\n\nAPI 키를 확인하거나 다시 시도해주세요.');
+  }
+}
+
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// 앱 시작 시 API 키 상태 확인
+(function initApiStatus(){
+  if(getApiKey()) updateApiKeyBadge(true);
+})();
+// ───────────────────────────────────────────────────
 
 function renderWeekChart(){
   const chart=document.getElementById('week-chart');
