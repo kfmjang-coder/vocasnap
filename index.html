@@ -1103,11 +1103,13 @@ function fcRender(){
   setText('fc-dont', fcDont);
   setText('fc-hint', fcFlipped ? '알고 있나요?' : '↻ 카드를 탭해서 뜻을 확인하세요');
 
-  // 카드 넘길 때 자동 발음 (설정에 따라)
-  const autoSpeak = localStorage.getItem('vs-auto-speak') !== '0';
-  if(autoSpeak && w && (w.en || w.word)) {
-    setTimeout(() => speakWord(w.en || w.word), 300);
-  }
+}
+
+// 자동 발음 실행 (사용자 제스처 후 호출)
+function autoSpeakWord(){
+  if(localStorage.getItem('vs-auto-speak') === '0') return;
+  const w = WORDS[fcIdx % WORDS.length];
+  if(w && (w.en || w.word)) speakWord(w.en || w.word);
 }
 
 // ── 플래시카드 단어 Sheets 로드 ──────────────────────
@@ -1153,6 +1155,8 @@ async function loadFcWords(){
     fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
     document.getElementById('fc-inner').classList.remove('flipped');
     fcRender();
+    // 첫 단어 자동 발음 (loadFcWords는 사용자 탭 이후 호출됨)
+    setTimeout(autoSpeakWord, 400);
 
     // 단어장 제목 업데이트
     const wsName = currentWordSet?.name || '전체 단어장';
@@ -1186,7 +1190,7 @@ function fcAns(type){
     return;
   }
   fcIdx++;
-  setTimeout(fcRender, 60);
+  setTimeout(()=>{ fcRender(); autoSpeakWord(); }, 60);
 }
 
 function showFcResult(){
@@ -1260,14 +1264,14 @@ function fcNext(){
   fcIdx = Math.min(fcIdx+1, WORDS.length-1);
   fcFlipped=false;
   document.getElementById('fc-inner').classList.remove('flipped');
-  fcRender();
+  fcRender(); autoSpeakWord();
 }
 function fcPrev(){
   if(!WORDS.length) return;
   fcIdx = Math.max(fcIdx-1, 0);
   fcFlipped=false;
   document.getElementById('fc-inner').classList.remove('flipped');
-  fcRender();
+  fcRender(); autoSpeakWord();
 }
 
 // ── QUIZ ──
@@ -2511,40 +2515,46 @@ function checkDailyReset() {
 // ── TTS 발음 듣기 ────────────────────────────────────
 function speakWord(word) {
   if(!word || !word.trim()) return;
-  if(!window.speechSynthesis) {
-    console.warn('TTS 미지원 브라우저');
-    return;
-  }
+  if(!window.speechSynthesis) { console.warn('TTS 미지원'); return; }
   word = word.trim();
-  window.speechSynthesis.cancel(); // 기존 발음 중지
 
-  const speak = () => {
-    const utter = new SpeechSynthesisUtterance(word);
-    utter.lang  = 'en-US';
-    utter.rate  = 0.85;
-    utter.pitch = 1;
-    utter.volume = 1;
+  // 기존 발음 중지 후 짧게 대기 (Android 중복 방지)
+  window.speechSynthesis.cancel();
 
-    // 영어 목소리 우선 선택 (iOS: com.apple.voice, Android: en-US)
-    const voices = window.speechSynthesis.getVoices();
-    const enVoice = voices.find(v => v.lang === 'en-US') ||
-                    voices.find(v => v.lang.startsWith('en'));
+  const doSpeak = () => {
+    const utter    = new SpeechSynthesisUtterance(word);
+    utter.lang     = 'en-US';
+    utter.rate     = 0.85;
+    utter.pitch    = 1.0;
+    utter.volume   = 1.0;
+
+    // 목소리 선택: en-US → en-GB → en-* 순서로
+    const voices   = window.speechSynthesis.getVoices();
+    const enVoice  = voices.find(v => v.lang === 'en-US' && !v.localService) ||
+                     voices.find(v => v.lang === 'en-US') ||
+                     voices.find(v => v.lang === 'en-GB') ||
+                     voices.find(v => v.lang.startsWith('en'));
     if(enVoice) utter.voice = enVoice;
 
-    // 발음 버튼 시각 피드백
+    // 시각 피드백 - 볼륨 아이콘 녹색
     document.querySelectorAll('.ti-volume').forEach(el => {
       el.style.color = 'var(--grn)';
-      setTimeout(() => el.style.color = '', 1200);
+      setTimeout(() => el.style.color = '', 1500);
     });
 
+    utter.onerror = e => console.warn('TTS 오류:', e.error);
     window.speechSynthesis.speak(utter);
   };
 
-  // 목소리 로딩 대기 (iOS 필수)
+  // 목소리 목록 로딩 대기 (iOS Safari 필수)
   if(window.speechSynthesis.getVoices().length === 0) {
-    window.speechSynthesis.addEventListener('voiceschanged', speak, {once: true});
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.onvoiceschanged = null;
+      doSpeak();
+    };
   } else {
-    speak();
+    // Android: cancel 후 바로 speak하면 씹히는 경우 있어서 50ms 대기
+    setTimeout(doSpeak, 50);
   }
 }
 
