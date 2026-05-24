@@ -1113,32 +1113,63 @@ function updateSel(){
 // ── 학습 시작 (홈에서 진입) ──────────────────────────
 
 // ── 단어장 상세에서 학습 모드 진입 ──────────────────
-function startWordSetLearning(mode) {
-  const wsId        = currentWordSet?.id   || null;
-  const wsName      = currentWordSet?.name || '플래시카드';
+async function startWordSetLearning(mode) {
+  const wsId         = currentWordSet?.id   || null;
+  const wsName       = currentWordSet?.name || '플래시카드';
   const sessionCount = Number(localStorage.getItem('vs-session-count') || 20);
   FC_WORDSET_ID = wsId;
+
+  // ① WORDS가 비어있으면 먼저 로드 (단어장 진입 직후 바로 눌렀을 때)
+  if(!WORDS.length && wsId && getSheetsUrl()) {
+    // 로딩 안내
+    const loadingMsg = mode === 'quiz' ? '퀴즈' : '플래시카드';
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999';
+    toast.textContent = `⏳ 단어 불러오는 중...`;
+    document.body.appendChild(toast);
+
+    try {
+      const res = await sheetsGet('getWords', {wordSetId: wsId});
+      if(!res.error && res.words?.length) {
+        WORDS = res.words.map(w => ({
+          id: w.id, en: w.word||w.en||'', ko: w.meaning||w.ko||'',
+          pos: w.pos||'', ph: w.phonetic||'', ex: w.example||'',
+          status: w.status||'new',
+        })).filter(w => w.en);
+        DIST.length = 0;
+        WORDS.forEach(w => { if(w.ko) DIST.push(w.ko); });
+      }
+    } catch(e) { console.warn('단어 로드 실패:', e); }
+
+    toast.remove();
+  }
+
+  // ② 여전히 비어있으면 안내
+  if(!WORDS.length) {
+    alert('단어가 없어요. 단어를 먼저 추가해주세요.');
+    return;
+  }
 
   let targetWords = [...WORDS];
 
   if(mode === 'review') {
-    // 복습 모드: review/learning 우선, 없으면 new 포함
     const due = targetWords.filter(w => ['review','learning'].includes(w.status||''));
     targetWords = due.length > 0 ? due : targetWords.filter(w => (w.status||'new') !== 'mastered');
     setText('fc-mode-label', '복습 모드 · 망각 곡선');
   } else if(mode === 'quiz') {
-    // 퀴즈: 세션 단어 수만큼 랜덤
     WORDS = targetWords.sort(()=>Math.random()-.5).slice(0, sessionCount);
+    DIST.length = 0;
+    WORDS.forEach(w => { if(w.ko) DIST.push(w.ko); });
     setText('fc-ws-title', wsName);
+    // 퀴즈 상태 초기화
+    qIdx=0; qCorrect=0; qTotal=0; qSec=0; qAnswered=false; qWrong=[];
     nav('s-quiz');
     return;
   } else {
-    // 플래시카드: 랜덤 셔플 후 세션 단어 수 적용
     targetWords = targetWords.sort(() => Math.random() - 0.5);
     setText('fc-mode-label', '플래시카드 모드');
   }
 
-  // 세션 단어 수 적용
   WORDS = targetWords.slice(0, sessionCount);
 
   // 상태 초기화
@@ -1146,9 +1177,8 @@ function startWordSetLearning(mode) {
   const inner = document.getElementById('fc-inner');
   if(inner) inner.classList.remove('flipped');
 
-  // 제목 + 배지 업데이트
-  setText('fc-ws-title',      wsName);
-  setText('fc-total-badge',   WORDS.length + '개');
+  setText('fc-ws-title',        wsName);
+  setText('fc-total-badge',     WORDS.length + '개');
   setText('fc-remaining-badge', '남은 ' + WORDS.length + '개');
 
   nav('s-fc');
@@ -1157,11 +1187,41 @@ function startWordSetLearning(mode) {
 }
 // ─────────────────────────────────────────────────────
 
-function startLearning(){
-  // currentWordSet 초기화 (전체 단어 모드)
+async function startLearning(){
   currentWordSet = null;
   FC_WORDSET_ID  = null;
+  WORDS = []; // 초기화해서 loadFcWords가 전체 단어 로드하게 함
+
+  // 전체 단어 미리 로드 후 이동
+  if(getSheetsUrl()) {
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999';
+    toast.textContent = '⏳ 단어 불러오는 중...';
+    document.body.appendChild(toast);
+    try {
+      const res = await sheetsGet('getWords');
+      if(!res.error && res.words?.length) {
+        WORDS = res.words.map(w=>({
+          id:w.id, en:w.word||w.en||'', ko:w.meaning||w.ko||'',
+          pos:w.pos||'', ph:w.phonetic||'', ex:w.example||'',
+          status:w.status||'new',
+        })).filter(w=>w.en);
+        DIST.length=0; WORDS.forEach(w=>{if(w.ko)DIST.push(w.ko);});
+      }
+    } catch(e) {}
+    toast.remove();
+  }
+
+  if(!WORDS.length) { alert('단어가 없어요. 단어를 먼저 추가해주세요.'); return; }
+
+  setText('fc-ws-title',  '전체 단어장');
+  setText('fc-mode-label','플래시카드 모드');
+  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
+  const inner = document.getElementById('fc-inner');
+  if(inner) inner.classList.remove('flipped');
   nav('s-fc');
+  fcRender();
+  setTimeout(autoSpeakWord, 400);
 }
 // ─────────────────────────────────────────────────────
 
