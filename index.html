@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260524-144551">
+<meta name="app-build" content="20260524-150838">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -3116,6 +3116,9 @@ function obNext(){
   if(btn && obStep>=2) btn.textContent='무료로 시작하기 →';
 }
 
+// 중복 저장 방지 플래그 (renderExtract와 saveWordsToSheets에서 공유)
+let _isSaving = false;
+
 // ── EXTRACT ──
 function renderExtract(){
   _isSaving = false; // 추출 화면 진입 시 저장 플래그 초기화
@@ -3894,7 +3897,7 @@ function qRestart(){qWrong=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260524-144551';
+  window.APP_BUILD = '20260524-150838';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -4489,9 +4492,7 @@ async function sheetsPost(body){
     throw new Error('응답 파싱 실패: '+text.slice(0,50));
   }
 }
-// 중복 저장 방지 플래그
-let _isSaving = false;
-
+// saveWordsToSheets - 중복 저장 방지
 async function saveWordsToSheets(wordSetId){
   // 중복 클릭 방지
   if(_isSaving) { console.log('이미 저장 중'); return; }
