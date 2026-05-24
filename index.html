@@ -2878,7 +2878,7 @@ async function loadHomeData() {
   }
 }
 
-function renderHomeWordSetsDynamic(wordSets) {
+async function renderHomeWordSetsDynamic(wordSets) {
   const el = document.getElementById('home-wslist');
   if(!el) return;
 
@@ -2893,21 +2893,20 @@ function renderHomeWordSetsDynamic(wordSets) {
     {bg:'var(--amb-l)',text:'var(--amb)',icon:'📙'},
   ];
 
+  // 1차: 기본 정보로 먼저 렌더 (빠른 표시)
   el.innerHTML = wordSets.slice(0,3).map((ws,i) => {
     const c     = colors[i % colors.length];
     const total = Number(ws.totalWords) || 0;
-    const done  = Number(ws.masteredWords) || 0;
-    const pct   = total > 0 ? Math.round((done/total)*100) : 0;
     return `
-      <div class="ws" onclick="openWordSet('${ws.id}','${ws.name}',${total},${done})">
+      <div class="ws" data-wsid="${ws.id}" onclick="openWordSet('${ws.id}','${ws.name}',${total},0)">
         <div class="wsic" style="background:${c.bg}"><span style="font-size:20px">${c.icon}</span></div>
         <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ws.name}</div>
           <div style="font-size:12px;color:var(--tx2);margin-bottom:4px">${total}단어</div>
-          <div class="wbar"><div class="wbf" style="width:${pct}%;background:${c.text}"></div></div>
+          <div class="wbar"><div class="wbf wbf-${ws.id}" style="width:0%;background:${c.text};transition:width .5s"></div></div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:13px;font-weight:500;color:${c.text}">${total===0?'신규':pct+'%'}</div>
+          <div class="pct-${ws.id}" style="font-size:13px;font-weight:500;color:${c.text}">${total===0?'신규':'...'}</div>
           <i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3)"></i>
         </div>
       </div>`;
@@ -2915,6 +2914,44 @@ function renderHomeWordSetsDynamic(wordSets) {
 
   if(wordSets.length > 3) {
     el.innerHTML += `<div style="padding:10px 16px;text-align:center;font-size:12px;color:var(--acc);cursor:pointer" onclick="nav('s-wslist')">+ ${wordSets.length-3}개 더 보기 →</div>`;
+  }
+
+  // 2차: 각 단어장의 실제 진행률 비동기 계산 (Words 시트에서 status 가져와서)
+  for(const ws of wordSets.slice(0,3)) {
+    if(!ws.totalWords) continue;
+    try {
+      const res = await sheetsGet('getWords', {wordSetId: ws.id});
+      if(res.error || !res.words?.length) continue;
+
+      // 로컬 이력 기반 status 재계산 (단어장 상세와 동일 로직)
+      const words = res.words.map(w => {
+        const hist = getWordHistory(w.id);
+        let status = w.status || 'new';
+        if(hist.knowCount > 0 || hist.dontCount > 0) {
+          const tot = hist.knowCount + hist.dontCount;
+          const acc = tot > 0 ? hist.knowCount/tot : 0;
+          if(hist.knowCount >= 5 && acc >= 0.8) status = 'mastered';
+          else if(hist.knowCount >= 3 && acc >= 0.6) status = 'review';
+          else status = 'learning';
+        }
+        return {...w, status};
+      });
+
+      // 가중 진행률 계산
+      const s = calcWordSetProgress(words);
+
+      // 화면 업데이트
+      const bar = document.querySelector('.wbf-' + ws.id);
+      const pct = document.querySelector('.pct-' + ws.id);
+      if(bar) bar.style.width = s.pct + '%';
+      if(pct) pct.textContent = s.pct + '%';
+
+      // openWordSet에 정확한 done 값 전달하도록 onclick 갱신
+      const card = el.querySelector(`[data-wsid="${ws.id}"]`);
+      if(card) {
+        card.setAttribute('onclick', `openWordSet('${ws.id}','${ws.name}',${ws.totalWords},${s.mastered})`);
+      }
+    } catch(e) { console.warn('진행률 계산 실패:', ws.name, e); }
   }
 }
 // ─────────────────────────────────────────────────────
