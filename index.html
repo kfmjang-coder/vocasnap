@@ -536,9 +536,9 @@ body{
 </div>
     <div class="sh"><span class="st">학습 모드 선택</span></div>
     <div class="mgrid">
-      <div class="mcard" onclick="nav('s-fc')"><i class="ti ti-cards" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">플래시카드</div><div style="font-size:11px;color:var(--tx2)">앞뒤 뒤집기</div></div>
+      <div class="mcard" onclick="startWordSetLearning('fc')"><i class="ti ti-cards" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">플래시카드</div><div style="font-size:11px;color:var(--tx2)">앞뒤 뒤집기</div></div>
       <div class="mcard" onclick="nav('s-quiz')"><i class="ti ti-list-check" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">퀴즈 모드</div><div style="font-size:11px;color:var(--tx2)">객관식·주관식</div></div>
-      <div class="mcard" onclick="nav('s-fc')"><i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">복습 모드</div><div style="font-size:11px;color:var(--tx2)">망각 곡선 기반</div></div>
+      <div class="mcard" onclick="startWordSetLearning('review')"><i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">복습 모드</div><div style="font-size:11px;color:var(--tx2)">망각 곡선 기반</div></div>
       <div class="mcard" onclick="openImportModal()"><i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">단어 임포트</div><div style="font-size:11px;color:var(--tx2)">CSV/텍스트 추가</div></div>
     </div>
     <div style="height:20px"></div>
@@ -1073,6 +1073,46 @@ function updateSel(){
 // ── FLASHCARD ──
 
 // ── 학습 시작 (홈에서 진입) ──────────────────────────
+
+// ── 단어장 상세에서 학습 모드 진입 ──────────────────
+function startWordSetLearning(mode) {
+  // currentWordSet의 단어가 이미 WORDS에 로드돼 있으면 바로 진입
+  // 없으면 loadFcWords로 로드 후 진입
+  const wsId = currentWordSet?.id || null;
+  FC_WORDSET_ID = wsId;
+
+  if(mode === 'review') {
+    // 복습 모드: status가 review/learning인 단어만 필터
+    if(WORDS.length > 0) {
+      const reviewWords = WORDS.filter(w => ['review','learning','new'].includes(w.status||'new'));
+      if(reviewWords.length > 0) WORDS = reviewWords;
+    }
+    nav('s-fc');
+    return;
+  }
+
+  if(mode === 'quiz') {
+    nav('s-quiz');
+    return;
+  }
+
+  // 플래시카드 - 전체 단어 랜덤 셔플
+  if(WORDS.length > 0) {
+    WORDS = [...WORDS].sort(() => Math.random() - 0.5);
+    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
+    const inner = document.getElementById('fc-inner');
+    if(inner) inner.classList.remove('flipped');
+    const titleEl = document.querySelector('#s-fc .ttl');
+    if(titleEl) titleEl.textContent = currentWordSet?.name || '플래시카드';
+    nav('s-fc');
+    fcRender();
+    setTimeout(autoSpeakWord, 400);
+  } else {
+    nav('s-fc'); // WORDS 없으면 loadFcWords가 로드
+  }
+}
+// ─────────────────────────────────────────────────────
+
 function startLearning(){
   // currentWordSet 초기화 (전체 단어 모드)
   currentWordSet = null;
@@ -1142,15 +1182,23 @@ async function loadFcWords(){
     if(res.error) throw new Error(res.error);
     if(!res.words?.length) return;
 
-    // Sheets 데이터를 WORDS 형식으로 변환
-    WORDS = res.words.map(w => ({
-      id:  w.id,
-      en:  w.word    || w.en  || '',
-      ko:  w.meaning || w.ko  || '',
-      pos: w.pos     || '',
-      ph:  w.phonetic|| w.ph  || '',
-      ex:  w.example || w.ex  || '',
-    })).filter(w => w.en); // 빈 단어 제외
+    // Sheets 데이터를 WORDS 형식으로 변환 (전체 로드, 제한 없음)
+    WORDS = res.words
+      .map(w => ({
+        id:  w.id,
+        en:  w.word    || w.en  || '',
+        ko:  w.meaning || w.ko  || '',
+        pos: w.pos     || '',
+        ph:  w.phonetic|| w.ph  || '',
+        ex:  w.example || w.ex  || '',
+        status: w.status || 'new',
+      }))
+      .filter(w => w.en); // 빈 단어 제외
+
+    console.log(`✅ 단어 ${WORDS.length}개 로드됨 (단어장: ${wsId||'전체'})`);
+    // 단어 수 배지 업데이트
+    const badge = document.getElementById('fc-total-badge');
+    if(badge) badge.textContent = WORDS.length + '개';
 
     // 퀴즈 DIST도 업데이트
     DIST.length = 0;
