@@ -2011,6 +2011,160 @@ async function fsGetStats() {
 }
 // ─────────────────────────────────────────────────────
 
+
+// ── 데이터 어댑터 (Firestore 전환) ────────────────────
+// 모든 데이터 호출이 이 함수를 거치도록 함
+// Firebase 로그인 시 → Firestore / 미로그인 시 → Sheets (fallback)
+
+// 데이터 모드 확인
+function isFirestoreMode() {
+  return !!firebaseUser;
+}
+
+// 기존 sheetsGet을 가로채는 통합 데이터 함수
+async function dataGet(action, params) {
+  // Firestore 모드면 Firestore로 라우팅
+  if(isFirestoreMode()) {
+    try {
+      if(action === 'getWordSets') {
+        const sets = await fsListWordSets();
+        return {
+          wordSets: sets.map(s => ({
+            id:         s.id,
+            name:       s.name,
+            color:      s.color || '#7F77DD',
+            totalWords: s.totalWords || 0,
+            createdAt:  s.createdAt?.toDate?.()?.toISOString() || ''
+          }))
+        };
+      }
+
+      if(action === 'getWords') {
+        const wsId  = params?.wordSetId;
+        const words = await fsListWords(wsId);
+        return {
+          words: words.map(w => ({
+            id:           w.id,
+            word:         w.word || w.en || '',
+            meaning:      w.meaning || w.ko || '',
+            pos:          w.pos || '',
+            difficulty:   w.difficulty || 2,
+            phonetic:     w.phonetic || '',
+            example:      w.example || '',
+            wordSetId:    w.wordSetId || wsId,
+            status:       w.status || 'new',
+            knowCount:    w.knowCount || 0,
+            dontCount:    w.dontCount || 0,
+            reviewCount:  w.reviewCount || 0,
+            easeFactor:   w.easeFactor || 2.5,
+            interval:     w.interval || 1,
+            lastReviewed: w.lastReviewed?.toDate?.()?.toISOString() || '',
+            nextReview:   w.nextReview?.toDate?.()?.toISOString() || '',
+          }))
+        };
+      }
+
+      if(action === 'getStats') {
+        const sets  = await fsListWordSets();
+        const words = await fsListWords();
+        const totalWords = words.length;
+        const mastered   = words.filter(w => w.status === 'mastered').length;
+        const learning   = words.filter(w => ['learning','review'].includes(w.status||'')).length;
+        const newCount   = words.filter(w => !w.status || w.status === 'new').length;
+        const today      = new Date().toISOString().split('T')[0];
+        const dueToday   = words.filter(w =>
+          w.status !== 'mastered' &&
+          (!w.nextReview || (w.nextReview?.toDate?.()?.toISOString?.()?.split('T')[0] || '') <= today)
+        ).length;
+        return {
+          total: totalWords,
+          mastered, learning,
+          newCount, dueToday,
+          wordSetCount: sets.length,
+        };
+      }
+
+      if(action === 'createWordSet') {
+        const id = await fsCreateWordSet(params?.name, params?.color);
+        return { id, success: true };
+      }
+
+      if(action === 'renameWordSet') {
+        await fsRenameWordSet(params?.wsId, params?.name);
+        return { success: true };
+      }
+
+      if(action === 'deleteWordSet') {
+        await fsDeleteWordSet(params?.wsId);
+        return { success: true };
+      }
+
+      if(action === 'saveWords') {
+        const ids = await fsSaveWords(params?.wordSetId, params?.words);
+        return { saved: ids.length, ids };
+      }
+
+      if(action === 'updateReview') {
+        // 단어 학습 상태 업데이트 - 직접 fsUpdateWord 호출하는 게 나음
+        return { success: true };
+      }
+
+      // 미지원 action
+      console.warn('dataGet: 미지원 action', action);
+      return { error: 'unsupported action: ' + action };
+
+    } catch(e) {
+      console.error('dataGet 실패:', action, e);
+      return { error: e.message };
+    }
+  }
+
+  // Firebase 미사용 시 → Sheets fallback
+  return sheetsGet(action, params);
+}
+
+// ── sheetsGet을 dataGet으로 자동 라우팅 ──
+// 기존 코드를 건드리지 않고 sheetsGet 자체를 가로챔
+const _origSheetsGet = window.sheetsGet || null;
+
+function _sheetsGetIntercepted(action, params) {
+  // Firestore 모드면 dataGet으로
+  if(isFirestoreMode()) {
+    return dataGet(action, params);
+  }
+  // 아니면 원래 sheetsGet
+  return _origSheetsGet ? _origSheetsGet(action, params) : Promise.resolve({error: 'no backend'});
+}
+
+// 페이지 로드 후 sheetsGet을 가로채기
+window.addEventListener('load', () => {
+  if(typeof sheetsGet === 'function') {
+    const orig = sheetsGet;
+    window.sheetsGet = function(action, params) {
+      if(isFirestoreMode()) {
+        return dataGet(action, params);
+      }
+      return orig(action, params);
+    };
+    console.log('✅ sheetsGet 인터셉터 활성화 (Firestore 우선)');
+  }
+});
+
+// getSheetsUrl도 가로채기 - Firestore 모드면 항상 true 반환 (호출 통과시키기)
+const _origGetSheetsUrl = window.getSheetsUrl;
+window.addEventListener('load', () => {
+  if(typeof getSheetsUrl === 'function') {
+    const orig = getSheetsUrl;
+    window.getSheetsUrl = function() {
+      // Firestore 모드면 더미 URL 반환 (호출이 진행되도록)
+      if(isFirestoreMode()) return 'firestore://active';
+      return orig();
+    };
+    console.log('✅ getSheetsUrl 인터셉터 활성화');
+  }
+});
+// ─────────────────────────────────────────────────────
+
 // ── Firebase 클라우드 동기화 ──────────────────────────
 const FB_CONFIG_KEY = 'vs-firebase-config';
 
@@ -3185,17 +3339,22 @@ function fcAns(type){
     // 단어별 학습 이력 (localStorage)
     w.status = computeWordStatus(w, know);
 
-    // Sheets 저장 (SM-2 + status)
-    if(w.id && getSheetsUrl()) {
-      const history = getWordHistory(w.id);
-      const sm2Result = sm2({
-        easeFactor: history.easeFactor || 2.5,
-        interval:   history.interval   || 1,
-        repetitions: history.knowCount || 0
-      }, know ? 4 : 1);
-      // 최종 status는 우리가 계산한 것 사용
-      sm2Result.status = w.status;
-      saveReviewToSheets(w.id, sm2Result).catch(()=>{});
+    // 학습 결과 저장
+    if(w.id) {
+      if(isFirestoreMode() && w.wordSetId) {
+        // Firestore에 학습 기록 (트랜잭션)
+        fsRecordLearning(w, know).catch(e => console.warn('FS 기록 실패:', e));
+      } else if(getSheetsUrl()) {
+        // Sheets fallback
+        const history = getWordHistory(w.id);
+        const sm2Result = sm2({
+          easeFactor: history.easeFactor || 2.5,
+          interval:   history.interval   || 1,
+          repetitions: history.knowCount || 0
+        }, know ? 4 : 1);
+        sm2Result.status = w.status;
+        saveReviewToSheets(w.id, sm2Result).catch(()=>{});
+      }
     }
   }
 
@@ -3428,15 +3587,19 @@ function qPick(chosen,ans){
   if(qw) {
     qw.status = computeWordStatus(qw, ok);
 
-    if(qw.id && getSheetsUrl()) {
-      const history = getWordHistory(qw.id);
-      const sm2Result = sm2({
-        easeFactor: history.easeFactor || 2.5,
-        interval:   history.interval   || 1,
-        repetitions: history.knowCount || 0
-      }, ok ? 4 : 1);
-      sm2Result.status = qw.status;
-      saveReviewToSheets(qw.id, sm2Result).catch(()=>{});
+    if(qw.id) {
+      if(isFirestoreMode() && qw.wordSetId) {
+        fsRecordLearning(qw, ok).catch(e => console.warn('FS 기록 실패:', e));
+      } else if(getSheetsUrl()) {
+        const history = getWordHistory(qw.id);
+        const sm2Result = sm2({
+          easeFactor: history.easeFactor || 2.5,
+          interval:   history.interval   || 1,
+          repetitions: history.knowCount || 0
+        }, ok ? 4 : 1);
+        sm2Result.status = qw.status;
+        saveReviewToSheets(qw.id, sm2Result).catch(()=>{});
+      }
     }
   }
 
@@ -4129,7 +4292,7 @@ async function saveWordsToSheets(wordSetId){
   }catch(e){
     btn.textContent='❌ 저장 실패';btn.style.background='var(--red)';
     setTimeout(()=>{btn.textContent=origText;btn.style.background='var(--acc)';btn.disabled=false;},2500);
-    alert('저장 실패: '+e.message+'\n\nApps Script를 재배포해보세요.');
+    alert('저장 실패: '+e.message);
   }
 }
 async function saveReviewToSheets(wordId,sm2Result){
@@ -4287,7 +4450,8 @@ async function loadWordSets(forceRefresh) {
     if(el) el.style.display = 'none';
   });
 
-  if(!url) {
+  // Firestore 모드 우선 - URL 체크 무시
+  if(!isFirestoreMode() && !url) {
     const el = document.getElementById('wslist-no-sheets');
     if(el) el.style.display = 'block';
     renderHomeWordSets([]);
@@ -6210,12 +6374,16 @@ async function renameWordSet(wsId, currentName) {
   if(!newName?.trim() || newName.trim() === currentName) return;
 
   try {
-    const url  = getSheetsUrl() + '?action=renameWordSet&wsId=' + encodeURIComponent(wsId) + '&name=' + encodeURIComponent(newName.trim());
-    const res  = await fetch(url);
-    const text = await res.text();
-    if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
-    const data = JSON.parse(text);
-    if(data.error) throw new Error(data.error);
+    if(isFirestoreMode()) {
+      await fsRenameWordSet(wsId, newName.trim());
+    } else {
+      const url  = getSheetsUrl() + '?action=renameWordSet&wsId=' + encodeURIComponent(wsId) + '&name=' + encodeURIComponent(newName.trim());
+      const res  = await fetch(url);
+      const text = await res.text();
+      if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
+      const data = JSON.parse(text);
+      if(data.error) throw new Error(data.error);
+    }
 
     // 화면 즉시 업데이트
     const nameEl = document.getElementById('ws-name-' + wsId);
@@ -6234,12 +6402,16 @@ async function deleteWordSet(wsId, name) {
   if(!confirm(`"${name}" 단어장을 삭제할까요?\n\n⚠️ 단어장에 포함된 단어는 삭제되지 않아요.`)) return;
 
   try {
-    const url  = getSheetsUrl() + '?action=deleteWordSet&wsId=' + encodeURIComponent(wsId);
-    const res  = await fetch(url);
-    const text = await res.text();
-    if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
-    const data = JSON.parse(text);
-    if(data.error) throw new Error(data.error);
+    if(isFirestoreMode()) {
+      await fsDeleteWordSet(wsId);
+    } else {
+      const url  = getSheetsUrl() + '?action=deleteWordSet&wsId=' + encodeURIComponent(wsId);
+      const res  = await fetch(url);
+      const text = await res.text();
+      if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
+      const data = JSON.parse(text);
+      if(data.error) throw new Error(data.error);
+    }
 
     // 캐시 초기화 + 화면 새로고침
     localStorage.removeItem('vs-wslist-cache');
