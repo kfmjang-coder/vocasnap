@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260524-142157">
+<meta name="app-build" content="20260524-143440">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -658,7 +658,7 @@ body{
     <!-- 새 단어장 이름 입력 (새 단어장 선택 시) -->
     <input id="extract-ws-name" placeholder="새 단어장 이름 입력"
       style="display:none;width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none;margin-bottom:8px;box-sizing:border-box">
-    <button class="savbtn" id="savbtn" onclick="saveExtractWords()">단어 저장하기</button>
+    <button class="savbtn" id="savbtn" onclick="saveWordsToSheets()">단어 저장하기</button>
   </div>
 </div>
 
@@ -3107,6 +3107,7 @@ function obNext(){
 
 // ── EXTRACT ──
 function renderExtract(){
+  _isSaving = false; // 추출 화면 진입 시 저장 플래그 초기화
   document.getElementById('wlist').innerHTML=EW.map((w,i)=>`
     <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:0.5px solid var(--bd);cursor:pointer;background:var(--sf)" onclick="toggleWord(${i})">
       <div style="width:20px;height:20px;border-radius:6px;border:1.5px solid ${w.checked?'var(--acc)':'var(--bd)'};background:${w.checked?'var(--acc)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -3882,7 +3883,7 @@ function qRestart(){qWrong=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260524-142157';
+  window.APP_BUILD = '20260524-143440';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -4466,7 +4467,13 @@ async function sheetsPost(body){
     throw new Error('응답 파싱 실패: '+text.slice(0,50));
   }
 }
+// 중복 저장 방지 플래그
+let _isSaving = false;
+
 async function saveWordsToSheets(wordSetId){
+  // 중복 클릭 방지
+  if(_isSaving) { console.log('이미 저장 중'); return; }
+
   const sheetsUrl = getSheetsUrl();
   if(!sheetsUrl){
     if(confirm('Google Sheets가 연결되지 않았어요.\n지금 설정하러 갈까요?')){nav('s-profile');setTimeout(openSheetsModal,400);}
@@ -4476,7 +4483,9 @@ async function saveWordsToSheets(wordSetId){
   if(!selected.length){alert('저장할 단어를 선택해주세요');return;}
   const btn = document.getElementById('savbtn');
   const origText = btn.textContent;
+  _isSaving = true;
   btn.textContent = '저장 중...'; btn.disabled = true;
+  btn.style.opacity = '0.7';
 
   // 단어장 ID 결정
   const wsId = (currentWordSet?.id) || wordSetId || 'default';
@@ -4518,18 +4527,33 @@ async function saveWordsToSheets(wordSetId){
 
     btn.textContent = `✅ ${totalSaved}개 저장 완료!`;
     btn.style.background = 'var(--grn)';
+    btn.style.opacity = '1';
     localStorage.removeItem('vs-wslist-cache');
     localStorage.removeItem('vs-stats-cache');
+
+    // 저장된 단어 메모리에서 제거 (재저장 방지)
+    EW = EW.filter(w => !w.checked);
+    // 단어 목록 새로 그리기
+    if(typeof renderExtract === 'function') renderExtract();
+
     setTimeout(() => {
-      btn.textContent = origText;
-      btn.style.background = 'var(--acc)';
-      btn.disabled = false;
-      nav('s-wslist');
+      _isSaving = false;
+      // EW가 비어있으면 단어장 화면으로 이동
+      if(EW.length === 0) {
+        nav('s-wslist');
+      } else {
+        // 일부만 저장한 경우 (체크 안한 단어가 남음) - 버튼 복귀
+        btn.textContent = '나머지 단어 저장하기';
+        btn.style.background = 'var(--acc)';
+        btn.disabled = false;
+      }
     }, 1500);
   } catch(e) {
     btn.textContent = '❌ 저장 실패';
     btn.style.background = 'var(--red)';
+    btn.style.opacity = '1';
     setTimeout(() => {
+      _isSaving = false;
       btn.textContent = origText;
       btn.style.background = 'var(--acc)';
       btn.disabled = false;
