@@ -2416,6 +2416,15 @@ const _origTrackLearning = window.trackLearning;
 const AUTH_USERS_KEY = 'vs-users';     // 사용자 DB (localStorage)
 const AUTH_SESSION_KEY = 'vs-session'; // 현재 로그인 세션
 
+// ── 현재 사용자 ID 헬퍼 ────────────────────────────
+function getUserIdParam() {
+  const user = getCurrentUser ? getCurrentUser() : null;
+  if(!user || user.isGuest) return '';
+  return user.userId ? '&userId=' + encodeURIComponent(user.userId) : '';
+}
+// ─────────────────────────────────────────────────────
+
+
 // 간단한 해시 함수 (보안 강한 건 아니지만 평문 저장 방지)
 function simpleHash(str) {
   let h = 0;
@@ -4276,9 +4285,18 @@ async function sheetsGet(action,params){
   if(!base) throw new Error('Sheets URL이 설정되지 않았어요');
   let url=base+'?action='+action;
   if(params) Object.entries(params).forEach(([k,v])=>url+=`&${k}=${encodeURIComponent(v)}`);
+
+  // 현재 로그인 사용자 ID 자동 첨부 (signup/login/resetPassword 제외)
+  const skipActions = ['signup', 'login', 'resetPassword', 'getUsers'];
+  if(!skipActions.includes(action)) {
+    const user = getCurrentUser ? getCurrentUser() : null;
+    if(user?.userId && !user.isGuest) {
+      url += '&userId=' + encodeURIComponent(user.userId);
+    }
+  }
+
   const res=await fetch(url);
   const text=await res.text();
-  // HTML 응답 감지 (Apps Script 재배포 필요)
   if(text.trim().startsWith('<')){
     throw new Error('Apps Script 재배포가 필요해요\n배포 → 배포 관리 → 새 버전으로 재배포해주세요');
   }
@@ -4727,7 +4745,7 @@ async function showCreateWordSet() {
   }
 
   try {
-    const apiUrl = url + '?action=createWordSet&name=' + encodeURIComponent(trimmed) + '&color=' + encodeURIComponent('#7F77DD');
+    const apiUrl = url + '?action=createWordSet&name=' + encodeURIComponent(trimmed) + '&color=' + encodeURIComponent('#7F77DD') + getUserIdParam();
     const res  = await fetch(apiUrl);
     const data = await res.json();
     if(data.error) throw new Error(data.error);
@@ -6417,7 +6435,7 @@ async function renameWordSet(wsId, currentName) {
   if(!newName?.trim() || newName.trim() === currentName) return;
 
   try {
-    const url  = getSheetsUrl() + '?action=renameWordSet&wsId=' + encodeURIComponent(wsId) + '&name=' + encodeURIComponent(newName.trim());
+    const url  = getSheetsUrl() + '?action=renameWordSet&wsId=' + encodeURIComponent(wsId) + '&name=' + encodeURIComponent(newName.trim()) + getUserIdParam();
     const res  = await fetch(url);
     const text = await res.text();
     if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
@@ -6441,7 +6459,7 @@ async function deleteWordSet(wsId, name) {
   if(!confirm(`"${name}" 단어장을 삭제할까요?\n\n⚠️ 단어장에 포함된 단어는 삭제되지 않아요.`)) return;
 
   try {
-    const url  = getSheetsUrl() + '?action=deleteWordSet&wsId=' + encodeURIComponent(wsId);
+    const url  = getSheetsUrl() + '?action=deleteWordSet&wsId=' + encodeURIComponent(wsId) + getUserIdParam();
     const res  = await fetch(url);
     const text = await res.text();
     if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
