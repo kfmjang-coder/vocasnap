@@ -1356,8 +1356,21 @@ function fcFlip(){
   document.getElementById('fc-hint').textContent=fcFlipped?'알고 있나요?':'↻ 카드를 탭해서 뜻을 확인하세요';
 }
 function fcAns(type){
-  if(type==='know') { fcKnow++; trackLearning(true); }
-  else { fcDont++; trackLearning(false); }
+  const know = type === 'know';
+  if(know) fcKnow++; else fcDont++;
+
+  // 현재 단어 status 즉시 업데이트 (WORDS 배열)
+  const w = WORDS[fcIdx];
+  if(w) {
+    w.status = know ? 'review' : 'learning';
+    // SM-2 결과 Sheets에 비동기 저장
+    if(w.id && getSheetsUrl()) {
+      const sm2Result = sm2({easeFactor:2.5,interval:1,repetitions:0}, know?4:1);
+      saveReviewToSheets(w.id, sm2Result).catch(()=>{});
+    }
+  }
+
+  trackLearning(know);
   fcFlipped=false;
   document.getElementById('fc-inner').classList.remove('flipped');
 
@@ -1396,10 +1409,11 @@ function showFcResult(){
   const mins = Number(localStorage.getItem('vs-today-time')||0);
   updateHomeLiveStats(done, acc, mins);
 
-  // 단어장 상세 통계 새로고침
-  if(currentWordSet?.id) {
-    setTimeout(() => loadWordListForSet(currentWordSet.id), 500);
-  }
+  // 단어장 상세 대시보드 즉시 업데이트
+  updateWsdDashboard();
+
+  // Sheets에서 최신 status로 갱신 (백그라운드)
+  setTimeout(() => refreshWsdFromSheets(), 800);
 
   nav('s-qresult');
 }
@@ -1426,8 +1440,11 @@ function trackLearning(isCorrect) {
   // 매번 캐시 무효화 (시간 조건 제거)
   localStorage.removeItem('vs-stats-cache');
 
-  // 홈 화면이 보이면 즉시 숫자 업데이트
+  // 홈 화면 즉시 업데이트
   updateHomeLiveStats(done, acc, mins);
+
+  // 단어장 상세 대시보드도 즉시 업데이트 (WORDS 기반)
+  updateWsdDashboard();
 
   // 스트릭 업데이트
   updateStreak();
@@ -1542,11 +1559,18 @@ function qPick(chosen,ans){
   });
   const ok=chosen===ans;
   if(ok) qCorrect++;
-  else {
-    // 틀린 단어 저장
-    const w = WORDS[qIdx % WORDS.length];
-    if(w && !qWrong.find(x=>x.en===w.en)) qWrong.push({...w});
+  const qw = WORDS[qIdx % WORDS.length];
+  if(!ok && qw && !qWrong.find(x=>x.en===qw.en)) qWrong.push({...qw});
+
+  // 퀴즈 단어 status 즉시 업데이트
+  if(qw) {
+    qw.status = ok ? 'review' : 'learning';
+    if(qw.id && getSheetsUrl()) {
+      const sm2Result = sm2({easeFactor:2.5,interval:1,repetitions:0}, ok?4:1);
+      saveReviewToSheets(qw.id, sm2Result).catch(()=>{});
+    }
   }
+
   trackLearning(ok);
   const fb=document.getElementById('q-fbk');
   fb.style.cssText='display:flex;margin:0 16px 10px;border-radius:10px;padding:11px 14px;align-items:center;gap:8px;background:'+(ok?'var(--grn-l)':'var(--red-l)');
@@ -1589,10 +1613,11 @@ function qNext(){
     const _mins = Number(localStorage.getItem('vs-today-time')||0);
     updateHomeLiveStats(_done, _acc, _mins);
 
-    // 단어장 상세 통계 새로고침
-    if(currentWordSet?.id) {
-      setTimeout(() => loadWordListForSet(currentWordSet.id), 500);
-    }
+    // 단어장 상세 대시보드 즉시 업데이트
+    updateWsdDashboard();
+
+    // Sheets에서 최신 status로 갱신 (백그라운드)
+    setTimeout(() => refreshWsdFromSheets(), 800);
 
     nav('s-qresult');
   } else qRender();
@@ -3497,6 +3522,48 @@ async function loadExtractWsOptions() {
     }
 
   } catch(e) { console.warn('단어장 목록 로드 실패:', e); }
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── 단어장 상세 대시보드 업데이트 ──────────────────
+function updateWsdDashboard() {
+  if(!currentWordSet) return;
+
+  // WORDS 기반으로 즉시 집계 (Sheets 호출 없이)
+  const mastered = WORDS.filter(w => w.status === 'mastered').length;
+  const learning = WORDS.filter(w => ['learning','review'].includes(w.status||'')).length;
+  const newW     = WORDS.filter(w => !w.status || w.status === 'new').length;
+  const total    = WORDS.length;
+  const pct      = total > 0 ? Math.round((mastered/total)*100) : 0;
+
+  setText('wsd-mastered', mastered);
+  setText('wsd-learning', learning);
+  setText('wsd-new',      newW);
+  setText('wsd-pct',      pct + '%');
+  const bar = document.getElementById('wsd-pct-bar');
+  if(bar) setTimeout(() => bar.style.width = pct + '%', 100);
+
+  // 히어로 카드 통계 (단어장 목록 화면)
+  setText('ws-mastered', mastered);
+  setText('ws-due',      newW + '개');
+}
+
+// Sheets에서 최신 데이터로 단어장 상세 갱신
+async function refreshWsdFromSheets() {
+  if(!currentWordSet?.id || !getSheetsUrl()) return;
+  try {
+    const res = await sheetsGet('getWords', {wordSetId: currentWordSet.id});
+    if(res.error || !res.words?.length) return;
+
+    // WORDS 상태 업데이트 (학습 결과 반영)
+    res.words.forEach(sheetWord => {
+      const idx = WORDS.findIndex(w => w.id === sheetWord.id || w.en === (sheetWord.word||sheetWord.en));
+      if(idx >= 0) WORDS[idx].status = sheetWord.status || 'new';
+    });
+
+    updateWsdDashboard();
+  } catch(e) { console.warn('단어장 갱신 실패:', e); }
 }
 // ─────────────────────────────────────────────────────
 
