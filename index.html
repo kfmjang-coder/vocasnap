@@ -3956,9 +3956,6 @@ function renderMockQuestion() {
   const w = MOCK.words[MOCK.idx];
   if(!w) return;
 
-  // 현재 답안 자동 저장 (다른 문제로 이동 전)
-  saveCurrentMockAnswer();
-
   // 진행 상태
   setText('mock-qnum', MOCK.idx + 1);
   setText('mock-qtotal', MOCK.words.length);
@@ -3999,12 +3996,14 @@ function renderMockQuestion() {
   setTimeout(() => document.getElementById('mock-input-en').focus(), 600);
 }
 
-function saveCurrentMockAnswer() {
-  if(MOCK.idx < 0 || MOCK.idx >= MOCK.answers.length) return;
+function saveCurrentMockAnswer(targetIdx) {
+  // targetIdx 미지정 시 현재 MOCK.idx 사용
+  const idx = (typeof targetIdx === 'number') ? targetIdx : MOCK.idx;
+  if(idx < 0 || idx >= MOCK.answers.length) return;
   const en = document.getElementById('mock-input-en')?.value || '';
   const ko = document.getElementById('mock-input-ko')?.value || '';
-  const ans = MOCK.answers[MOCK.idx];
-  // 둘 다 비어있으면 skipped 유지, 하나라도 있으면 작성됨
+  const ans = MOCK.answers[idx];
+  // 둘 다 비어있으면 빈 상태 유지
   if(en.trim() || ko.trim()) {
     ans.en = en;
     ans.ko = ko;
@@ -4040,34 +4039,48 @@ function renderMockJumpGrid() {
 
 function jumpToMockQuestion(idx) {
   if(idx < 0 || idx >= MOCK.words.length) return;
-  saveCurrentMockAnswer();
+  if(idx === MOCK.idx) return; // 같은 문제면 무시
+  saveCurrentMockAnswer(MOCK.idx);
   MOCK.idx = idx;
+  // 입력란 즉시 초기화
+  document.getElementById('mock-input-en').value = '';
+  document.getElementById('mock-input-ko').value = '';
   renderMockQuestion();
 }
 
 function prevMockQuestion() {
   if(MOCK.idx > 0) {
-    saveCurrentMockAnswer();
+    saveCurrentMockAnswer(MOCK.idx);
     MOCK.idx--;
+    // 입력란 즉시 초기화
+    document.getElementById('mock-input-en').value = '';
+    document.getElementById('mock-input-ko').value = '';
     renderMockQuestion();
   }
 }
 
 function skipMockQuestion() {
-  // 현재 문제 skipped 표시 후 다음으로
+  // 현재 문제 skipped 표시 (입력 내용 무시하고 비움)
   if(MOCK.idx < MOCK.answers.length) {
     MOCK.answers[MOCK.idx].skipped = true;
     MOCK.answers[MOCK.idx].en = '';
     MOCK.answers[MOCK.idx].ko = '';
   }
+  // 입력란 비우기
+  document.getElementById('mock-input-en').value = '';
+  document.getElementById('mock-input-ko').value = '';
+
   if(MOCK.idx < MOCK.words.length - 1) {
     MOCK.idx++;
     renderMockQuestion();
   } else {
     // 마지막 문제에서 건너뛰기 → 답안 작성 안 한 첫 문제로 이동
-    const firstEmpty = MOCK.answers.findIndex(a => !a.en.trim() && !a.ko.trim());
+    const firstEmpty = MOCK.answers.findIndex(a => !a.en.trim() && !a.ko.trim() && !a.skipped);
     if(firstEmpty >= 0) {
       MOCK.idx = firstEmpty;
+      renderMockQuestion();
+    } else {
+      // 모두 채워졌으면 그대로 (제출 유도)
       renderMockQuestion();
     }
   }
@@ -4153,9 +4166,13 @@ function gradeMockTest() {
 }
 
 function nextMockQuestion() {
-  if(MOCK.idx >= MOCK.words.length - 1) return; // 마지막이면 아무것도 안 함
-  saveCurrentMockAnswer();
+  if(MOCK.idx >= MOCK.words.length - 1) return;
+  // 현재 인덱스에 저장 후 이동
+  saveCurrentMockAnswer(MOCK.idx);
   MOCK.idx++;
+  // 입력란 즉시 초기화 (다음 문제 답안 복원 전에)
+  document.getElementById('mock-input-en').value = '';
+  document.getElementById('mock-input-ko').value = '';
   renderMockQuestion();
 }
 
