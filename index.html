@@ -807,6 +807,11 @@ body{
         <span style="font-size:18px">📤</span><div style="flex:1" onclick="exportCSV()"><div style="font-size:14px;color:var(--tx)">데이터 내보내기</div><div style="font-size:12px;color:var(--tx2)">CSV로 백업</div></div><span style="color:var(--tx3)">›</span>
       </div>
     </div>
+    <div class="sh"><span class="st">단어장 관리</span><span onclick="loadManageWordSets()" style="font-size:12px;color:var(--acc);cursor:pointer">새로고침</span></div>
+    <div id="manage-ws-list" style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
+      <div style="padding:20px;text-align:center;color:var(--tx3);font-size:13px">로딩 중...</div>
+    </div>
+
     <div class="sh"><span class="st">앱 정보</span></div>
     <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
       <div style="padding:14px 16px;display:flex;justify-content:space-between;border-bottom:0.5px solid var(--bd)"><span style="font-size:14px;color:var(--tx)">버전</span><span style="font-size:14px;color:var(--tx2)">1.0.0</span></div>
@@ -2643,6 +2648,9 @@ async function loadProfile() {
   // 다크모드 토글 상태 반영
   initDarkToggle();
 
+  // 단어장 목록 로드
+  loadManageWordSets();
+
   // Sheets 통계
   const url = getSheetsUrl();
   if(!url) return;
@@ -3005,6 +3013,101 @@ function downloadSample(){
   a.download = 'vocasnap_sample.csv';
   a.click();
   URL.revokeObjectURL(a.href);
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── 단어장 관리 (내정보) ─────────────────────────────
+async function loadManageWordSets() {
+  const el = document.getElementById('manage-ws-list');
+  if(!el) return;
+
+  const url = getSheetsUrl();
+  if(!url) {
+    el.innerHTML = '<div style="padding:14px 16px;font-size:13px;color:var(--tx2);text-align:center">Google Sheets 연동 후 사용 가능해요</div>';
+    return;
+  }
+
+  el.innerHTML = '<div style="padding:14px 16px;font-size:13px;color:var(--tx3);text-align:center">불러오는 중...</div>';
+
+  try {
+    const [wsRes, statsRes] = await Promise.all([
+      sheetsGet('getWordSets'),
+      sheetsGet('getStats'),
+    ]);
+
+    const sets = wsRes.wordSets || [];
+    if(!sets.length) {
+      el.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:var(--tx2)">단어장이 없어요<br><span style="font-size:12px;color:var(--tx3)">촬영이나 임포트로 추가해보세요</span></div>';
+      return;
+    }
+
+    el.innerHTML = sets.map((ws, i) => `
+      <div style="padding:12px 16px;display:flex;align-items:center;gap:10px;${i<sets.length-1?'border-bottom:0.5px solid var(--bd)':''}">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--acc-l);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">📖</div>
+        <div style="flex:1;min-width:0">
+          <div id="ws-name-${ws.id}" style="font-size:14px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ws.name}</div>
+          <div style="font-size:12px;color:var(--tx2)">${ws.totalWords||0}개 단어</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <div onclick="renameWordSet('${ws.id}','${ws.name.replace(/'/g,"\\'")}'')"
+            style="width:32px;height:32px;border-radius:8px;background:var(--acc-l);display:flex;align-items:center;justify-content:center;cursor:pointer">
+            <i class="ti ti-pencil" style="font-size:15px;color:var(--acc)"></i>
+          </div>
+          <div onclick="deleteWordSet('${ws.id}','${ws.name.replace(/'/g,"\\'")}'')"
+            style="width:32px;height:32px;border-radius:8px;background:var(--red-l);display:flex;align-items:center;justify-content:center;cursor:pointer">
+            <i class="ti ti-trash" style="font-size:15px;color:var(--red)"></i>
+          </div>
+        </div>
+      </div>`).join('');
+
+  } catch(e) {
+    el.innerHTML = `<div style="padding:14px;text-align:center;font-size:13px;color:var(--red)">로드 실패: ${e.message}</div>`;
+  }
+}
+
+async function renameWordSet(wsId, currentName) {
+  const newName = prompt('새 단어장 이름:', currentName);
+  if(!newName?.trim() || newName.trim() === currentName) return;
+
+  try {
+    // Sheets WordSets 시트에서 직접 수정 (API 추가 필요 → 일단 알림)
+    const url = getSheetsUrl() + '?action=renameWordSet&wsId=' + encodeURIComponent(wsId) + '&name=' + encodeURIComponent(newName.trim());
+    const res  = await fetch(url);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+
+    // 화면 즉시 업데이트
+    const nameEl = document.getElementById('ws-name-' + wsId);
+    if(nameEl) nameEl.textContent = newName.trim();
+
+    // 캐시 초기화
+    localStorage.removeItem('vs-wslist-cache');
+    alert(`✅ "${newName.trim()}"으로 변경됐어요!`);
+  } catch(e) {
+    alert('이름 변경 실패: ' + e.message);
+  }
+}
+
+async function deleteWordSet(wsId, name) {
+  if(!confirm(`"${name}" 단어장을 삭제할까요?\n\n⚠️ 단어장에 포함된 단어는 삭제되지 않아요.\n(Words 시트에서 별도 삭제 필요)`)) return;
+
+  try {
+    const url  = getSheetsUrl() + '?action=deleteWordSet&wsId=' + encodeURIComponent(wsId);
+    const res  = await fetch(url);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+
+    alert(`✅ "${name}" 단어장이 삭제됐어요!`);
+
+    // 캐시 초기화 + 화면 새로고침
+    localStorage.removeItem('vs-wslist-cache');
+    localStorage.removeItem('vs-stats-cache');
+    loadManageWordSets();
+    loadWordSets(true);
+  } catch(e) {
+    alert('삭제 실패: ' + e.message);
+  }
 }
 // ─────────────────────────────────────────────────────
 
