@@ -544,9 +544,9 @@ body{
       <div style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-dots" style="color:#fff;font-size:18px"></i></div>
     </div>
     <div class="wdstats">
-      <div class="wdst"><div id="wsd-mastered" style="font-size:22px;font-weight:500">--</div><div style="font-size:11px;opacity:.75;margin-top:2px">완료</div></div>
-      <div class="wdst"><div id="wsd-learning" style="font-size:22px;font-weight:500">--</div><div style="font-size:11px;opacity:.75;margin-top:2px">학습 중</div></div>
-      <div class="wdst"><div id="wsd-new" style="font-size:22px;font-weight:500">--</div><div style="font-size:11px;opacity:.75;margin-top:2px">미학습</div></div>
+      <div class="wdst"><div id="wsd-mastered" style="font-size:22px;font-weight:500">--</div><div style="font-size:11px;opacity:.75;margin-top:2px">✅ 완료</div></div>
+      <div class="wdst"><div id="wsd-learning" style="font-size:22px;font-weight:500">--</div><div style="font-size:11px;opacity:.75;margin-top:2px">📖 학습 중</div></div>
+      <div class="wdst"><div id="wsd-new" style="font-size:22px;font-weight:500">--</div><div style="font-size:11px;opacity:.75;margin-top:2px">🆕 미학습</div></div>
     </div>
   </div>
   <div class="scroll">
@@ -560,7 +560,7 @@ body{
     <div class="mgrid">
       <div class="mcard" onclick="startWordSetLearning('fc')"><i class="ti ti-cards" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">플래시카드</div><div style="font-size:11px;color:var(--tx2)">앞뒤 뒤집기</div></div>
       <div class="mcard" onclick="nav('s-quiz')"><i class="ti ti-list-check" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">퀴즈 모드</div><div style="font-size:11px;color:var(--tx2)">객관식·주관식</div></div>
-      <div class="mcard" onclick="startWordSetLearning('review')"><i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">복습 모드</div><div style="font-size:11px;color:var(--tx2)">망각 곡선 기반</div></div>
+      <div class="mcard" onclick="startWordSetLearning('review')"><i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">복습 모드</div><div style="font-size:11px;color:var(--tx2)">학습한 단어만</div></div>
       <div class="mcard" onclick="openImportModal()"><i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">단어 임포트</div><div style="font-size:11px;color:var(--tx2)">CSV/텍스트 추가</div></div>
     </div>
     <div style="height:20px"></div>
@@ -1411,13 +1411,22 @@ function fcAns(type){
   const know = type === 'know';
   if(know) fcKnow++; else fcDont++;
 
-  // 현재 단어 status 즉시 업데이트 (WORDS 배열)
+  // 현재 단어 상태 업데이트 (학습 횟수 누적)
   const w = WORDS[fcIdx];
   if(w) {
-    w.status = know ? 'review' : 'learning';
-    // SM-2 결과 Sheets에 비동기 저장
+    // 단어별 학습 이력 (localStorage)
+    w.status = computeWordStatus(w, know);
+
+    // Sheets 저장 (SM-2 + status)
     if(w.id && getSheetsUrl()) {
-      const sm2Result = sm2({easeFactor:2.5,interval:1,repetitions:0}, know?4:1);
+      const history = getWordHistory(w.id);
+      const sm2Result = sm2({
+        easeFactor: history.easeFactor || 2.5,
+        interval:   history.interval   || 1,
+        repetitions: history.knowCount || 0
+      }, know ? 4 : 1);
+      // 최종 status는 우리가 계산한 것 사용
+      sm2Result.status = w.status;
       saveReviewToSheets(w.id, sm2Result).catch(()=>{});
     }
   }
@@ -1610,11 +1619,18 @@ function qPick(chosen,ans){
   const qw = WORDS[qIdx % WORDS.length];
   if(!ok && qw && !qWrong.find(x=>x.en===qw.en)) qWrong.push({...qw});
 
-  // 퀴즈 단어 status 즉시 업데이트
+  // 퀴즈 단어 상태 업데이트
   if(qw) {
-    qw.status = ok ? 'review' : 'learning';
+    qw.status = computeWordStatus(qw, ok);
+
     if(qw.id && getSheetsUrl()) {
-      const sm2Result = sm2({easeFactor:2.5,interval:1,repetitions:0}, ok?4:1);
+      const history = getWordHistory(qw.id);
+      const sm2Result = sm2({
+        easeFactor: history.easeFactor || 2.5,
+        interval:   history.interval   || 1,
+        repetitions: history.knowCount || 0
+      }, ok ? 4 : 1);
+      sm2Result.status = qw.status;
       saveReviewToSheets(qw.id, sm2Result).catch(()=>{});
     }
   }
@@ -2460,27 +2476,38 @@ async function loadWordListForSet(wordSetId) {
 
     const words = res.words || [];
     // WORDS 배열 전체 동기화 (status 포함) - 학습 후 복귀 시 정확한 집계
-    WORDS = words.map(w => ({
-      id: w.id, en: w.word||w.en||'', ko: w.meaning||w.ko||'',
-      pos: w.pos||'', ph: w.phonetic||'', ex: w.example||'',
-      status: w.status || 'new',
-    })).filter(w => w.en);
+    WORDS = words.map(w => {
+      // localStorage 이력 기반 status 재계산 (Sheets status보다 우선)
+      const hist = getWordHistory(w.id);
+      let status = w.status || 'new';
+      if(hist.knowCount > 0 || hist.dontCount > 0) {
+        const total = hist.knowCount + hist.dontCount;
+        const acc   = total > 0 ? hist.knowCount/total : 0;
+        if(hist.knowCount >= 5 && acc >= 0.8) status = 'mastered';
+        else if(hist.knowCount >= 3 && acc >= 0.6) status = 'review';
+        else status = 'learning';
+      }
+      return {
+        id: w.id, en: w.word||w.en||'', ko: w.meaning||w.ko||'',
+        pos: w.pos||'', ph: w.phonetic||'', ex: w.example||'',
+        status: status,
+      };
+    }).filter(w => w.en);
+    // words 배열에도 status 반영 (집계용)
+    words.forEach((w, i) => { if(WORDS[i]) w.status = WORDS[i].status; });
     // 퀴즈 오답지 갱신
     DIST.length = 0;
     WORDS.forEach(w => { if(w.ko) DIST.push(w.ko); });
 
-    // 통계 업데이트 (Sheets 실제 status 기반)
-    const mastered = words.filter(w=>w.status==='mastered').length;
-    const learning = words.filter(w=>['learning','review'].includes(w.status||'')).length;
-    const newW     = words.filter(w=>!w.status||w.status==='new').length;
-    const pct      = words.length>0 ? Math.round((mastered/words.length)*100) : 0;
-    setText('wsd-mastered', mastered);
-    setText('wsd-learning', learning);
-    setText('wsd-new',      newW);
-    setText('wsd-pct',      pct+'%');
-    setText('wsd-word-count', words.length+'개');
+    // 가중 진행률 사용 (mastered 100%, review 50%, learning 20%)
+    const s = calcWordSetProgress(words);
+    setText('wsd-mastered',   s.mastered);
+    setText('wsd-learning',   s.learning + s.review);
+    setText('wsd-new',        s.newW);
+    setText('wsd-pct',        s.pct + '%');
+    setText('wsd-word-count', words.length + '개');
     const bar = document.getElementById('wsd-pct-bar');
-    if(bar) setTimeout(()=>bar.style.width=pct+'%', 100);
+    if(bar) setTimeout(()=>bar.style.width=s.pct+'%', 100);
 
     renderWordListInDetail(words);
   } catch(e) {
@@ -2781,6 +2808,61 @@ function logout() {
 
 
 // ── SM-2 망각 곡선 알고리즘 ────────────────────────
+
+// ── 단어 학습 상태 계산 ──────────────────────────────
+//   new      : 한 번도 학습 안 함
+//   learning : 학습 중 (알아요 < 3회 또는 정답률 < 60%)
+//   review   : 복습 단계 (알아요 3~4회, 정답률 60~80%)
+//   mastered : 완료 (알아요 5회 이상 + 정답률 80% 이상)
+
+function getWordHistory(wordId) {
+  if(!wordId) return { knowCount: 0, dontCount: 0, easeFactor: 2.5, interval: 1 };
+  const key = 'vs-word-' + wordId;
+  try {
+    return JSON.parse(localStorage.getItem(key)) || { knowCount: 0, dontCount: 0, easeFactor: 2.5, interval: 1 };
+  } catch(e) {
+    return { knowCount: 0, dontCount: 0, easeFactor: 2.5, interval: 1 };
+  }
+}
+
+function saveWordHistory(wordId, history) {
+  if(!wordId) return;
+  localStorage.setItem('vs-word-' + wordId, JSON.stringify(history));
+}
+
+function computeWordStatus(word, isKnow) {
+  const h = getWordHistory(word.id);
+  if(isKnow) h.knowCount = (h.knowCount || 0) + 1;
+  else       h.dontCount = (h.dontCount || 0) + 1;
+  saveWordHistory(word.id, h);
+
+  const total      = h.knowCount + h.dontCount;
+  const accuracy   = total > 0 ? h.knowCount / total : 0;
+
+  // 상태 결정 로직
+  if(h.knowCount >= 5 && accuracy >= 0.8) {
+    return 'mastered'; // 완료
+  } else if(h.knowCount >= 3 && accuracy >= 0.6) {
+    return 'review';   // 복습 단계
+  } else {
+    return 'learning'; // 학습 중
+  }
+}
+
+// 진행률 계산 (가중 평균)
+function calcWordSetProgress(words) {
+  if(!words.length) return { mastered: 0, learning: 0, review: 0, newW: 0, pct: 0 };
+  const mastered = words.filter(w => w.status === 'mastered').length;
+  const review   = words.filter(w => w.status === 'review').length;
+  const learning = words.filter(w => w.status === 'learning').length;
+  const newW     = words.filter(w => !w.status || w.status === 'new').length;
+  // 가중치: mastered=1.0, review=0.5, learning=0.2, new=0
+  const score    = mastered * 1.0 + review * 0.5 + learning * 0.2;
+  const pct      = Math.round((score / words.length) * 100);
+  return { mastered, learning, review, newW, pct, total: words.length };
+}
+// ─────────────────────────────────────────────────────
+
 function sm2(card, quality) {
   // quality: 5=완벽, 4=좋음, 3=어려웠지만 맞음, 2=틀렸지만 기억남, 1=틀림, 0=완전모름
   let { easeFactor = 2.5, interval = 1, repetitions = 0 } = card;
@@ -3588,23 +3670,19 @@ async function loadExtractWsOptions() {
 function updateWsdDashboard() {
   if(!currentWordSet) return;
 
-  // WORDS 기반으로 즉시 집계 (Sheets 호출 없이)
-  const mastered = WORDS.filter(w => w.status === 'mastered').length;
-  const learning = WORDS.filter(w => ['learning','review'].includes(w.status||'')).length;
-  const newW     = WORDS.filter(w => !w.status || w.status === 'new').length;
-  const total    = WORDS.length;
-  const pct      = total > 0 ? Math.round((mastered/total)*100) : 0;
+  // 가중 진행률 사용 (단순 mastered/total 대신)
+  const s = calcWordSetProgress(WORDS);
 
-  setText('wsd-mastered', mastered);
-  setText('wsd-learning', learning);
-  setText('wsd-new',      newW);
-  setText('wsd-pct',      pct + '%');
+  setText('wsd-mastered', s.mastered);
+  setText('wsd-learning', s.learning + s.review); // 학습중 = learning + review
+  setText('wsd-new',      s.newW);
+  setText('wsd-pct',      s.pct + '%');
   const bar = document.getElementById('wsd-pct-bar');
-  if(bar) setTimeout(() => bar.style.width = pct + '%', 100);
+  if(bar) setTimeout(() => bar.style.width = s.pct + '%', 100);
 
-  // 히어로 카드 통계 (단어장 목록 화면)
-  setText('ws-mastered', mastered);
-  setText('ws-due',      newW + '개');
+  // 히어로 카드 통계
+  setText('ws-mastered', s.mastered);
+  setText('ws-due',      s.newW + '개');
 }
 
 // Sheets에서 최신 데이터로 단어장 상세 갱신
