@@ -4677,18 +4677,25 @@ function renderWordListInDetail(words) {
 async function showCreateWordSet() {
   const name = prompt('단어장 이름을 입력해주세요:');
   if(!name?.trim()) return;
-  const url = getSheetsUrl();
-  if(!url) {
-    alert('Google Sheets를 먼저 연결해주세요.');
-    return;
-  }
+  const trimmed = name.trim();
+
   try {
-    // GET 방식으로 CORS 우회
-    const apiUrl = url + '?action=createWordSet&name=' + encodeURIComponent(name.trim()) + '&color=' + encodeURIComponent('#7F77DD');
-    const res  = await fetch(apiUrl);
-    const data = await res.json();
-    if(data.error) throw new Error(data.error);
-    alert(`"${name.trim()}" 단어장이 만들어졌어요!`);
+    if(isFirestoreMode()) {
+      // Firestore 모드
+      await fsCreateWordSet(trimmed, '#7F77DD');
+    } else {
+      // Sheets 모드 (fallback)
+      const url = getSheetsUrl();
+      if(!url) {
+        alert('Google Sheets를 먼저 연결해주세요.');
+        return;
+      }
+      const apiUrl = url + '?action=createWordSet&name=' + encodeURIComponent(trimmed) + '&color=' + encodeURIComponent('#7F77DD');
+      const res  = await fetch(apiUrl);
+      const data = await res.json();
+      if(data.error) throw new Error(data.error);
+    }
+    alert(`"${trimmed}" 단어장이 만들어졌어요!`);
     localStorage.removeItem('vs-wslist-cache');
     loadWordSets(true);
   } catch(e) { alert('만들기 실패: ' + e.message); }
