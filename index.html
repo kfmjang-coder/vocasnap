@@ -2757,59 +2757,79 @@ function skipAuth() {
   goToOnboarding();
 }
 
+// 안전한 임시 비밀번호 생성 (10자: 영문 대소문자 + 숫자)
+function generateTempPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let pw = '';
+  for(let i = 0; i < 10; i++) {
+    pw += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return pw;
+}
+
 async function forgotPassword() {
-  const email = prompt('가입한 이메일을 입력해주세요:');
+  const email = prompt('가입한 이메일을 입력해주세요.\n임시 비밀번호를 이메일로 보내드려요:');
   if(!email) return;
   const e = email.trim().toLowerCase();
 
-  // Firebase 비활성화
-  if(false && isFirebaseConfigured() && initFirebase() && firebaseAuth) {
-    try {
-      await fbResetPassword(e);
-      alert('✅ 비밀번호 재설정 이메일을 보냈어요!\n메일함을 확인해주세요.');
-      return;
-    } catch(err) {
-      const msg = err.code === 'auth/user-not-found' ? '등록되지 않은 이메일이에요' :
-                  '실패: ' + err.message;
-      alert(msg);
-      return;
-    }
+  // 이메일 형식 검증
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
+    alert('올바른 이메일 형식이 아니에요');
+    return;
   }
 
-  // Google Sheets 비밀번호 재설정
   const sheetsUrl = getSheetsUrl();
-  if(sheetsUrl) {
-    const newPw = prompt('새 비밀번호를 입력해주세요 (6자 이상):');
-    if(!newPw || newPw.length < 6) { alert('비밀번호는 6자 이상이어야 해요'); return; }
-
-    try {
-      const passwordHash = simpleHash(newPw);
-      const url = sheetsUrl + '?action=resetPassword' +
-        '&email=' + encodeURIComponent(e) +
-        '&passwordHash=' + encodeURIComponent(passwordHash);
-      const res  = await fetch(url);
-      const text = await res.text();
-      if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
-      const data = JSON.parse(text);
-      if(data.error) { alert(data.error); return; }
-      alert('✅ 비밀번호가 변경됐어요!\n새 비밀번호로 로그인해주세요.');
-      return;
-    } catch(err) {
-      console.warn('Sheets 비밀번호 재설정 실패:', err);
-      alert('재설정 실패: ' + err.message);
-      return;
-    }
+  if(!sheetsUrl) {
+    alert('Google Sheets가 연결되지 않았어요.\n로컬 모드는 이메일 발송을 지원하지 않아요.');
+    return;
   }
 
-  // 로컬 모드
-  const users = getUsers();
-  const user  = users.find(u => u.email === e);
-  if(!user) { alert('등록되지 않은 이메일이에요'); return; }
-  const newPw = prompt(`${user.name}님, 새 비밀번호를 입력해주세요 (6자 이상):`);
-  if(!newPw || newPw.length < 6) { alert('비밀번호는 6자 이상이어야 해요'); return; }
-  user.password = simpleHash(newPw);
-  saveUsers(users);
-  alert('✅ 비밀번호가 변경됐어요!');
+  // 진행 알림
+  const loadingToast = document.createElement('div');
+  loadingToast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.85);color:#fff;padding:20px 28px;border-radius:14px;font-size:14px;z-index:9999;text-align:center';
+  loadingToast.innerHTML = '<div style="font-size:24px;margin-bottom:8px">📧</div>임시 비밀번호 발송 중...';
+  document.body.appendChild(loadingToast);
+
+  try {
+    // 임시 비밀번호 생성
+    const tempPassword = generateTempPassword();
+    const tempPasswordHash = simpleHash(tempPassword);
+
+    // Sheets로 발송 요청
+    const url = sheetsUrl + '?action=sendTempPassword' +
+      '&email=' + encodeURIComponent(e) +
+      '&tempPassword=' + encodeURIComponent(tempPassword) +
+      '&tempPasswordHash=' + encodeURIComponent(tempPasswordHash);
+
+    const res  = await fetch(url);
+    const text = await res.text();
+    loadingToast.remove();
+
+    if(text.trim().startsWith('<')) {
+      throw new Error('Apps Script 재배포가 필요해요');
+    }
+    const data = JSON.parse(text);
+    if(data.error) {
+      alert('❌ ' + data.error);
+      return;
+    }
+
+    // 성공
+    alert(`✅ 임시 비밀번호를 이메일로 보냈어요!\n\n📧 ${e}\n\n메일함을 확인해주세요.\n로그인 후 반드시 비밀번호를 변경해주세요.`);
+
+    // 이메일 입력란에 자동 채움 (편의)
+    const loginEmailEl = document.getElementById('login-email');
+    if(loginEmailEl) {
+      loginEmailEl.value = e;
+      // 비밀번호 입력란 포커스
+      setTimeout(() => document.getElementById('login-password')?.focus(), 300);
+    }
+
+  } catch(err) {
+    loadingToast.remove();
+    console.warn('임시 비밀번호 발송 실패:', err);
+    alert('❌ 발송 실패: ' + err.message);
+  }
 }
 
 function goToOnboarding() {
