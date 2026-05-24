@@ -1737,11 +1737,18 @@ function updateHomeLiveStats(done, acc, mins) {
 }
 
 function updateStreak() {
-  const today    = new Date().toISOString().split('T')[0];
-  const lastDay  = localStorage.getItem('vs-streak-date');
-  let streak     = Number(localStorage.getItem('vs-streak')||0);
+  const today   = new Date().toISOString().split('T')[0];
+  const lastDay = localStorage.getItem('vs-streak-date');
+  let streak   = Number(localStorage.getItem('vs-streak')||0);
 
-  if(lastDay === today) return; // 오늘 이미 카운트
+  // 오늘 이미 카운트됐어도 화면은 최신 상태 유지
+  if(lastDay === today) {
+    refreshStreakBanner(streak);
+    return;
+  }
+
+  // 최고 기록 확인
+  const bestStreak = Number(localStorage.getItem('vs-best-streak') || 0);
 
   const yesterday = new Date(Date.now()-86400000).toISOString().split('T')[0];
   if(lastDay === yesterday) streak++;
@@ -1750,12 +1757,42 @@ function updateStreak() {
   localStorage.setItem('vs-streak', String(streak));
   localStorage.setItem('vs-streak-date', today);
 
-  setText('home-streak-txt', streak + '일째 달리는 중!');
-  setText('home-streak', streak + '일');
+  // 최고 기록 갱신
+  const isNewRecord = streak > bestStreak;
+  if(isNewRecord) localStorage.setItem('vs-best-streak', String(streak));
+
+  refreshStreakBanner(streak, isNewRecord);
   setText('profile-streak', streak + '일');
-  if(streak >= 7) {
-    const badge = document.getElementById('home-streak-badge');
-    if(badge) badge.style.display = 'block';
+}
+
+// 스트릭 배너 화면 업데이트 (라벨/텍스트/뱃지 일괄)
+function refreshStreakBanner(streak, isNewRecord) {
+  const labelEl = document.getElementById('home-streak-label');
+  const txtEl   = document.getElementById('home-streak-txt');
+  const badgeEl = document.getElementById('home-streak-badge');
+  const streakNumEl = document.getElementById('home-streak');
+
+  if(streak > 0) {
+    if(labelEl) labelEl.textContent = '🔥 연속 학습 중';
+    if(txtEl)   txtEl.textContent   = streak + '일째 달리는 중!';
+    if(streakNumEl) streakNumEl.textContent = streak + '일';
+
+    if(badgeEl) {
+      if(isNewRecord) {
+        badgeEl.textContent = '🏆 신기록!';
+        badgeEl.style.display = 'block';
+      } else if(streak >= 7) {
+        badgeEl.textContent = '⭐ ' + streak + '일';
+        badgeEl.style.display = 'block';
+      } else {
+        badgeEl.style.display = 'none';
+      }
+    }
+  } else {
+    if(labelEl) labelEl.textContent = '🌱 학습 시작';
+    if(txtEl)   txtEl.textContent   = '오늘 첫 학습을 시작해요!';
+    if(streakNumEl) streakNumEl.textContent = '-';
+    if(badgeEl) badgeEl.style.display = 'none';
   }
 }
 function fcNext(){
@@ -2925,18 +2962,9 @@ async function loadHomeData() {
       ? 'ti ti-player-play'
       : 'ti ti-check';
 
-    // 스트릭 배너
-    if(streak > 0) {
-      setText('home-streak-txt', streak + '일째 달리는 중!');
-      setText('home-streak', streak + '일');
-      setText('home-streak-delta', '🔥 연속 학습');
-      const badge = document.getElementById('home-streak-badge');
-      if(badge) badge.style.display = streak >= 7 ? 'block' : 'none';
-    } else {
-      setText('home-streak-txt', '오늘 첫 학습을 시작해요!');
-      setText('home-streak', '-');
-      setText('home-streak-delta', '오늘 시작!');
-    }
+    // 스트릭 배너 - 통합 함수 사용
+    refreshStreakBanner(streak);
+    setText('home-streak-delta', streak > 0 ? '🔥 연속 학습' : '오늘 시작!');
 
     // ③ Sheets 비동기 로드 (미연결이어도 위 로컬 데이터는 표시됨)
     const url = getSheetsUrl();
@@ -3269,11 +3297,23 @@ function answerToQuality(isCorrect, timeTakenMs) {
 
 // 오늘 날짜 자정 리셋
 function checkDailyReset() {
+  // 날짜 바뀌면 오늘 학습량 초기화
+  const today    = new Date().toISOString().split('T')[0];
   const lastDate = localStorage.getItem('vs-last-date');
-  const today = new Date().toISOString().split('T')[0];
   if(lastDate !== today) {
     localStorage.setItem('vs-today-done', '0');
+    localStorage.setItem('vs-today-acc',  '0');
+    localStorage.setItem('vs-today-time', '0');
     localStorage.setItem('vs-last-date', today);
+  }
+  // 스트릭 자동 끊김 체크
+  const streakDate = localStorage.getItem('vs-streak-date');
+  if(streakDate) {
+    const yesterday = new Date(Date.now()-86400000).toISOString().split('T')[0];
+    // 어제도 오늘도 아니면 끊김
+    if(streakDate !== today && streakDate !== yesterday) {
+      localStorage.setItem('vs-streak', '0');
+    }
   }
 }
 // ─────────────────────────────────────────────────────
@@ -4201,6 +4241,7 @@ function saveDailyCount(){
 
 renderWeekChart();
 checkDailyReset();
+refreshStreakBanner(Number(localStorage.getItem("vs-streak")||0));
 initGoalDisplay();
 initSessionGoal();
 initAutoSpeakToggle();
