@@ -761,22 +761,40 @@ body{
       </div>
 
       <!-- 복습 현황 -->
-      <div class="sh"><span class="st">복습 현황</span></div>
+      <div class="sh"><span class="st">복습 현황</span><span style="font-size:11px;color:var(--tx3)">탭해서 학습 시작</span></div>
       <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
-        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:0.5px solid var(--bd)">
+        <div onclick="startReviewByStatus('mastered')" style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:0.5px solid var(--bd);cursor:pointer">
           <div style="width:36px;height:36px;border-radius:10px;background:var(--grn-l);display:flex;align-items:center;justify-content:center;font-size:18px">✅</div>
-          <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--tx)">암기 완료</div><div style="font-size:12px;color:var(--tx2)">장기 기억 전환됨</div></div>
-          <div style="font-size:18px;font-weight:500;color:var(--grn)" id="review-mastered">--</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500;color:var(--tx)">암기 완료</div>
+            <div style="font-size:12px;color:var(--tx2)">장기 기억 전환됨 · 탭해서 다시 보기</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="font-size:18px;font-weight:500;color:var(--grn)" id="review-mastered">--</div>
+            <i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3)"></i>
+          </div>
         </div>
-        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:0.5px solid var(--bd)">
+        <div onclick="startReviewByStatus('due')" style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:0.5px solid var(--bd);cursor:pointer">
           <div style="width:36px;height:36px;border-radius:10px;background:var(--amb-l);display:flex;align-items:center;justify-content:center;font-size:18px">🔄</div>
-          <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--tx)">오늘 복습 필요</div><div style="font-size:12px;color:var(--tx2)">망각 직전 단어</div></div>
-          <div style="font-size:18px;font-weight:500;color:var(--amb)" id="review-due">--</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500;color:var(--tx)">오늘 복습 필요</div>
+            <div style="font-size:12px;color:var(--tx2)">망각 직전 단어 · 우선 학습 추천</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="font-size:18px;font-weight:500;color:var(--amb)" id="review-due">--</div>
+            <i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3)"></i>
+          </div>
         </div>
-        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div onclick="startReviewByStatus('new')" style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer">
           <div style="width:36px;height:36px;border-radius:10px;background:var(--sf2);display:flex;align-items:center;justify-content:center;font-size:18px">📖</div>
-          <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--tx)">미학습</div><div style="font-size:12px;color:var(--tx2)">아직 시작 안 함</div></div>
-          <div style="font-size:18px;font-weight:500;color:var(--tx2)" id="review-new">--</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500;color:var(--tx)">미학습</div>
+            <div style="font-size:12px;color:var(--tx2)">아직 시작 안 함 · 탭해서 학습 시작</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="font-size:18px;font-weight:500;color:var(--tx2)" id="review-new">--</div>
+            <i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3)"></i>
+          </div>
         </div>
       </div>
 
@@ -1347,6 +1365,115 @@ function updateSel(){
 // ── 학습 시작 (홈에서 진입) ──────────────────────────
 
 // ── 단어장 상세에서 학습 모드 진입 ──────────────────
+
+// ── 상태별 복습 학습 시작 ───────────────────────────
+async function startReviewByStatus(filterType) {
+  // filterType: 'mastered' | 'due' | 'new' | 'all'
+  const url = getSheetsUrl();
+  if(!url) {
+    alert('Google Sheets를 먼저 연결해주세요.');
+    return;
+  }
+
+  // 로딩 토스트
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999';
+  toast.textContent = '⏳ 단어 불러오는 중...';
+  document.body.appendChild(toast);
+
+  try {
+    const res = await sheetsGet('getWords');
+    if(res.error) throw new Error(res.error);
+
+    // 로컬 이력 기반 status 재계산
+    let allWords = (res.words || []).map(w => {
+      const hist = getWordHistory(w.id);
+      let status = w.status || 'new';
+      if(hist.knowCount > 0 || hist.dontCount > 0) {
+        const tot = hist.knowCount + hist.dontCount;
+        const acc = tot > 0 ? hist.knowCount/tot : 0;
+        if(hist.knowCount >= 5 && acc >= 0.8) status = 'mastered';
+        else if(hist.knowCount >= 3 && acc >= 0.6) status = 'review';
+        else status = 'learning';
+      }
+      return {
+        id: w.id, en: w.word||w.en||'', ko: w.meaning||w.ko||'',
+        pos: w.pos||'', ph: w.phonetic||'', ex: w.example||'',
+        nextReview: w.nextReview || '',
+        status: status,
+      };
+    }).filter(w => w.en);
+
+    // 필터링
+    const today = new Date().toISOString().split('T')[0];
+    let filtered, modeLabel, modeTitle;
+
+    if(filterType === 'mastered') {
+      filtered  = allWords.filter(w => w.status === 'mastered');
+      modeLabel = '완료된 단어 복습';
+      modeTitle = '완료된 단어';
+    } else if(filterType === 'due') {
+      // 오늘 복습 필요: mastered 제외 + (nextReview <= today 또는 nextReview 없음)
+      filtered  = allWords.filter(w =>
+        w.status !== 'mastered' &&
+        (!w.nextReview || String(w.nextReview) <= today)
+      );
+      modeLabel = '오늘 복습 필요';
+      modeTitle = '복습 필요 단어';
+    } else if(filterType === 'new') {
+      filtered  = allWords.filter(w => !w.status || w.status === 'new');
+      modeLabel = '미학습 단어 시작';
+      modeTitle = '미학습 단어';
+    } else {
+      filtered  = allWords;
+      modeLabel = '전체 단어';
+      modeTitle = '전체 단어';
+    }
+
+    toast.remove();
+
+    if(!filtered.length) {
+      const msgs = {
+        mastered: '아직 완료된 단어가 없어요. 더 학습해보세요! 💪',
+        due:      '오늘 복습할 단어가 없어요. 잘 외우고 있네요! 🎉',
+        new:      '미학습 단어가 없어요. 모든 단어를 학습했어요! 🏆'
+      };
+      alert(msgs[filterType] || '단어가 없어요');
+      return;
+    }
+
+    // 세션 단어 수 적용
+    const sessionCount = Number(localStorage.getItem('vs-session-count') || 20);
+    WORDS = filtered.sort(() => Math.random() - 0.5).slice(0, sessionCount);
+    DIST.length = 0;
+    WORDS.forEach(w => { if(w.ko) DIST.push(w.ko); });
+
+    // currentWordSet 가짜 설정 (학습 후 통계로 복귀)
+    currentWordSet = { id: '__review__', name: modeTitle, total: filtered.length, done: 0 };
+    FC_WORDSET_ID = null;
+    fcReverse = false;
+
+    // 플래시카드 상태 초기화
+    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
+    const inner = document.getElementById('fc-inner');
+    if(inner) inner.classList.remove('flipped');
+
+    setText('fc-ws-title',      modeTitle);
+    setText('fc-mode-label',    modeLabel);
+    setText('fc-total-badge',   WORDS.length + '개');
+    setText('fc-remaining-badge', '남은 ' + WORDS.length + '개');
+
+    nav('s-fc');
+    fcRender();
+    setTimeout(autoSpeakWord, 400);
+
+  } catch(e) {
+    toast.remove();
+    alert('단어 로드 실패: ' + e.message);
+  }
+}
+// ─────────────────────────────────────────────────────
+
 async function startWordSetLearning(mode) {
   const wsId         = currentWordSet?.id   || null;
   const wsName       = currentWordSet?.name || '플래시카드';
@@ -1948,8 +2075,16 @@ function reviewWrongWords(){
 
 // ── 결과 화면 → 단어장으로 돌아가기 ────────────────
 function goBackToWordSet() {
+  // 복습 모드(통계에서 시작)면 통계로 복귀
+  if(currentWordSet?.id === '__review__') {
+    currentWordSet = null;
+    FC_WORDSET_ID  = null;
+    localStorage.removeItem('vs-stats-cache');
+    nav('s-stats');
+    return;
+  }
   if(currentWordSet?.id) {
-    nav('s-wsd'); // nav에서 loadWordListForSet 자동 호출
+    nav('s-wsd');
   } else {
     nav('s-wslist');
   }
