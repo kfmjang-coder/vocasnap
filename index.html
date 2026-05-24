@@ -264,7 +264,7 @@ body{
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:6px"><span>진행률</span><span id="home-pct-txt">0%</span></div>
       <div class="pb-bg" style="margin-bottom:12px"><div class="pb-f" id="home-pct-bar" style="width:0%"></div></div>
-      <button class="cta" id="home-cta" onclick="nav('s-fc')">
+      <button class="cta" id="home-cta" onclick="startLearning()">
         <i class="ti ti-player-play" id="home-cta-icon" style="font-size:16px"></i>
         <span id="home-cta-txt"> 이어서 학습하기</span>
       </button>
@@ -291,7 +291,7 @@ body{
       </div>
     </div>
     <div class="sh" style="margin-top:4px"><span class="st">복습 알림</span></div>
-    <div class="rev-card" onclick="nav('s-fc')">
+    <div class="rev-card" onclick="startLearning()">
       <i class="ti ti-brain" style="font-size:26px;color:var(--acc)"></i>
       <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--acc-d);margin-bottom:3px">망각 직전 단어 <span id="home-due-num">--</span>개</div><div style="font-size:12px;color:var(--acc)">지금 복습하면 장기 기억 전환 가능!</div></div>
       <i class="ti ti-chevron-right" style="font-size:18px;color:var(--acc)"></i>
@@ -1055,6 +1055,16 @@ function updateSel(){
 }
 
 // ── FLASHCARD ──
+
+// ── 학습 시작 (홈에서 진입) ──────────────────────────
+function startLearning(){
+  // currentWordSet 초기화 (전체 단어 모드)
+  currentWordSet = null;
+  FC_WORDSET_ID  = null;
+  nav('s-fc');
+}
+// ─────────────────────────────────────────────────────
+
 function fcRender(){
   if(!WORDS.length){
     // 단어 없을 때 안내
@@ -1086,7 +1096,13 @@ function fcRender(){
 // ── 플래시카드 단어 Sheets 로드 ──────────────────────
 async function loadFcWords(){
   const url = getSheetsUrl();
-  if(!url) return; // 미연결시 기존 더미 유지
+  if(!url) {
+    // Sheets 미연결 - 안내 표시
+    setText('fc-word', '⚠️');
+    setText('fc-meaning', 'Google Sheets를 연결해주세요');
+    setText('fc-cnt', '0 / 0');
+    return;
+  }
 
   // 로딩 표시
   const loading = document.getElementById('fc-loading');
@@ -1094,6 +1110,7 @@ async function loadFcWords(){
 
   try {
     const wsId = FC_WORDSET_ID || (currentWordSet?.id) || null;
+    // wsId 없으면 전체 단어 로드 (홈에서 진입 시)
     const res  = wsId
       ? await sheetsGet('getWords', {wordSetId: wsId})
       : await sheetsGet('getWords');
