@@ -541,7 +541,7 @@ body{
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
       <button class="bk" style="background:rgba(255,255,255,.2);border:none" onclick="back()"><i class="ti ti-arrow-left" style="color:#fff"></i></button>
       <span id="wsd-title" style="font-size:16px;font-weight:500;color:#fff;flex:1">단어장</span>
-      <div style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-dots" style="color:#fff;font-size:18px"></i></div>
+      <div onclick="showProgressInfo()" style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-info-circle" style="color:#fff;font-size:18px"></i></div>
     </div>
     <div class="wdstats">
       <div class="wdst"><div id="wsd-mastered" style="font-size:22px;font-weight:500">--</div><div style="font-size:11px;opacity:.75;margin-top:2px">✅ 완료</div></div>
@@ -880,6 +880,104 @@ body{
 
 
 
+
+
+<!-- ══ 진행률 설명 모달 ══ -->
+<div id="progress-info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--sf);border-radius:16px;width:100%;max-width:400px;max-height:85vh;overflow-y:auto">
+    <!-- 헤더 -->
+    <div style="padding:20px 20px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid var(--bd)">
+      <div>
+        <div style="font-size:17px;font-weight:500;color:var(--tx)">📊 진행률 계산 방식</div>
+        <div style="font-size:12px;color:var(--tx2);margin-top:2px">어떻게 100%가 되는지 알아보세요</div>
+      </div>
+      <div onclick="document.getElementById('progress-info-modal').style.display='none'" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
+      </div>
+    </div>
+
+    <!-- 단어 상태 4단계 -->
+    <div style="padding:16px 20px">
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:10px">단어 상태 4단계</div>
+      <div style="background:var(--sf2);border-radius:10px;padding:12px;margin-bottom:14px">
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--bd)">
+          <div style="font-size:20px">🆕</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:var(--tx)">미학습 (new)</div>
+            <div style="font-size:11px;color:var(--tx2);margin-top:2px">한 번도 학습하지 않은 단어</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">가중치: 0%</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--bd)">
+          <div style="font-size:20px">📖</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:var(--amb)">학습 중 (learning)</div>
+            <div style="font-size:11px;color:var(--tx2);margin-top:2px">학습했지만 알아요 3회 미만 또는 정답률 60% 미만</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">가중치: 20%</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--bd)">
+          <div style="font-size:20px">🔄</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:var(--acc)">복습 단계 (review)</div>
+            <div style="font-size:11px;color:var(--tx2);margin-top:2px">알아요 3회 이상 + 정답률 60% 이상</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">가중치: 50%</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0">
+          <div style="font-size:20px">✅</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:var(--grn)">완료 (mastered)</div>
+            <div style="font-size:11px;color:var(--tx2);margin-top:2px">알아요 5회 이상 + 정답률 80% 이상</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">가중치: 100%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 진행률 공식 -->
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px">진행률 공식</div>
+      <div style="background:var(--acc-l);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--acc-d);line-height:1.8;font-family:monospace">
+          (완료 × 1.0 + 복습 × 0.5 + 학습중 × 0.2)<br>
+          ÷ 전체 단어 수 × 100
+        </div>
+      </div>
+
+      <!-- 예시 -->
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px">예시 (단어 60개)</div>
+      <div style="background:var(--sf2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.8">
+        <div style="color:var(--tx)">📊 <b>완료 30개</b>, 복습 15개, 학습중 10개, 미학습 5개</div>
+        <div style="color:var(--tx2);margin-top:6px;font-family:monospace">
+          = (30×1.0 + 15×0.5 + 10×0.2) ÷ 60 × 100<br>
+          = (30 + 7.5 + 2) ÷ 60 × 100<br>
+          = <b style="color:var(--acc)">66%</b>
+        </div>
+      </div>
+
+      <!-- 100% 도달 조건 -->
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px">100% 도달 방법</div>
+      <div style="background:var(--grn-l);border-radius:10px;padding:14px;margin-bottom:8px">
+        <div style="font-size:12px;color:var(--grn);line-height:1.8">
+          <b>모든 단어가 "완료" 상태</b>가 되어야 해요!<br>
+          한 단어당 <b>알아요 5회 이상</b> + <b>정답률 80% 이상</b>
+        </div>
+      </div>
+
+      <!-- 학습 모드별 효과 -->
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-top:14px;margin-bottom:8px">학습 모드별 효과</div>
+      <div style="background:var(--sf2);border-radius:10px;padding:12px;font-size:12px;line-height:1.7">
+        <div style="color:var(--tx);margin-bottom:6px">📚 <b>플래시카드 / 퀴즈</b></div>
+        <div style="color:var(--tx2);margin-bottom:10px;padding-left:18px">단어장 전체에서 랜덤 선택. 알아요/정답 → 진행률 상승</div>
+        <div style="color:var(--tx);margin-bottom:6px">🔄 <b>복습 모드</b></div>
+        <div style="color:var(--tx2);padding-left:18px">학습 중 + 복습 단계 단어만 학습. 약한 단어 집중 강화</div>
+      </div>
+    </div>
+
+    <div style="padding:0 20px 20px">
+      <button onclick="document.getElementById('progress-info-modal').style.display='none'" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">알겠어요!</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ PROFILE EDIT MODAL ══ -->
 <div id="profile-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:flex-end;justify-content:center">
@@ -3724,6 +3822,13 @@ async function loadExtractWsOptions() {
 
 
 // ── 단어장 상세 대시보드 업데이트 ──────────────────
+
+// ── 진행률 설명 모달 ─────────────────────────────────
+function showProgressInfo() {
+  document.getElementById('progress-info-modal').style.display = 'flex';
+}
+// ─────────────────────────────────────────────────────
+
 function updateWsdDashboard() {
   if(!currentWordSet) return;
 
