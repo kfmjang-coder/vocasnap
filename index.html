@@ -705,9 +705,10 @@ body{
   </div>
 
   <div class="scroll" style="padding:24px 16px">
-    <!-- 문제 번호 -->
-    <div style="text-align:center;font-size:13px;color:var(--tx2);margin-bottom:14px">
-      문제 <span id="mock-qnum" style="color:var(--acc);font-weight:500">1</span> / <span id="mock-qtotal">10</span>
+    <!-- 문제 번호 + 풀이 현황 -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:13px">
+      <div style="color:var(--tx2)">문제 <span id="mock-qnum" style="color:var(--acc);font-weight:500">1</span> / <span id="mock-qtotal">10</span></div>
+      <div style="color:var(--tx2)">답안 작성: <span id="mock-answered-cnt" style="color:var(--acc);font-weight:500">0</span>개</div>
     </div>
 
     <!-- 발음 듣기 영역 -->
@@ -723,44 +724,35 @@ body{
     <div style="margin-bottom:16px">
       <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">영어 스펠</div>
       <input id="mock-input-en" type="text" placeholder="들은 단어를 입력하세요" autocomplete="off" autocapitalize="off" spellcheck="false"
-        style="width:100%;padding:14px 16px;border:1px solid var(--bd);border-radius:10px;font-size:18px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;text-align:center"
-        oninput="this.style.borderColor='var(--acc)'">
+        style="width:100%;padding:14px 16px;border:1px solid var(--bd);border-radius:10px;font-size:18px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;text-align:center">
     </div>
 
     <div style="margin-bottom:20px">
       <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">한글 뜻</div>
       <input id="mock-input-ko" type="text" placeholder="뜻을 입력하세요"
-        style="width:100%;padding:14px 16px;border:1px solid var(--bd);border-radius:10px;font-size:16px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;text-align:center"
-        oninput="this.style.borderColor='var(--acc)'">
+        style="width:100%;padding:14px 16px;border:1px solid var(--bd);border-radius:10px;font-size:16px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;text-align:center">
     </div>
 
-    <!-- 정답 확인 결과 -->
-    <div id="mock-feedback" style="display:none;border-radius:10px;padding:14px;margin-bottom:14px;text-align:center">
-      <div id="mock-feedback-emoji" style="font-size:32px;margin-bottom:6px">✅</div>
-      <div id="mock-feedback-text" style="font-size:14px;font-weight:500;margin-bottom:8px">정답이에요!</div>
-      <div id="mock-correct-answer" style="font-size:13px;line-height:1.7"></div>
-    </div>
-
-    <!-- 점수 표시 -->
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <div style="flex:1;padding:8px;background:var(--grn-l);border-radius:8px;text-align:center">
-        <div style="font-size:11px;color:var(--grn);margin-bottom:2px">정답</div>
-        <div style="font-size:16px;font-weight:500;color:var(--grn)"><span id="mock-correct">0</span></div>
+    <!-- 문제 번호 점프 그리드 -->
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:12px;color:var(--tx2)">문제 목록 (탭해서 이동)</div>
+        <div style="display:flex;gap:10px;font-size:11px;color:var(--tx3)">
+          <span>🟣 답안 작성</span><span>⚪ 미작성</span>
+        </div>
       </div>
-      <div style="flex:1;padding:8px;background:var(--red-l);border-radius:8px;text-align:center">
-        <div style="font-size:11px;color:var(--red);margin-bottom:2px">오답</div>
-        <div style="font-size:16px;font-weight:500;color:var(--red)"><span id="mock-wrong">0</span></div>
-      </div>
-      <div style="flex:1;padding:8px;background:var(--acc-l);border-radius:8px;text-align:center">
-        <div style="font-size:11px;color:var(--acc);margin-bottom:2px">정확도</div>
-        <div style="font-size:16px;font-weight:500;color:var(--acc)"><span id="mock-acc">--</span>%</div>
-      </div>
+      <div id="mock-jump-grid" style="display:grid;grid-template-columns:repeat(10,1fr);gap:4px"></div>
     </div>
   </div>
 
   <!-- 하단 버튼 -->
   <div class="bbar">
-    <button id="mock-submit-btn" class="savbtn" onclick="checkMockAnswer()">정답 확인하기</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button onclick="prevMockQuestion()" id="mock-prev-btn" style="flex:1;padding:13px;background:var(--sf2);color:var(--tx);border:0.5px solid var(--bd);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">← 이전</button>
+      <button onclick="skipMockQuestion()" id="mock-skip-btn" style="flex:1;padding:13px;background:var(--amb-l);color:var(--amb);border:0.5px solid var(--amb);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">건너뛰기</button>
+      <button onclick="nextMockQuestion()" id="mock-next-btn" style="flex:1;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">다음 →</button>
+    </div>
+    <button id="mock-submit-btn" class="savbtn" onclick="confirmSubmitMock()" style="background:var(--grn)">제출하기</button>
   </div>
 </div>
 
@@ -3823,16 +3815,16 @@ async function loadProfile() {
 // ── 모의테스트 ───────────────────────────────────────
 let MOCK = {
   words:    [],     // 시험 단어들
+  answers:  [],     // 사용자 답안 [{en:'', ko:'', skipped:false}]
   idx:      0,      // 현재 문제 인덱스
-  correct:  0,      // 정답 수
-  wrong:    0,      // 오답 수
+  correct:  0,      // 채점 후 정답 수
+  wrong:    0,      // 채점 후 오답 수
   wrongList:[],     // 틀린 단어 리스트
-  count:    10,     // 시험 단어 수
-  scope:    'all',  // 'all' | 'current'
-  startTime:0,      // 시작 시간
-  timer:    null,   // 타이머
-  playCount:0,      // 재생 횟수
-  answered: false,  // 현재 문제 답변 여부
+  count:    10,
+  scope:    'all',
+  startTime:0,
+  timer:    null,
+  playCount:[],     // 문제별 재생 횟수
 };
 
 function openMockTestModal() {
@@ -3897,13 +3889,13 @@ async function startMockTest() {
     // 랜덤 셔플 + count만큼
     const shuffled = [...all].sort(() => Math.random() - 0.5);
     MOCK.words   = shuffled.slice(0, Math.min(MOCK.count, shuffled.length));
+    MOCK.answers = MOCK.words.map(() => ({en:'', ko:'', skipped:false}));
     MOCK.idx     = 0;
     MOCK.correct = 0;
     MOCK.wrong   = 0;
     MOCK.wrongList = [];
     MOCK.startTime = Date.now();
-    MOCK.playCount = 0;
-    MOCK.answered  = false;
+    MOCK.playCount = MOCK.words.map(() => 0);
 
     toast.remove();
 
@@ -3924,6 +3916,9 @@ function renderMockQuestion() {
   const w = MOCK.words[MOCK.idx];
   if(!w) return;
 
+  // 현재 답안 자동 저장 (다른 문제로 이동 전)
+  saveCurrentMockAnswer();
+
   // 진행 상태
   setText('mock-qnum', MOCK.idx + 1);
   setText('mock-qtotal', MOCK.words.length);
@@ -3931,42 +3926,119 @@ function renderMockQuestion() {
   const pct = Math.round(((MOCK.idx + 1) / MOCK.words.length) * 100);
   document.getElementById('mock-prog').style.width = pct + '%';
 
-  // 입력 초기화
-  document.getElementById('mock-input-en').value = '';
-  document.getElementById('mock-input-ko').value = '';
+  // 답안 복원 (이미 작성한 답이 있으면)
+  const ans = MOCK.answers[MOCK.idx];
+  document.getElementById('mock-input-en').value = ans.en || '';
+  document.getElementById('mock-input-ko').value = ans.ko || '';
   document.getElementById('mock-input-en').style.borderColor = 'var(--bd)';
   document.getElementById('mock-input-ko').style.borderColor = 'var(--bd)';
-  document.getElementById('mock-feedback').style.display = 'none';
 
-  // 점수
-  setText('mock-correct', MOCK.correct);
-  setText('mock-wrong', MOCK.wrong);
-  const total = MOCK.correct + MOCK.wrong;
-  setText('mock-acc', total > 0 ? Math.round((MOCK.correct/total)*100) : '--');
+  // 재생 횟수 표시
+  const pc = MOCK.playCount[MOCK.idx] || 0;
+  setText('mock-play-count', pc > 0 ? `🔊 ${pc}회 들었어요` : '탭해서 들어보세요');
 
-  // 버튼
-  const btn = document.getElementById('mock-submit-btn');
-  btn.textContent = '정답 확인하기';
-  btn.style.background = 'var(--acc)';
-  btn.onclick = checkMockAnswer;
+  // 답안 작성 현황
+  updateMockAnsweredCount();
 
-  MOCK.playCount = 0;
-  MOCK.answered  = false;
-  setText('mock-play-count', '탭해서 들어보세요');
+  // 점프 그리드 업데이트
+  renderMockJumpGrid();
 
-  // 자동 발음 (한 번)
-  setTimeout(() => mockSpeak(), 500);
+  // 이전/다음 버튼 상태
+  document.getElementById('mock-prev-btn').style.opacity = MOCK.idx === 0 ? '.4' : '1';
+  document.getElementById('mock-prev-btn').disabled = MOCK.idx === 0;
+
+  const isLast = MOCK.idx === MOCK.words.length - 1;
+  document.getElementById('mock-next-btn').textContent = isLast ? '마지막' : '다음 →';
+  document.getElementById('mock-next-btn').style.opacity = isLast ? '.4' : '1';
+  document.getElementById('mock-next-btn').disabled = isLast;
+
+  // 자동 발음 (첫 진입 시만)
+  if(pc === 0) setTimeout(() => mockSpeak(), 500);
 
   // 영어 입력란 포커스
   setTimeout(() => document.getElementById('mock-input-en').focus(), 600);
+}
+
+function saveCurrentMockAnswer() {
+  if(MOCK.idx < 0 || MOCK.idx >= MOCK.answers.length) return;
+  const en = document.getElementById('mock-input-en')?.value || '';
+  const ko = document.getElementById('mock-input-ko')?.value || '';
+  const ans = MOCK.answers[MOCK.idx];
+  // 둘 다 비어있으면 skipped 유지, 하나라도 있으면 작성됨
+  if(en.trim() || ko.trim()) {
+    ans.en = en;
+    ans.ko = ko;
+    ans.skipped = false;
+  } else {
+    ans.en = '';
+    ans.ko = '';
+    // skipped 상태는 명시적으로 건너뛰기 누른 경우만
+  }
+}
+
+function updateMockAnsweredCount() {
+  const answered = MOCK.answers.filter(a => a.en.trim() || a.ko.trim()).length;
+  setText('mock-answered-cnt', answered);
+}
+
+function renderMockJumpGrid() {
+  const grid = document.getElementById('mock-jump-grid');
+  if(!grid) return;
+  grid.innerHTML = MOCK.words.map((_, i) => {
+    const ans  = MOCK.answers[i];
+    const done = ans.en.trim() || ans.ko.trim();
+    const skip = ans.skipped;
+    const cur  = i === MOCK.idx;
+    let bg, color, border;
+    if(cur)       { bg='var(--acc)';   color='#fff'; border='2px solid var(--acc-d)'; }
+    else if(done) { bg='var(--acc-l)'; color='var(--acc)'; border='1px solid var(--acc)'; }
+    else if(skip) { bg='var(--amb-l)'; color='var(--amb)'; border='1px solid var(--amb)'; }
+    else          { bg='var(--sf2)';   color='var(--tx2)'; border='1px solid var(--bd)'; }
+    return `<div onclick="jumpToMockQuestion(${i})" style="aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;cursor:pointer;background:${bg};color:${color};border:${border}">${i+1}</div>`;
+  }).join('');
+}
+
+function jumpToMockQuestion(idx) {
+  if(idx < 0 || idx >= MOCK.words.length) return;
+  saveCurrentMockAnswer();
+  MOCK.idx = idx;
+  renderMockQuestion();
+}
+
+function prevMockQuestion() {
+  if(MOCK.idx > 0) {
+    saveCurrentMockAnswer();
+    MOCK.idx--;
+    renderMockQuestion();
+  }
+}
+
+function skipMockQuestion() {
+  // 현재 문제 skipped 표시 후 다음으로
+  if(MOCK.idx < MOCK.answers.length) {
+    MOCK.answers[MOCK.idx].skipped = true;
+    MOCK.answers[MOCK.idx].en = '';
+    MOCK.answers[MOCK.idx].ko = '';
+  }
+  if(MOCK.idx < MOCK.words.length - 1) {
+    MOCK.idx++;
+    renderMockQuestion();
+  } else {
+    // 마지막 문제에서 건너뛰기 → 답안 작성 안 한 첫 문제로 이동
+    const firstEmpty = MOCK.answers.findIndex(a => !a.en.trim() && !a.ko.trim());
+    if(firstEmpty >= 0) {
+      MOCK.idx = firstEmpty;
+      renderMockQuestion();
+    }
+  }
 }
 
 function mockSpeak() {
   const w = MOCK.words[MOCK.idx];
   if(!w) return;
   speakWord(w.word || w.en);
-  MOCK.playCount++;
-  setText('mock-play-count', `🔊 ${MOCK.playCount}회 들었어요`);
+  MOCK.playCount[MOCK.idx] = (MOCK.playCount[MOCK.idx] || 0) + 1;
+  setText('mock-play-count', `🔊 ${MOCK.playCount[MOCK.idx]}회 들었어요`);
 }
 
 function updateMockTimer() {
@@ -3976,109 +4048,73 @@ function updateMockTimer() {
   setText('mock-timer', mm + ':' + ss);
 }
 
-function checkMockAnswer() {
-  if(MOCK.answered) {
-    // 이미 답변 처리됨 → 다음 문제
-    nextMockQuestion();
-    return;
+function confirmSubmitMock() {
+  saveCurrentMockAnswer();
+  const empty   = MOCK.answers.filter(a => !a.en.trim() && !a.ko.trim()).length;
+  const total   = MOCK.words.length;
+
+  let msg = `총 ${total}문제 중 ${total - empty}개 답안을 작성했어요.\n`;
+  if(empty > 0) {
+    msg += `\n⚠️ ${empty}개 문제가 미작성 상태예요.\n제출하면 자동으로 오답 처리돼요.\n`;
   }
+  msg += `\n제출하시겠어요?`;
 
-  const w = MOCK.words[MOCK.idx];
-  if(!w) return;
-
-  const inputEn = document.getElementById('mock-input-en').value.trim().toLowerCase();
-  const inputKo = document.getElementById('mock-input-ko').value.trim();
-
-  if(!inputEn && !inputKo) {
-    alert('답을 입력해주세요');
-    return;
-  }
-
-  const correctEn = (w.word || w.en || '').trim().toLowerCase();
-  const correctKo = (w.meaning || w.ko || '').trim();
-
-  // 영어: 정확히 일치
-  const enOk = inputEn === correctEn;
-
-  // 한글: 정답에 포함되거나, 정답이 입력에 포함 (관대하게)
-  const koTokens = correctKo.split(/[,，、\/]/).map(t => t.trim()).filter(Boolean);
-  const koOk = koTokens.some(t =>
-    inputKo === t ||
-    inputKo.includes(t) ||
-    t.includes(inputKo)
-  ) || !inputKo === false && correctKo.includes(inputKo) && inputKo.length >= 2;
-
-  // 둘 다 맞아야 정답
-  const isCorrect = enOk && koOk;
-
-  MOCK.answered = true;
-
-  if(isCorrect) {
-    MOCK.correct++;
-  } else {
-    MOCK.wrong++;
-    MOCK.wrongList.push({
-      ...w,
-      userEn: inputEn,
-      userKo: inputKo,
-      enOk, koOk,
-    });
-  }
-
-  // 피드백 표시
-  showMockFeedback(isCorrect, w, inputEn, inputKo, enOk, koOk);
-  setText('mock-correct', MOCK.correct);
-  setText('mock-wrong', MOCK.wrong);
-  const total = MOCK.correct + MOCK.wrong;
-  setText('mock-acc', total > 0 ? Math.round((MOCK.correct/total)*100) : '--');
-
-  // 학습 이력 저장
-  if(w.id) {
-    const hist = getWordHistory(w.id);
-    if(isCorrect) hist.knowCount = (hist.knowCount || 0) + 1;
-    else hist.dontCount = (hist.dontCount || 0) + 1;
-    saveWordHistory(w.id, hist);
-  }
-  trackLearning(isCorrect);
-
-  // 버튼을 "다음 문제"로 변경
-  const btn = document.getElementById('mock-submit-btn');
-  btn.textContent = MOCK.idx >= MOCK.words.length - 1 ? '결과 보기 →' : '다음 문제 →';
-  btn.style.background = isCorrect ? 'var(--grn)' : 'var(--red)';
+  if(!confirm(msg)) return;
+  gradeMockTest();
 }
 
-function showMockFeedback(isCorrect, w, inputEn, inputKo, enOk, koOk) {
-  const fb = document.getElementById('mock-feedback');
-  const correctEn = w.word || w.en;
-  const correctKo = w.meaning || w.ko;
+function gradeMockTest() {
+  // 일괄 채점
+  MOCK.correct = 0;
+  MOCK.wrong = 0;
+  MOCK.wrongList = [];
 
-  fb.style.display = 'block';
-  fb.style.background = isCorrect ? 'var(--grn-l)' : 'var(--red-l)';
+  MOCK.words.forEach((w, i) => {
+    const ans       = MOCK.answers[i];
+    const inputEn   = (ans.en || '').trim().toLowerCase();
+    const inputKo   = (ans.ko || '').trim();
+    const correctEn = (w.word || w.en || '').trim().toLowerCase();
+    const correctKo = (w.meaning || w.ko || '').trim();
 
-  setText('mock-feedback-emoji', isCorrect ? '✅' : '❌');
-  setText('mock-feedback-text',
-    isCorrect ? '정답이에요!' :
-    (!enOk && !koOk ? '둘 다 틀렸어요' :
-     !enOk ? '영어 스펠이 틀렸어요' : '한글 뜻이 틀렸어요')
-  );
+    const enOk = inputEn !== '' && inputEn === correctEn;
 
-  const answerEl = document.getElementById('mock-correct-answer');
-  answerEl.innerHTML = `
-    <div style="margin-top:4px;color:var(--tx)"><b>정답:</b> ${correctEn} = ${correctKo}</div>
-    ${!isCorrect ? `<div style="margin-top:4px;color:var(--tx2)"><b>입력:</b> ${inputEn || '(없음)'} = ${inputKo || '(없음)'}</div>` : ''}
-  `;
+    const koTokens = correctKo.split(/[,，、\/]/).map(t => t.trim()).filter(Boolean);
+    const koOk = inputKo !== '' && (
+      koTokens.some(t => inputKo === t || inputKo.includes(t) || t.includes(inputKo)) ||
+      (correctKo.includes(inputKo) && inputKo.length >= 2)
+    );
 
-  // 입력란 색상
-  document.getElementById('mock-input-en').style.borderColor = enOk ? 'var(--grn)' : 'var(--red)';
-  document.getElementById('mock-input-ko').style.borderColor = koOk ? 'var(--grn)' : 'var(--red)';
+    const isCorrect = enOk && koOk;
+
+    if(isCorrect) {
+      MOCK.correct++;
+    } else {
+      MOCK.wrong++;
+      MOCK.wrongList.push({
+        ...w,
+        userEn: ans.en || '(미작성)',
+        userKo: ans.ko || '(미작성)',
+        enOk, koOk,
+        skipped: ans.skipped || (!ans.en.trim() && !ans.ko.trim()),
+      });
+    }
+
+    // 학습 이력 저장
+    if(w.id) {
+      const hist = getWordHistory(w.id);
+      if(isCorrect) hist.knowCount = (hist.knowCount || 0) + 1;
+      else hist.dontCount = (hist.dontCount || 0) + 1;
+      saveWordHistory(w.id, hist);
+    }
+    trackLearning(isCorrect);
+  });
+
+  showMockResult();
 }
 
 function nextMockQuestion() {
-  if(MOCK.idx >= MOCK.words.length - 1) {
-    // 마지막 문제 → 결과
-    showMockResult();
-    return;
-  }
+  if(MOCK.idx >= MOCK.words.length - 1) return; // 마지막이면 아무것도 안 함
+  saveCurrentMockAnswer();
   MOCK.idx++;
   renderMockQuestion();
 }
