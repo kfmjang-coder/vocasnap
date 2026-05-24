@@ -1256,6 +1256,16 @@ body{
         </div>
         <span style="color:var(--tx3)">›</span>
       </div>
+      <div onclick="migrateSheetsToFirestore()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">📥</span>
+          <div>
+            <div style="font-size:14px;color:var(--tx)">Sheets → Firestore 마이그레이션</div>
+            <div style="font-size:12px;color:var(--tx2)">기존 단어를 클라우드로 복사</div>
+          </div>
+        </div>
+        <span style="color:var(--tx3)">›</span>
+      </div>
       <div onclick="doLogout()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
         <div style="display:flex;align-items:center;gap:10px">
           <span style="font-size:18px">🚪</span>
@@ -1754,6 +1764,252 @@ let qIdx=0,qCorrect=0,qTotal=0,qSec=0,qTimer=null,qAnswered=false,qWrong=[];
 
 // ── NAVIGATION ──
 
+
+
+// ── Firestore 데이터 계층 (단어장/단어 CRUD) ─────────
+// 구조: users/{uid}/wordSets/{wsId}/words/{wordId}
+
+function fbDB() {
+  if(!firebaseUser || !firebaseDB) throw new Error('로그인이 필요해요');
+  return firebaseDB.collection('users').doc(firebaseUser.uid);
+}
+
+// ── 단어장 CRUD ──
+async function fsListWordSets() {
+  const snap = await fbDB().collection('wordSets').orderBy('createdAt', 'desc').get();
+  const result = [];
+  snap.forEach(doc => result.push({id: doc.id, ...doc.data()}));
+  return result;
+}
+
+async function fsCreateWordSet(name, color) {
+  const ref = await fbDB().collection('wordSets').add({
+    name:        name,
+    color:       color || '#7F77DD',
+    totalWords:  0,
+    createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+  });
+  return ref.id;
+}
+
+async function fsRenameWordSet(wsId, newName) {
+  await fbDB().collection('wordSets').doc(wsId).update({name: newName});
+}
+
+async function fsDeleteWordSet(wsId) {
+  // 하위 단어들도 삭제
+  const wordsSnap = await fbDB().collection('wordSets').doc(wsId).collection('words').get();
+  const batch = firebaseDB.batch();
+  wordsSnap.forEach(doc => batch.delete(doc.ref));
+  batch.delete(fbDB().collection('wordSets').doc(wsId));
+  await batch.commit();
+}
+
+async function fsUpdateWordSetCount(wsId) {
+  const wordsSnap = await fbDB().collection('wordSets').doc(wsId).collection('words').get();
+  await fbDB().collection('wordSets').doc(wsId).update({totalWords: wordsSnap.size});
+}
+
+// ── 단어 CRUD ──
+async function fsListWords(wsId) {
+  // wsId 없으면 모든 단어장의 단어 가져오기 (collectionGroup 사용)
+  if(!wsId) {
+    const groupSnap = await firebaseDB.collectionGroup('words').get();
+    const result = [];
+    groupSnap.forEach(doc => {
+      // path: users/{uid}/wordSets/{wsId}/words/{wordId}
+      const pathParts = doc.ref.path.split('/');
+      if(pathParts[1] !== firebaseUser.uid) return; // 다른 사용자 무시
+      result.push({
+        id: doc.id,
+        wordSetId: pathParts[3],
+        ...doc.data()
+      });
+    });
+    return result;
+  }
+  // 특정 단어장
+  const snap = await fbDB().collection('wordSets').doc(wsId).collection('words')
+    .orderBy('createdAt', 'desc').get();
+  const result = [];
+  snap.forEach(doc => result.push({id: doc.id, wordSetId: wsId, ...doc.data()}));
+  return result;
+}
+
+async function fsSaveWords(wsId, words) {
+  if(!wsId) throw new Error('단어장 ID가 필요해요');
+  const batch    = firebaseDB.batch();
+  const wsRef    = fbDB().collection('wordSets').doc(wsId);
+  const wordsCol = wsRef.collection('words');
+  const ids      = [];
+  const now      = firebase.firestore.FieldValue.serverTimestamp();
+
+  words.forEach(w => {
+    const ref = wordsCol.doc();
+    batch.set(ref, {
+      word:       w.en || w.word || '',
+      meaning:    w.ko || w.meaning || '',
+      pos:        w.pos || 'noun',
+      difficulty: w.difficulty || 2,
+      phonetic:   w.phonetic || '',
+      example:    w.example || '',
+      // 학습 상태
+      status:       'new',
+      knowCount:    0,
+      dontCount:    0,
+      reviewCount:  0,
+      easeFactor:   2.5,
+      interval:     1,
+      lastReviewed: null,
+      nextReview:   null,
+      createdAt:    now,
+    });
+    ids.push(ref.id);
+  });
+
+  await batch.commit();
+  await fsUpdateWordSetCount(wsId);
+  return ids;
+}
+
+async function fsUpdateWord(wsId, wordId, updates) {
+  await fbDB().collection('wordSets').doc(wsId)
+    .collection('words').doc(wordId).update({
+      ...updates,
+      lastReviewed: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+}
+
+async function fsDeleteWord(wsId, wordId) {
+  await fbDB().collection('wordSets').doc(wsId)
+    .collection('words').doc(wordId).delete();
+  await fsUpdateWordSetCount(wsId);
+}
+
+// ── 학습 상태 업데이트 (플래시카드/퀴즈에서 호출) ──
+async function fsRecordLearning(word, isKnow) {
+  if(!firebaseUser || !word.id || !word.wordSetId) return;
+  const wordRef = fbDB().collection('wordSets').doc(word.wordSetId)
+    .collection('words').doc(word.id);
+
+  try {
+    await firebaseDB.runTransaction(async t => {
+      const doc = await t.get(wordRef);
+      if(!doc.exists) return;
+      const data = doc.data();
+      const knowCount = (data.knowCount || 0) + (isKnow ? 1 : 0);
+      const dontCount = (data.dontCount || 0) + (isKnow ? 0 : 1);
+      const total     = knowCount + dontCount;
+      const acc       = total > 0 ? knowCount/total : 0;
+
+      let status = 'learning';
+      if(knowCount >= 5 && acc >= 0.8)      status = 'mastered';
+      else if(knowCount >= 3 && acc >= 0.6) status = 'review';
+
+      t.update(wordRef, {
+        knowCount, dontCount, status,
+        reviewCount: (data.reviewCount || 0) + 1,
+        lastReviewed: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+  } catch(e) { console.warn('학습 기록 실패:', e); }
+}
+
+// ── Sheets → Firestore 마이그레이션 ──
+async function migrateSheetsToFirestore() {
+  if(!firebaseUser) { alert('먼저 로그인 해주세요'); return; }
+  if(!getSheetsUrl()) { alert('Google Sheets URL이 설정되어 있지 않아요'); return; }
+
+  if(!confirm('Google Sheets의 모든 단어를 Firestore로 복사할까요?\n\n• 기존 Firestore 데이터는 유지됨\n• Sheets 데이터는 그대로 남음 (백업)\n• 시간이 좀 걸릴 수 있어요')) return;
+
+  const status = document.createElement('div');
+  status.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:24px;z-index:9999;text-align:center;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.3)';
+  status.innerHTML = '<div style="font-size:32px;margin-bottom:10px">☁️</div><div id="mig-msg" style="font-size:14px;color:var(--tx);margin-bottom:8px">마이그레이션 시작...</div><div id="mig-prog" style="font-size:12px;color:var(--tx2)"></div>';
+  document.body.appendChild(status);
+
+  try {
+    // 1. 단어장 목록 가져오기
+    document.getElementById('mig-msg').textContent = '단어장 목록 불러오는 중...';
+    const wsRes = await sheetsGet('getWordSets');
+    const wordSets = wsRes.wordSets || [];
+    document.getElementById('mig-prog').textContent = `${wordSets.length}개 단어장 발견`;
+
+    // 2. 각 단어장 생성 + 단어 복사
+    const wsIdMap = {}; // sheets ID → firestore ID
+    let totalWords = 0;
+    let migratedWords = 0;
+
+    for(let i = 0; i < wordSets.length; i++) {
+      const ws = wordSets[i];
+      document.getElementById('mig-msg').textContent = `[${i+1}/${wordSets.length}] ${ws.name}`;
+
+      // Firestore에 동일 이름 단어장이 있는지 확인
+      const existingSets = await fsListWordSets();
+      let fsWsId;
+      const existing = existingSets.find(e => e.name === ws.name);
+      if(existing) {
+        fsWsId = existing.id;
+        document.getElementById('mig-prog').textContent = '기존 단어장에 추가';
+      } else {
+        fsWsId = await fsCreateWordSet(ws.name, ws.color || '#7F77DD');
+        document.getElementById('mig-prog').textContent = '새 단어장 생성';
+      }
+      wsIdMap[ws.id] = fsWsId;
+
+      // 단어 가져오기
+      const wRes = await sheetsGet('getWords', {wordSetId: ws.id});
+      const words = (wRes.words || []).filter(w => w.word || w.en);
+      totalWords += words.length;
+
+      if(words.length === 0) continue;
+
+      // 50개씩 배치로 저장
+      const batchSize = 50;
+      for(let j = 0; j < words.length; j += batchSize) {
+        const batch = words.slice(j, j + batchSize).map(w => ({
+          en:         w.word || w.en || '',
+          ko:         w.meaning || w.ko || '',
+          pos:        w.pos || 'noun',
+          difficulty: w.difficulty || 2,
+          phonetic:   w.phonetic || '',
+          example:    w.example || '',
+        }));
+        await fsSaveWords(fsWsId, batch);
+        migratedWords += batch.length;
+        document.getElementById('mig-prog').textContent =
+          `단어 ${migratedWords}/${totalWords}개 복사 중...`;
+      }
+    }
+
+    document.getElementById('mig-msg').textContent = '✅ 마이그레이션 완료!';
+    document.getElementById('mig-prog').textContent =
+      `단어장 ${wordSets.length}개, 단어 ${migratedWords}개`;
+
+    setTimeout(() => {
+      status.remove();
+      alert(`🎉 마이그레이션 완료!\n\n• 단어장: ${wordSets.length}개\n• 단어: ${migratedWords}개\n\n이제 단어장을 새로고침해보세요.`);
+      // 캐시 무효화
+      localStorage.removeItem('vs-wslist-cache');
+      localStorage.removeItem('vs-stats-cache');
+    }, 1500);
+
+  } catch(e) {
+    status.remove();
+    alert('❌ 마이그레이션 실패: ' + e.message);
+  }
+}
+
+// ── Firestore 데이터 통계 (디버깅용) ──
+async function fsGetStats() {
+  if(!firebaseUser) return null;
+  const wordSets = await fsListWordSets();
+  let totalWords = 0;
+  for(const ws of wordSets) {
+    totalWords += ws.totalWords || 0;
+  }
+  return { wordSetCount: wordSets.length, totalWords };
+}
+// ─────────────────────────────────────────────────────
 
 // ── Firebase 클라우드 동기화 ──────────────────────────
 const FB_CONFIG_KEY = 'vs-firebase-config';
