@@ -920,39 +920,64 @@ body{
 
     <!-- 탭 -->
     <div style="display:flex;border-bottom:0.5px solid var(--bd);margin:0 20px">
-      <div id="imp-tab-csv" onclick="impTab('csv')" style="flex:1;text-align:center;padding:10px;font-size:13px;font-weight:500;color:var(--acc);border-bottom:2px solid var(--acc);cursor:pointer">📄 CSV/Excel</div>
+      <div id="imp-tab-csv" onclick="impTab('csv')" style="flex:1;text-align:center;padding:10px;font-size:13px;font-weight:500;color:var(--acc);border-bottom:2px solid var(--acc);cursor:pointer">📷 촬영</div>
       <div id="imp-tab-text" onclick="impTab('text')" style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--tx2);border-bottom:2px solid transparent;cursor:pointer">✏️ 직접 입력</div>
-      <div id="imp-tab-url" onclick="impTab('url')" style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--tx2);border-bottom:2px solid transparent;cursor:pointer">🔗 URL</div>
     </div>
 
-    <!-- CSV 탭 -->
+    <!-- 촬영 탭 -->
     <div id="imp-panel-csv" style="padding:16px 20px">
-      <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:14px">
-        <div style="font-size:12px;color:var(--acc-d);line-height:1.7">
-          <b>지원 형식:</b> CSV, Excel(.xlsx)<br>
-          <b>필수 컬럼:</b> word (영어 단어), meaning (한국어 뜻)<br>
-          <b>선택 컬럼:</b> pos, difficulty, phonetic, example
+      <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:16px">
+        <div style="font-size:12px;color:var(--acc-d);line-height:1.8">
+          교재나 단어장을 촬영하면<br>
+          <b>Gemini AI</b>가 영어 단어와 뜻을 자동으로 추출해요
         </div>
       </div>
-      <!-- 파일 드롭 영역 -->
-      <div id="imp-drop-zone" onclick="document.getElementById('imp-file-input').click()"
-        style="border:2px dashed var(--bd);border-radius:12px;padding:32px 16px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px"
-        ondragover="impDragOver(event)" ondragleave="impDragLeave(event)" ondrop="impDrop(event)">
-        <div style="font-size:36px;margin-bottom:8px">📂</div>
-        <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:4px">파일을 드래그하거나 탭해서 선택</div>
-        <div style="font-size:12px;color:var(--tx2)">CSV, XLSX 지원 · 최대 1,000단어</div>
+      <!-- 촬영 버튼 -->
+      <div onclick="impOpenCamera()"
+        style="border:2px dashed var(--bd);border-radius:12px;padding:32px 16px;text-align:center;cursor:pointer;margin-bottom:12px;transition:all .2s"
+        id="imp-cam-zone">
+        <div style="font-size:48px;margin-bottom:10px">📷</div>
+        <div style="font-size:15px;font-weight:500;color:var(--tx);margin-bottom:4px">카메라로 촬영하기</div>
+        <div style="font-size:12px;color:var(--tx2)">교재, 단어카드, 노트 등 촬영</div>
       </div>
-      <input type="file" id="imp-file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="impHandleFile(event)">
-      <!-- 미리보기 -->
+      <input type="file" id="imp-cam-input" accept="image/*" capture="environment" style="display:none" onchange="impHandleCapture(event)">
+
+      <!-- 갤러리 선택 -->
+      <div onclick="impOpenGallery()"
+        style="border:1px solid var(--bd);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:12px;background:var(--sf2)">
+        <i class="ti ti-photo" style="font-size:22px;color:var(--tx2)"></i>
+        <div>
+          <div style="font-size:14px;font-weight:500;color:var(--tx)">갤러리에서 선택</div>
+          <div style="font-size:12px;color:var(--tx2)">저장된 사진 불러오기</div>
+        </div>
+        <i class="ti ti-chevron-right" style="font-size:16px;color:var(--tx3);margin-left:auto"></i>
+      </div>
+      <input type="file" id="imp-gallery-input" accept="image/*" style="display:none" onchange="impHandleCapture(event)">
+
+      <!-- 추출 미리보기 -->
       <div id="imp-preview" style="display:none;margin-bottom:12px">
-        <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">미리보기</div>
+        <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">추출된 단어 미리보기</div>
         <div id="imp-preview-list" style="background:var(--sf2);border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto"></div>
         <div id="imp-preview-info" style="font-size:12px;color:var(--tx2);margin-top:6px;text-align:center"></div>
       </div>
-      <!-- 샘플 다운로드 -->
-      <div onclick="downloadSample()" style="display:flex;align-items:center;gap:6px;padding:10px;background:var(--sf2);border-radius:8px;cursor:pointer;margin-bottom:12px">
-        <i class="ti ti-download" style="font-size:16px;color:var(--acc)"></i>
-        <span style="font-size:13px;color:var(--acc)">샘플 CSV 다운로드</span>
+
+      <!-- AI 처리 중 -->
+      <div id="imp-ai-loading" style="display:none;text-align:center;padding:20px">
+        <div style="font-size:28px;margin-bottom:8px">🤖</div>
+        <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:4px">Gemini AI 분석 중...</div>
+        <div id="imp-ai-status" style="font-size:12px;color:var(--tx2)">이미지에서 단어 추출 중</div>
+        <div style="margin:12px auto;width:160px;height:4px;border-radius:2px;background:var(--sf2);overflow:hidden">
+          <div id="imp-ai-prog" style="height:100%;background:var(--acc);border-radius:2px;width:0%;transition:width .3s"></div>
+        </div>
+      </div>
+
+      <!-- Gemini API 키 없음 안내 -->
+      <div id="imp-no-key" style="display:none;background:var(--amb-l);border-radius:10px;padding:12px;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--amb);line-height:1.7">
+          ⚠️ Gemini API 키가 필요해요<br>
+          <span onclick="closeImportModal();nav('s-profile');setTimeout(openApiModal,400)"
+            style="color:var(--acc);cursor:pointer;text-decoration:underline">내 정보에서 설정하기 →</span>
+        </div>
       </div>
     </div>
 
@@ -969,18 +994,7 @@ body{
       <div id="imp-text-count" style="font-size:12px;color:var(--tx2);margin-top:6px;text-align:right">0개 입력됨</div>
     </div>
 
-    <!-- URL 탭 -->
-    <div id="imp-panel-url" style="display:none;padding:16px 20px">
-      <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:14px">
-        <div style="font-size:12px;color:var(--acc-d);line-height:1.7">
-          Google Sheets 공유 URL을 붙여넣으세요<br>
-          공유 설정이 <b>링크가 있는 모든 사용자</b>여야 해요
-        </div>
-      </div>
-      <input id="imp-url-input" type="url" placeholder="https://docs.google.com/spreadsheets/d/..." style="width:100%;padding:12px;border:1px solid var(--bd);border-radius:10px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none;margin-bottom:10px">
-      <button onclick="impFetchUrl()" style="width:100%;padding:12px;background:var(--sf2);color:var(--tx2);border:0.5px solid var(--bd);border-radius:10px;font-size:14px;cursor:pointer">URL에서 불러오기</button>
-      <div id="imp-url-status" style="font-size:12px;color:var(--tx2);margin-top:8px;text-align:center"></div>
-    </div>
+
 
     <!-- 공통 하단 - 단어장 선택 + 저장 -->
     <div style="padding:0 20px 16px">
@@ -2795,6 +2809,11 @@ function openImportModal(){
   modal.style.display = 'flex';
   impWords = [];
   impMode  = 'csv';
+  // Gemini API 키 없으면 안내
+  setTimeout(()=>{
+    const noKey = document.getElementById('imp-no-key');
+    if(noKey) noKey.style.display = getApiKey() ? 'none' : 'block';
+  }, 100);
   // 단어장 목록 드롭다운 채우기
   loadWsSelectOptions();
 }
@@ -2808,16 +2827,109 @@ function closeImportModal(){
   if(ta) ta.value = '';
 }
 
+
+// ── 임포트 모달 촬영 기능 ───────────────────────────
+function impOpenCamera(){
+  const key = getApiKey();
+  if(!key){
+    document.getElementById('imp-no-key').style.display='block';
+    return;
+  }
+  document.getElementById('imp-no-key').style.display='none';
+  document.getElementById('imp-cam-input').click();
+}
+function impOpenGallery(){
+  const key = getApiKey();
+  if(!key){
+    document.getElementById('imp-no-key').style.display='block';
+    return;
+  }
+  document.getElementById('imp-no-key').style.display='none';
+  document.getElementById('imp-gallery-input').click();
+}
+
+async function impHandleCapture(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  e.target.value='';
+
+  const key = getApiKey();
+  if(!key){
+    document.getElementById('imp-no-key').style.display='block';
+    return;
+  }
+
+  // AI 로딩 표시
+  const loading = document.getElementById('imp-ai-loading');
+  const prog    = document.getElementById('imp-ai-prog');
+  const status  = document.getElementById('imp-ai-status');
+  const preview = document.getElementById('imp-preview');
+  loading.style.display='block';
+  preview.style.display='none';
+  prog.style.width='0%';
+
+  try {
+    status.textContent='이미지 준비 중';
+    prog.style.width='20%';
+    const base64    = await fileToBase64(file);
+    const mediaType = file.type||'image/jpeg';
+
+    status.textContent='Gemini AI 분석 중';
+    prog.style.width='50%';
+
+    const url = GEMINI_API + '?key=' + key;
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents:[{parts:[
+          {inline_data:{mime_type:mediaType, data:base64}},
+          {text: EXTRACT_PROMPT}
+        ]}],
+        generationConfig:{maxOutputTokens:4096, temperature:0.1}
+      })
+    });
+
+    status.textContent='단어 추출 중';
+    prog.style.width='80%';
+
+    if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'API 오류');}
+    const data = await res.json();
+    const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
+
+    // JSON 파싱
+    let cleaned = raw.replace(/```json/gi,'').replace(/```/g,'').replace(/'/g,'"').trim();
+    const arrMatch = cleaned.match(/\[.*\]/s);
+    if(arrMatch) cleaned = arrMatch[0];
+    const words = JSON.parse(cleaned);
+
+    impWords = words.map(w=>({en:w.en||w.word||'', ko:w.ko||w.meaning||'', pos:w.pos||'noun', difficulty:w.difficulty||2, phonetic:'', example:''})).filter(w=>w.en);
+
+    prog.style.width='100%';
+    status.textContent=`${impWords.length}개 단어 추출 완료!`;
+
+    setTimeout(()=>{
+      loading.style.display='none';
+      impShowPreview();
+    }, 500);
+
+  } catch(err) {
+    loading.style.display='none';
+    alert('추출 실패: '+err.message);
+  }
+}
+// ─────────────────────────────────────────────────────
+
 function impTab(tab){
   impMode = tab;
-  ['csv','text','url'].forEach(t => {
+  ['csv','text'].forEach(t => {
     const panel = document.getElementById('imp-panel-'+t);
     const tabEl = document.getElementById('imp-tab-'+t);
     if(panel) panel.style.display = t===tab ? 'block' : 'none';
     if(tabEl){
-      tabEl.style.color          = t===tab ? 'var(--acc)' : 'var(--tx2)';
-      tabEl.style.borderBottom   = t===tab ? '2px solid var(--acc)' : '2px solid transparent';
-      tabEl.style.fontWeight     = t===tab ? '500' : '400';
+      tabEl.style.color        = t===tab ? 'var(--acc)' : 'var(--tx2)';
+      tabEl.style.borderBottom = t===tab ? '2px solid var(--acc)' : '2px solid transparent';
+      tabEl.style.fontWeight   = t===tab ? '500' : '400';
     }
   });
 }
