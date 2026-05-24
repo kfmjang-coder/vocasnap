@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260524-134034">
+<meta name="app-build" content="20260524-141528">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -368,6 +368,22 @@ body{
     <button onclick="clearFirebaseConfig()" id="fb-clear-btn" style="display:none;width:100%;padding:10px;background:var(--red-l);color:var(--red);border:0.5px solid var(--red);border-radius:8px;font-size:13px;cursor:pointer">연결 해제</button>
 
     <div id="fb-setup-status" style="display:none;text-align:center;font-size:12px;margin-top:10px"></div>
+  </div>
+</div>
+
+
+<!-- ══ 디버그 모달 ══ -->
+<div id="debug-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;padding:20px;overflow-y:auto;color:#fff;font-family:monospace;font-size:13px;line-height:1.6">
+  <div style="max-width:500px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:18px;font-weight:600">🔧 디버그 정보</div>
+      <div onclick="document.getElementById('debug-modal').style.display='none'" style="cursor:pointer;font-size:20px">✕</div>
+    </div>
+    <div id="debug-content" style="background:#111;padding:14px;border-radius:8px;white-space:pre-wrap;word-break:break-all"></div>
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <button onclick="copyDebugInfo()" style="flex:1;padding:10px;background:#7F77DD;color:#fff;border:none;border-radius:6px;font-size:13px">정보 복사</button>
+      <button onclick="testSaveAPI()" style="flex:1;padding:10px;background:#10B981;color:#fff;border:none;border-radius:6px;font-size:13px">API 테스트</button>
+    </div>
   </div>
 </div>
 
@@ -1239,6 +1255,16 @@ body{
           <div>
             <div style="font-size:14px;color:var(--tx)">로그아웃</div>
             <div style="font-size:12px;color:var(--tx2)" id="profile-account-info">계정 정보</div>
+          </div>
+        </div>
+        <span style="color:var(--tx3)">›</span>
+      </div>
+      <div onclick="openDebugInfo()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">🔧</span>
+          <div>
+            <div style="font-size:14px;color:var(--tx)">디버그 정보</div>
+            <div style="font-size:12px;color:var(--tx2)">세션/캐시 진단</div>
           </div>
         </div>
         <span style="color:var(--tx3)">›</span>
@@ -2415,6 +2441,86 @@ const _origTrackLearning = window.trackLearning;
 // ── 인증 (로그인/회원가입) ───────────────────────────
 const AUTH_USERS_KEY = 'vs-users';     // 사용자 DB (localStorage)
 const AUTH_SESSION_KEY = 'vs-session'; // 현재 로그인 세션
+
+
+// ── 디버그 도구 ─────────────────────────────────
+function openDebugInfo() {
+  const info = {
+    '빌드 버전': window.APP_BUILD || '(없음)',
+    '현재 URL': location.href,
+    'User Agent': navigator.userAgent,
+    'localStorage vs-session': localStorage.getItem('vs-session'),
+    'getCurrentUser()': (typeof getCurrentUser === 'function') ? getCurrentUser() : '(함수 없음)',
+    'getUserIdParam()': (typeof getUserIdParam === 'function') ? getUserIdParam() : '(함수 없음)',
+    'getSheetsUrl()': (typeof getSheetsUrl === 'function') ? getSheetsUrl() : '(함수 없음)',
+    'Service Worker': navigator.serviceWorker?.controller?.scriptURL || '(없음)',
+  };
+
+  // 캐시 정보 추가
+  if(window.caches) {
+    caches.keys().then(keys => {
+      info['Caches'] = keys.length ? keys.join(', ') : '(없음)';
+      renderDebug(info);
+    });
+  } else {
+    info['Caches'] = '(미지원)';
+    renderDebug(info);
+  }
+}
+
+function renderDebug(info) {
+  const text = Object.entries(info).map(([k, v]) => {
+    const val = typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v);
+    return `▶ ${k}\n  ${val}`;
+  }).join('\n\n');
+  document.getElementById('debug-content').textContent = text;
+  document.getElementById('debug-modal').style.display = 'block';
+}
+
+function copyDebugInfo() {
+  const text = document.getElementById('debug-content').textContent;
+  if(navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => alert('✅ 복사됨'));
+  } else {
+    // 폴백
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    alert('✅ 복사됨');
+  }
+}
+
+async function testSaveAPI() {
+  const url = getSheetsUrl();
+  if(!url) { alert('Sheets URL 없음'); return; }
+
+  // 1. userId 첨부한 test 저장
+  const userParam = getUserIdParam();
+  const testUrl = url + '?action=saveWords&wordSetId=DEBUG_TEST&wordsData=' +
+    encodeURIComponent(JSON.stringify([{en:'debugword',ko:'디버그',pos:'noun'}])) +
+    userParam;
+
+  let result = '🔬 테스트 결과\n\n';
+  result += `▶ 호출 URL 길이: ${testUrl.length}자\n`;
+  result += `▶ userId 파라미터: ${userParam || '(없음)'}\n\n`;
+
+  try {
+    const res = await fetch(testUrl);
+    const text = await res.text();
+    result += `▶ 응답 상태: ${res.status} ${res.statusText}\n`;
+    result += `▶ 응답 본문: ${text.slice(0, 200)}\n\n`;
+    result += '✅ Sheets에서 DEBUG_TEST 단어장의 마지막 행을 확인하세요.\n';
+    result += 'userId 컬럼에 값이 채워져 있으면 정상입니다.';
+  } catch(e) {
+    result += `❌ 에러: ${e.message}\n`;
+  }
+
+  document.getElementById('debug-content').textContent = result;
+}
+// ─────────────────────────────────────────────────
 
 // ── 현재 사용자 ID 헬퍼 ────────────────────────────
 function getUserIdParam() {
@@ -3774,10 +3880,30 @@ function qRestart(){qWrong=[];nav('s-quiz');}
 // ── CLOCK ──
 // 상태바 제거됨 (safe-area-inset으로 대체)
 
-// ── PWA: SERVICE WORKER (강제 업데이트) ──
+// ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260524-134034';
-console.log('App build:', window.APP_BUILD);
+  window.APP_BUILD = '20260524-141528';
+  console.log('App build:', window.APP_BUILD);
+
+  // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
+  if(window.caches) {
+    caches.keys().then(keys => {
+      keys.forEach(k => {
+        console.log('[Cache] Delete:', k);
+        caches.delete(k);
+      });
+    });
+  }
+  // 옛 SW 등록 해제
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => {
+      if(reg.active && reg.active.scriptURL && !reg.active.scriptURL.endsWith('/sw.js')) {
+        console.log('[SW] Unregister old:', reg.scope);
+        reg.unregister();
+      }
+    });
+  });
+
   navigator.serviceWorker.register('./sw.js').then(reg => {
     console.log('SW registered');
     // 1시간마다 업데이트 체크
