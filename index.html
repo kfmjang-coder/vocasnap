@@ -3147,21 +3147,46 @@ async function loadManageWordSets() {
     return;
   }
 
-  el.innerHTML = '<div style="padding:14px 16px;font-size:13px;color:var(--tx3);text-align:center">불러오는 중...</div>';
+  // wslist 캐시 먼저 활용 (빠른 표시)
+  const cached = localStorage.getItem('vs-wslist-cache');
+  if(cached) {
+    try {
+      const {data} = JSON.parse(cached);
+      if(data?.wordSets?.length) {
+        renderManageWordSets(el, data.wordSets);
+        return; // 캐시로 즉시 표시
+      }
+    } catch(e) {}
+  }
+
+  // 캐시 우선 표시
+  const _cached = localStorage.getItem('vs-wslist-cache');
+  if(_cached) {
+    try {
+      const {data} = JSON.parse(_cached);
+      if(data?.wordSets?.length) { renderManageWordSets(el, data.wordSets); return; }
+    } catch(e2){}
+  }
+
+  el.innerHTML = '<div style="padding:14px 16px;font-size:13px;color:var(--tx3);text-align:center">⏳ 불러오는 중...</div>';
 
   try {
-    const [wsRes, statsRes] = await Promise.all([
-      sheetsGet('getWordSets'),
-      sheetsGet('getStats'),
-    ]);
+    const wsRes = await sheetsGet('getWordSets');
+    const sets  = wsRes.wordSets || [];
+    renderManageWordSets(el, sets);
 
-    const sets = wsRes.wordSets || [];
-    if(!sets.length) {
-      el.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:var(--tx2)">단어장이 없어요<br><span style="font-size:12px;color:var(--tx3)">촬영이나 임포트로 추가해보세요</span></div>';
-      return;
-    }
+  } catch(e) {
+    el.innerHTML = `<div style="padding:14px;text-align:center;font-size:13px;color:var(--red)">로드 실패: ${e.message}</div>`;
+  }
+}
 
-    el.innerHTML = sets.map((ws, i) => `
+function renderManageWordSets(el, sets) {
+  if(!sets.length) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:var(--tx2)">단어장이 없어요<br><span style="font-size:12px;color:var(--tx3)">촬영이나 임포트로 추가해보세요</span></div>';
+    return;
+  }
+
+  el.innerHTML = sets.map((ws, i) => `
       <div style="padding:12px 16px;display:flex;align-items:center;gap:10px;${i<sets.length-1?'border-bottom:0.5px solid var(--bd)':''}">
         <div style="width:36px;height:36px;border-radius:10px;background:var(--acc-l);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">📖</div>
         <div style="flex:1;min-width:0">
@@ -3169,20 +3194,28 @@ async function loadManageWordSets() {
           <div style="font-size:12px;color:var(--tx2)">${ws.totalWords||0}개 단어</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
-          <div onclick="renameWordSet('${ws.id}','${ws.name.replace(/'/g,"\\'")}'')"
+          <div data-wsid="${ws.id}" data-wsname="${ws.name.replace(/"/g,'&quot;')}" data-action="rename"
             style="width:32px;height:32px;border-radius:8px;background:var(--acc-l);display:flex;align-items:center;justify-content:center;cursor:pointer">
-            <i class="ti ti-pencil" style="font-size:15px;color:var(--acc)"></i>
+            <i class="ti ti-pencil" style="font-size:15px;color:var(--acc);pointer-events:none"></i>
           </div>
-          <div onclick="deleteWordSet('${ws.id}','${ws.name.replace(/'/g,"\\'")}'')"
+          <div data-wsid="${ws.id}" data-wsname="${ws.name.replace(/"/g,'&quot;')}" data-action="delete"
             style="width:32px;height:32px;border-radius:8px;background:var(--red-l);display:flex;align-items:center;justify-content:center;cursor:pointer">
-            <i class="ti ti-trash" style="font-size:15px;color:var(--red)"></i>
+            <i class="ti ti-trash" style="font-size:15px;color:var(--red);pointer-events:none"></i>
           </div>
         </div>
       </div>`).join('');
 
-  } catch(e) {
-    el.innerHTML = `<div style="padding:14px;text-align:center;font-size:13px;color:var(--red)">로드 실패: ${e.message}</div>`;
-  }
+  // 이벤트 위임으로 버튼 처리
+  el.onclick = (e) => {
+    const btn = e.target.closest('[data-action]');
+    if(!btn) return;
+    const wsId   = btn.dataset.wsid;
+    const wsName = btn.dataset.wsname;
+    if(btn.dataset.action === 'rename') renameWordSet(wsId, wsName);
+    if(btn.dataset.action === 'delete') deleteWordSet(wsId, wsName);
+  };
+}
+
 }
 
 async function renameWordSet(wsId, currentName) {
@@ -3190,18 +3223,20 @@ async function renameWordSet(wsId, currentName) {
   if(!newName?.trim() || newName.trim() === currentName) return;
 
   try {
-    // Sheets WordSets 시트에서 직접 수정 (API 추가 필요 → 일단 알림)
-    const url = getSheetsUrl() + '?action=renameWordSet&wsId=' + encodeURIComponent(wsId) + '&name=' + encodeURIComponent(newName.trim());
+    const url  = getSheetsUrl() + '?action=renameWordSet&wsId=' + encodeURIComponent(wsId) + '&name=' + encodeURIComponent(newName.trim());
     const res  = await fetch(url);
-    const data = await res.json();
+    const text = await res.text();
+    if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
+    const data = JSON.parse(text);
     if(data.error) throw new Error(data.error);
 
     // 화면 즉시 업데이트
     const nameEl = document.getElementById('ws-name-' + wsId);
     if(nameEl) nameEl.textContent = newName.trim();
 
-    // 캐시 초기화
+    // 캐시 초기화 + 목록 새로고침
     localStorage.removeItem('vs-wslist-cache');
+    loadWordSets(true);
     alert(`✅ "${newName.trim()}"으로 변경됐어요!`);
   } catch(e) {
     alert('이름 변경 실패: ' + e.message);
@@ -3209,21 +3244,29 @@ async function renameWordSet(wsId, currentName) {
 }
 
 async function deleteWordSet(wsId, name) {
-  if(!confirm(`"${name}" 단어장을 삭제할까요?\n\n⚠️ 단어장에 포함된 단어는 삭제되지 않아요.\n(Words 시트에서 별도 삭제 필요)`)) return;
+  if(!confirm(`"${name}" 단어장을 삭제할까요?\n\n⚠️ 단어장에 포함된 단어는 삭제되지 않아요.`)) return;
 
   try {
     const url  = getSheetsUrl() + '?action=deleteWordSet&wsId=' + encodeURIComponent(wsId);
     const res  = await fetch(url);
-    const data = await res.json();
+    const text = await res.text();
+    if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
+    const data = JSON.parse(text);
     if(data.error) throw new Error(data.error);
-
-    alert(`✅ "${name}" 단어장이 삭제됐어요!`);
 
     // 캐시 초기화 + 화면 새로고침
     localStorage.removeItem('vs-wslist-cache');
     localStorage.removeItem('vs-stats-cache');
-    loadManageWordSets();
+
+    // 관리 목록에서 즉시 제거
+    const el = document.getElementById('manage-ws-list');
+    if(el) {
+      const item = el.querySelector(`[data-wsid="${wsId}"]`)?.closest('[style*="padding:12px"]');
+      if(item) item.remove();
+    }
+
     loadWordSets(true);
+    alert(`✅ "${name}" 단어장이 삭제됐어요!`);
   } catch(e) {
     alert('삭제 실패: ' + e.message);
   }
