@@ -3216,8 +3216,6 @@ function renderManageWordSets(el, sets) {
   };
 }
 
-}
-
 async function renameWordSet(wsId, currentName) {
   const newName = prompt('새 단어장 이름:', currentName);
   if(!newName?.trim() || newName.trim() === currentName) return;
