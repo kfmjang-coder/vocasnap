@@ -237,8 +237,7 @@ body{
           <div id="home-username" style="font-size:20px;font-weight:500;color:var(--tx)">나의 VocaSnap</div>
         </div>
         <div style="display:flex;gap:8px">
-          <div style="width:36px;height:36px;border-radius:18px;background:var(--sf2);display:flex;align-items:center;justify-content:center"><i class="ti ti-bell" style="font-size:18px;color:var(--tx2)"></i></div>
-          <div style="width:36px;height:36px;border-radius:18px;background:var(--sf2);display:flex;align-items:center;justify-content:center" onclick="toggleTheme()"><i class="ti ti-moon" style="font-size:18px;color:var(--tx2)"></i></div>
+          <div style="width:36px;height:36px;border-radius:18px;background:var(--sf2);display:flex;align-items:center;justify-content:center" onclick="nav('s-profile')"><i class="ti ti-settings" style="font-size:18px;color:var(--tx2)"></i></div>
         </div>
       </div>
     </div>
@@ -1022,11 +1021,7 @@ function back(){
 }
 
 // ── THEME ──
-function toggleTheme(){
-  isDark=!isDark;
-  document.body.classList.toggle('dk',isDark);
-  localStorage.setItem('vs-dark',isDark?'1':'0');
-}
+function toggleTheme(){ toggleDark(); } // 내정보 다크모드 토글과 통합
 
 // ── ONBOARDING ──
 function obNext(){
