@@ -4341,38 +4341,66 @@ async function sheetsPost(body){
   }
 }
 async function saveWordsToSheets(wordSetId){
-  const sheetsUrl=getSheetsUrl();
+  const sheetsUrl = getSheetsUrl();
   if(!sheetsUrl){
     if(confirm('Google Sheets가 연결되지 않았어요.\n지금 설정하러 갈까요?')){nav('s-profile');setTimeout(openSheetsModal,400);}
     return;
   }
-  const selected=EW.filter(w=>w.checked);
+  const selected = EW.filter(w=>w.checked);
   if(!selected.length){alert('저장할 단어를 선택해주세요');return;}
-  const btn=document.getElementById('savbtn');
-  const origText=btn.textContent;
-  btn.textContent='저장 중...';btn.disabled=true;
+  const btn = document.getElementById('savbtn');
+  const origText = btn.textContent;
+  btn.textContent = '저장 중...'; btn.disabled = true;
 
-  // 단어장 ID 결정 (currentWordSet 있으면 사용)
+  // 단어장 ID 결정
   const wsId = (currentWordSet?.id) || wordSetId || 'default';
 
-  try{
-    // GET 방식으로 저장 (CORS 우회) - 단어를 base64 인코딩해서 전달
-    const wordsParam = encodeURIComponent(JSON.stringify(selected));
-    const url = getSheetsUrl() + '?action=saveWords&wordSetId=' + wsId + '&wordsData=' + wordsParam;
-    const res = await fetch(url);
-    const data = await res.json();
-    if(data.error) throw new Error(data.error);
+  try {
+    // URL 길이 제한 회피를 위해 배치 단위로 저장 (최대 30개씩)
+    const batchSize = 30;
+    let totalSaved = 0;
 
-    btn.textContent=`✅ ${data.saved}개 저장 완료!`;
-    btn.style.background='var(--grn)';
-    // 캐시 무효화
+    for(let i = 0; i < selected.length; i += batchSize) {
+      const batch = selected.slice(i, i + batchSize);
+      const wordsParam = encodeURIComponent(JSON.stringify(batch));
+      const url = sheetsUrl + '?action=saveWords' +
+                  '&wordSetId=' + encodeURIComponent(wsId) +
+                  '&wordsData=' + wordsParam +
+                  getUserIdParam();
+
+      const res = await fetch(url);
+      const text = await res.text();
+      if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
+      const data = JSON.parse(text);
+      if(data.error) throw new Error(data.error);
+      totalSaved += data.saved;
+
+      // 진행률 표시
+      if(selected.length > batchSize) {
+        btn.textContent = `저장 중... ${totalSaved}/${selected.length}`;
+      }
+    }
+
+    btn.textContent = `✅ ${totalSaved}개 저장 완료!`;
+    btn.style.background = 'var(--grn)';
     localStorage.removeItem('vs-wslist-cache');
     localStorage.removeItem('vs-stats-cache');
-    setTimeout(()=>{btn.textContent=origText;btn.style.background='var(--acc)';btn.disabled=false;nav('s-wslist');},1500);
-  }catch(e){
-    btn.textContent='❌ 저장 실패';btn.style.background='var(--red)';
-    setTimeout(()=>{btn.textContent=origText;btn.style.background='var(--acc)';btn.disabled=false;},2500);
-    alert('저장 실패: '+e.message);
+    setTimeout(() => {
+      btn.textContent = origText;
+      btn.style.background = 'var(--acc)';
+      btn.disabled = false;
+      nav('s-wslist');
+    }, 1500);
+  } catch(e) {
+    btn.textContent = '❌ 저장 실패';
+    btn.style.background = 'var(--red)';
+    setTimeout(() => {
+      btn.textContent = origText;
+      btn.style.background = 'var(--acc)';
+      btn.disabled = false;
+    }, 2500);
+    alert('저장 실패: ' + e.message);
+    console.error('saveWordsToSheets error:', e);
   }
 }
 async function saveReviewToSheets(wordId,sm2Result){
