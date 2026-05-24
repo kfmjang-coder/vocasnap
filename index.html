@@ -902,6 +902,43 @@ body{
         </div>
       </div>
 
+      <!-- 모의테스트 이력 -->
+      <div class="sh">
+        <span class="st">📝 모의테스트 이력</span>
+        <span id="mock-history-summary" style="font-size:11px;color:var(--tx3)"></span>
+      </div>
+
+      <!-- 모의테스트 통계 카드 -->
+      <div id="mock-stats-card" style="display:none;margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);padding:16px">
+        <div style="display:flex;gap:12px;margin-bottom:14px">
+          <div style="flex:1;text-align:center;padding:10px;background:var(--acc-l);border-radius:10px">
+            <div style="font-size:11px;color:var(--acc);margin-bottom:2px">총 시험</div>
+            <div style="font-size:20px;font-weight:500;color:var(--acc)" id="mock-stat-total">0</div>
+          </div>
+          <div style="flex:1;text-align:center;padding:10px;background:var(--grn-l);border-radius:10px">
+            <div style="font-size:11px;color:var(--grn);margin-bottom:2px">평균 정확도</div>
+            <div style="font-size:20px;font-weight:500;color:var(--grn)" id="mock-stat-avg">--%</div>
+          </div>
+          <div style="flex:1;text-align:center;padding:10px;background:#FFF7E6;border-radius:10px">
+            <div style="font-size:11px;color:#EF9F27;margin-bottom:2px">최고 점수</div>
+            <div style="font-size:20px;font-weight:500;color:#EF9F27" id="mock-stat-best">--%</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding-top:12px;border-top:0.5px solid var(--bd);font-size:12px;color:var(--tx2)">
+          <span>총 학습 문제 수</span>
+          <span id="mock-stat-questions" style="color:var(--tx);font-weight:500">0개</span>
+        </div>
+      </div>
+
+      <!-- 최근 시험 리스트 -->
+      <div id="mock-history-list" style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
+        <div style="padding:20px;text-align:center;color:var(--tx3);font-size:13px">아직 시험 기록이 없어요<br><span style="font-size:11px">홈에서 모의테스트를 시작해보세요</span></div>
+      </div>
+
+      <div style="text-align:center;margin-bottom:20px">
+        <button onclick="clearMockHistory()" id="mock-clear-btn" style="display:none;padding:8px 16px;background:transparent;color:var(--tx3);border:0.5px solid var(--bd);border-radius:8px;font-size:12px;cursor:pointer">기록 초기화</button>
+      </div>
+
       <!-- 마지막 업데이트 -->
       <div style="text-align:center;font-size:11px;color:var(--tx3);margin-bottom:20px" id="stats-updated"></div>
     </div>
@@ -3024,6 +3061,9 @@ function renderStats(data){
   setText('review-due',      dueToday);
   setText('review-new',      newCount);
 
+  // 모의테스트 이력 렌더링
+  renderMockHistory();
+
   // 업데이트 시각
   const now = new Date();
   setText('stats-updated', `마지막 업데이트: ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`);
@@ -4136,6 +4176,22 @@ function showMockResult() {
   else if(pct >= 60) { grade = 'C';  emoji = '💪'; title = '조금만 더!'; }
   else               { grade = 'D';  emoji = '📚'; title = '더 학습해봐요'; }
 
+  // 결과 저장 (localStorage)
+  saveMockHistory({
+    date:     new Date().toISOString(),
+    total:    total,
+    correct:  MOCK.correct,
+    wrong:    MOCK.wrong,
+    pct:      pct,
+    grade:    grade,
+    elapsed:  elapsed,
+    scope:    MOCK.scope,
+    wsName:   MOCK.scope === 'current' ? (currentWordSet?.name || '') : '전체',
+    wrongWords: MOCK.wrongList.map(w => ({
+      en: w.word||w.en, ko: w.meaning||w.ko, userEn: w.userEn, userKo: w.userKo, skipped: w.skipped
+    })),
+  });
+
   setText('mock-res-emoji', emoji);
   setText('mock-res-title', title);
   setText('mock-res-sub', `${MOCK.words.length}개 단어 테스트 완료`);
@@ -4234,6 +4290,138 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+// ─────────────────────────────────────────────────────
+
+
+// ── 모의테스트 이력 관리 ─────────────────────────────
+const MOCK_HISTORY_KEY = 'vs-mock-history';
+const MOCK_HISTORY_MAX = 30; // 최근 30개만 보관
+
+function saveMockHistory(record) {
+  try {
+    const list = getMockHistory();
+    list.unshift({...record, id: 'mt_' + Date.now()});
+    // 최대 개수 유지
+    while(list.length > MOCK_HISTORY_MAX) list.pop();
+    localStorage.setItem(MOCK_HISTORY_KEY, JSON.stringify(list));
+  } catch(e) { console.warn('이력 저장 실패:', e); }
+}
+
+function getMockHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(MOCK_HISTORY_KEY) || '[]');
+  } catch(e) { return []; }
+}
+
+function clearMockHistory() {
+  if(!confirm('모든 모의테스트 기록을 삭제할까요?')) return;
+  localStorage.removeItem(MOCK_HISTORY_KEY);
+  renderMockHistory();
+  alert('✅ 기록이 삭제됐어요');
+}
+
+function renderMockHistory() {
+  const list = getMockHistory();
+  const card = document.getElementById('mock-stats-card');
+  const listEl = document.getElementById('mock-history-list');
+  const summary = document.getElementById('mock-history-summary');
+  const clearBtn = document.getElementById('mock-clear-btn');
+
+  if(!list.length) {
+    if(card) card.style.display = 'none';
+    if(listEl) listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--tx3);font-size:13px">아직 시험 기록이 없어요<br><span style="font-size:11px">홈에서 모의테스트를 시작해보세요</span></div>';
+    if(summary) summary.textContent = '';
+    if(clearBtn) clearBtn.style.display = 'none';
+    return;
+  }
+
+  // 통계 카드
+  if(card) card.style.display = 'block';
+  const totalTests    = list.length;
+  const totalQuestions= list.reduce((sum, r) => sum + r.total, 0);
+  const avgPct        = Math.round(list.reduce((sum, r) => sum + r.pct, 0) / list.length);
+  const bestPct       = Math.max(...list.map(r => r.pct));
+
+  setText('mock-stat-total',     totalTests + '회');
+  setText('mock-stat-avg',       avgPct + '%');
+  setText('mock-stat-best',      bestPct + '%');
+  setText('mock-stat-questions', totalQuestions + '개');
+
+  if(summary) summary.textContent = `총 ${totalTests}회 응시`;
+  if(clearBtn) clearBtn.style.display = 'inline-block';
+
+  // 이력 리스트 (최근 10개)
+  const recent = list.slice(0, 10);
+  const gradeColors = {
+    'A+': 'var(--grn)', 'A': 'var(--grn)',
+    'B':  'var(--acc)', 'C': 'var(--amb)', 'D': 'var(--red)'
+  };
+
+  listEl.innerHTML = recent.map((r, i) => {
+    const d = new Date(r.date);
+    const dateStr = formatRelativeDate(d);
+    const mm = Math.floor(r.elapsed/60), ss = r.elapsed%60;
+    const gColor = gradeColors[r.grade] || 'var(--tx2)';
+    return `
+      <div onclick="showMockHistoryDetail('${r.id}')" style="padding:14px 16px;cursor:pointer;${i<recent.length-1?'border-bottom:0.5px solid var(--bd)':''}">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:42px;height:42px;border-radius:10px;background:${gColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">${r.grade}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:2px">
+              ${r.correct} / ${r.total}문제 정답
+              <span style="font-size:12px;color:${gColor};font-weight:500;margin-left:4px">${r.pct}%</span>
+            </div>
+            <div style="font-size:11px;color:var(--tx2)">
+              ${dateStr} · ${r.wsName || '전체'} · ${mm}분 ${ss}초
+            </div>
+          </div>
+          <i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3);flex-shrink:0"></i>
+        </div>
+      </div>`;
+  }).join('');
+
+  if(list.length > 10) {
+    listEl.innerHTML += `<div style="padding:10px;text-align:center;font-size:11px;color:var(--tx3)">최근 10개만 표시 (전체 ${list.length}개)</div>`;
+  }
+}
+
+function formatRelativeDate(d) {
+  const now  = new Date();
+  const diff = now - d;
+  const min  = Math.floor(diff / 60000);
+  const hr   = Math.floor(diff / 3600000);
+  const day  = Math.floor(diff / 86400000);
+  if(min < 1)  return '방금';
+  if(min < 60) return min + '분 전';
+  if(hr  < 24) return hr  + '시간 전';
+  if(day < 7)  return day + '일 전';
+  return d.toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
+}
+
+function showMockHistoryDetail(id) {
+  const list = getMockHistory();
+  const r    = list.find(x => x.id === id);
+  if(!r) return;
+
+  const d  = new Date(r.date);
+  const mm = Math.floor(r.elapsed/60), ss = r.elapsed%60;
+
+  let detail = `📅 ${d.toLocaleString('ko-KR')}\n`;
+  detail += `📊 ${r.correct} / ${r.total}문제 정답 (${r.pct}%)\n`;
+  detail += `🏆 등급: ${r.grade}\n`;
+  detail += `⏱ 소요 시간: ${mm}분 ${ss}초\n`;
+  detail += `📚 범위: ${r.wsName || '전체'}\n`;
+
+  if(r.wrongWords?.length) {
+    detail += `\n❌ 틀린 단어 (${r.wrongWords.length}개):\n`;
+    r.wrongWords.slice(0, 10).forEach(w => {
+      detail += `  • ${w.en} = ${w.ko}\n`;
+    });
+    if(r.wrongWords.length > 10) detail += `  ... 외 ${r.wrongWords.length - 10}개\n`;
+  }
+
+  alert(detail);
+}
 // ─────────────────────────────────────────────────────
 
 // ── 단어 임포트 기능 ────────────────────────────────
