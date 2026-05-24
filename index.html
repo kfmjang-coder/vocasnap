@@ -795,11 +795,21 @@ body{
 <!-- ══ PROFILE ══ -->
 <div class="scr" id="s-profile">
   <div class="scroll">
-    <div style="background:var(--acc);padding:calc(env(safe-area-inset-top,0px) + 40px) 20px 24px;display:flex;flex-direction:column;align-items:center;gap:12px">
-      <div style="width:80px;height:80px;border-radius:40px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:36px">👤</div>
+    <div style="background:var(--acc);padding:calc(env(safe-area-inset-top,0px) + 16px) 20px 24px;display:flex;flex-direction:column;align-items:center;gap:12px;position:relative">
+      <!-- 편집 버튼 -->
+      <div onclick="openProfileEdit()" style="position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;width:34px;height:34px;border-radius:17px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-pencil" style="font-size:16px;color:#fff"></i>
+      </div>
+      <!-- 아바타 (탭하면 변경) -->
+      <div onclick="openProfileEdit()" style="width:80px;height:80px;border-radius:40px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:36px;cursor:pointer;position:relative" id="profile-avatar">
+        👤
+        <div style="position:absolute;bottom:0;right:0;width:22px;height:22px;border-radius:11px;background:var(--acc);border:2px solid #fff;display:flex;align-items:center;justify-content:center">
+          <i class="ti ti-camera" style="font-size:11px;color:#fff"></i>
+        </div>
+      </div>
       <div style="text-align:center">
         <div id="profile-username" style="font-size:20px;font-weight:500;color:#fff">나의 VocaSnap</div>
-        <div id="profile-email" style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px">--</div>
+        <div id="profile-email" style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px">이메일을 등록해보세요</div>
       </div>
       <div style="display:flex;gap:20px;margin-top:4px">
         <div style="text-align:center"><div id="profile-streak" style="font-size:18px;font-weight:500;color:#fff">--</div><div style="font-size:11px;color:rgba(255,255,255,.7)">스트릭</div></div>
@@ -868,6 +878,47 @@ body{
 </div>
 
 
+
+
+<!-- ══ PROFILE EDIT MODAL ══ -->
+<div id="profile-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:flex-end;justify-content:center">
+  <div style="background:var(--sf);border-radius:20px 20px 0 0;width:100%;max-width:430px;padding:24px">
+    <!-- 헤더 -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-size:17px;font-weight:500;color:var(--tx)">프로필 편집</div>
+      <div onclick="closeProfileEdit()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
+      </div>
+    </div>
+
+    <!-- 아바타 선택 -->
+    <div style="margin-bottom:18px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:10px">아바타</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap" id="avatar-picker">
+        <!-- 이모지 목록 -->
+      </div>
+    </div>
+
+    <!-- 이름 -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">이름</div>
+      <input id="edit-name" type="text" placeholder="이름을 입력해주세요" maxlength="20"
+        style="width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+    </div>
+
+    <!-- 이메일 -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">이메일 (선택)</div>
+      <input id="edit-email" type="email" placeholder="example@email.com"
+        style="width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+    </div>
+
+    <button onclick="saveProfileEdit()" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">
+      저장하기
+    </button>
+    <div style="padding-bottom:env(safe-area-inset-bottom,0px)"></div>
+  </div>
+</div>
 
 <!-- ══ SHEETS MODAL ══ -->
 <div id="sheets-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center">
@@ -2863,6 +2914,9 @@ function initAutoSpeakToggle() {
 
 // ── 내정보 로드 ──────────────────────────────────────
 async function loadProfile() {
+  // 프로필 정보 적용
+  applyProfile();
+
   // 로컬 데이터 즉시 표시
   const streak = Number(localStorage.getItem('vs-streak')     || 0);
   const goal   = Number(localStorage.getItem('vs-daily-goal') || 30);
@@ -3567,6 +3621,90 @@ async function refreshWsdFromSheets() {
 }
 // ─────────────────────────────────────────────────────
 
+
+// ── 프로필 편집 ──────────────────────────────────────
+const AVATARS = ['👤','😊','😎','🤓','📚','🎯','🏆','🔥','⚡','🌟','🦁','🐯','🦊','🐧','🦋'];
+
+function openProfileEdit() {
+  const modal = document.getElementById('profile-edit-modal');
+  modal.style.display = 'flex';
+
+  // 현재 값 로드
+  const name   = localStorage.getItem('vs-profile-name')  || '';
+  const email  = localStorage.getItem('vs-profile-email') || '';
+  const avatar = localStorage.getItem('vs-profile-avatar')|| '👤';
+
+  document.getElementById('edit-name').value  = name;
+  document.getElementById('edit-email').value = email;
+
+  // 아바타 피커 렌더
+  const picker = document.getElementById('avatar-picker');
+  picker.innerHTML = AVATARS.map(em => `
+    <div onclick="selectAvatar('${em}')" id="av-${em.codePointAt(0)}"
+      style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;border:2px solid ${em===avatar?'var(--acc)':'transparent'};background:${em===avatar?'var(--acc-l)':'var(--sf2)'}">
+      ${em}
+    </div>`).join('');
+}
+
+function selectAvatar(em) {
+  // 이전 선택 해제
+  document.querySelectorAll('#avatar-picker > div').forEach(el => {
+    el.style.border     = '2px solid transparent';
+    el.style.background = 'var(--sf2)';
+  });
+  // 선택 표시
+  const el = document.getElementById('av-' + em.codePointAt(0));
+  if(el) {
+    el.style.border     = '2px solid var(--acc)';
+    el.style.background = 'var(--acc-l)';
+  }
+  localStorage.setItem('vs-profile-avatar-temp', em);
+}
+
+function closeProfileEdit() {
+  document.getElementById('profile-edit-modal').style.display = 'none';
+  localStorage.removeItem('vs-profile-avatar-temp');
+}
+
+function saveProfileEdit() {
+  const name   = document.getElementById('edit-name').value.trim();
+  const email  = document.getElementById('edit-email').value.trim();
+  const avatar = localStorage.getItem('vs-profile-avatar-temp') ||
+                 localStorage.getItem('vs-profile-avatar') || '👤';
+
+  if(!name) { alert('이름을 입력해주세요'); return; }
+
+  // 저장
+  localStorage.setItem('vs-profile-name',   name);
+  localStorage.setItem('vs-profile-email',  email);
+  localStorage.setItem('vs-profile-avatar', avatar);
+  localStorage.removeItem('vs-profile-avatar-temp');
+
+  // 화면 즉시 반영
+  applyProfile();
+  closeProfileEdit();
+}
+
+function applyProfile() {
+  const name   = localStorage.getItem('vs-profile-name')  || '나의 VocaSnap';
+  const email  = localStorage.getItem('vs-profile-email') || '이메일을 등록해보세요';
+  const avatar = localStorage.getItem('vs-profile-avatar')|| '👤';
+
+  setText('profile-username', name);
+  setText('profile-email',    email || '이메일을 등록해보세요');
+  setText('home-username',    name);
+
+  // 아바타 업데이트
+  const avatarEl = document.getElementById('profile-avatar');
+  if(avatarEl) {
+    // 아이콘 부분만 교체 (카메라 버튼 유지)
+    const cam = avatarEl.querySelector('div');
+    avatarEl.textContent = avatar;
+    if(cam) avatarEl.appendChild(cam);
+  }
+}
+// ─────────────────────────────────────────────────────
+
 function renderWeekChart(){
   const chart = document.getElementById('week-chart');
   const days  = document.getElementById('week-days');
@@ -3622,6 +3760,7 @@ initGoalDisplay();
 initSessionGoal();
 initAutoSpeakToggle();
 initDarkToggle();
+applyProfile();
 
 
 </script>
