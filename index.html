@@ -883,6 +883,76 @@ body{
 
 
 
+
+<!-- ══ 통계 설명 모달 ══ -->
+<div id="stats-info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--sf);border-radius:16px;width:100%;max-width:400px;max-height:85vh;overflow-y:auto">
+    <div style="padding:20px 20px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid var(--bd)">
+      <div>
+        <div style="font-size:17px;font-weight:500;color:var(--tx)">📊 통계 기준</div>
+        <div style="font-size:12px;color:var(--tx2);margin-top:2px">각 항목이 어떻게 계산되는지 알아보세요</div>
+      </div>
+      <div onclick="document.getElementById('stats-info-modal').style.display='none'" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
+      </div>
+    </div>
+
+    <div style="padding:16px 20px">
+      <!-- 암기 완료 기준 -->
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px">✅ 암기 완료 기준</div>
+      <div style="background:var(--grn-l);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--grn);line-height:1.8">
+          한 단어당 다음 조건 <b>모두 충족</b> 시 완료<br>
+          <b>① 알아요 5회 이상</b><br>
+          <b>② 정답률 80% 이상</b><br>
+          <span style="color:var(--tx2);font-size:11px">정답률 = 알아요 ÷ (알아요+몰라요)</span>
+        </div>
+      </div>
+
+      <!-- 학습 중 -->
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px">📖 학습 중 기준</div>
+      <div style="background:var(--amb-l);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--amb);line-height:1.8">
+          <b>복습 단계 (review)</b><br>
+          알아요 3회 이상 + 정답률 60% 이상<br><br>
+          <b>학습 중 (learning)</b><br>
+          그 외 학습한 단어 (알아요 부족 또는 정답률 낮음)
+        </div>
+      </div>
+
+      <!-- 미학습 -->
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px">🆕 미학습 기준</div>
+      <div style="background:var(--sf2);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--tx2);line-height:1.8">
+          한 번도 학습하지 않은 단어<br>
+          (플래시카드/퀴즈에서 알아요/몰라요 누른 적 없음)
+        </div>
+      </div>
+
+      <!-- 진행률 공식 -->
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px">📈 전체 진행률 공식</div>
+      <div style="background:var(--acc-l);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--acc-d);line-height:1.8;font-family:monospace">
+          (완료 × 1.0 + 복습 × 0.5 + 학습중 × 0.2)<br>
+          ÷ 전체 단어 수 × 100
+        </div>
+      </div>
+
+      <!-- 오늘 복습 필요 -->
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px">🔄 오늘 복습 필요</div>
+      <div style="background:var(--sf2);border-radius:10px;padding:14px;font-size:12px;color:var(--tx2);line-height:1.8">
+        SM-2 망각 곡선 알고리즘 기반<br>
+        nextReview 날짜가 오늘 이전인 단어<br>
+        <span style="color:var(--tx3);font-size:11px">완료된 단어는 제외</span>
+      </div>
+    </div>
+
+    <div style="padding:0 20px 20px">
+      <button onclick="document.getElementById('stats-info-modal').style.display='none'" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">알겠어요!</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ 진행률 설명 모달 ══ -->
 <div id="progress-info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--sf);border-radius:16px;width:100%;max-width:400px;max-height:85vh;overflow-y:auto">
@@ -2434,39 +2504,69 @@ async function saveReviewToSheets(wordId,sm2Result){
 // ── 통계 Sheets 연동 ────────────────────────────────
 async function loadStats(forceRefresh){
   const url = getSheetsUrl();
-
-  document.getElementById('stats-loading').style.display = 'none';
-  document.getElementById('stats-no-sheets').style.display = 'none';
-  document.getElementById('stats-content').style.display = 'block';
-
   if(!url){
+    document.getElementById('stats-loading').style.display = 'none';
     document.getElementById('stats-no-sheets').style.display = 'block';
-    document.getElementById('stats-content').style.display = 'none';
     return;
   }
 
-  // 캐시 확인 (5분)
+  // 캐시 우선 표시 (즉시)
   const cacheKey = 'vs-stats-cache';
-  const cached = localStorage.getItem(cacheKey);
-  if(!forceRefresh && cached){
-    const {data, ts} = JSON.parse(cached);
-    if(Date.now() - ts < 5*60*1000){
+  const cached   = localStorage.getItem(cacheKey);
+  if(cached && !forceRefresh) {
+    try {
+      const {data} = JSON.parse(cached);
       renderStats(data);
-      return;
-    }
+      document.getElementById('stats-content').style.display = 'block';
+    } catch(e) {}
+  } else {
+    document.getElementById('stats-loading').style.display = 'block';
   }
 
-  document.getElementById('stats-loading').style.display = 'block';
-  document.getElementById('stats-content').style.display = 'none';
-
+  // 항상 백그라운드 갱신 - 전체 단어 가져와서 로컬 이력 기반 재계산
   try {
-    const data = await sheetsGet('getStats');
-    if(data.error) throw new Error(data.error);
+    const res = await sheetsGet('getWords');
+    if(res.error) throw new Error(res.error);
+
+    const words = (res.words || []).map(w => {
+      const hist = getWordHistory(w.id);
+      let status = w.status || 'new';
+      if(hist.knowCount > 0 || hist.dontCount > 0) {
+        const tot = hist.knowCount + hist.dontCount;
+        const acc = tot > 0 ? hist.knowCount/tot : 0;
+        if(hist.knowCount >= 5 && acc >= 0.8) status = 'mastered';
+        else if(hist.knowCount >= 3 && acc >= 0.6) status = 'review';
+        else status = 'learning';
+      }
+      return {...w, status};
+    });
+
+    // 가중 진행률 사용
+    const s = calcWordSetProgress(words);
+
+    // 오늘 복습 필요: nextReview <= 오늘
+    const today = new Date().toISOString().split('T')[0];
+    const dueToday = words.filter(w =>
+      w.status !== 'mastered' &&
+      (!w.nextReview || String(w.nextReview) <= today)
+    ).length;
+
+    const data = {
+      total:    s.total,
+      mastered: s.mastered,
+      learning: s.learning + s.review,
+      newCount: s.newW,
+      dueToday: dueToday,
+      pct:      s.pct,
+    };
+
     localStorage.setItem(cacheKey, JSON.stringify({data, ts: Date.now()}));
+    renderStats(data);
     document.getElementById('stats-loading').style.display = 'none';
     document.getElementById('stats-content').style.display = 'block';
-    renderStats(data);
-  } catch(e){
+    document.getElementById('stats-no-sheets').style.display = 'none';
+
+  } catch(e) {
     document.getElementById('stats-loading').style.display = 'none';
     document.getElementById('stats-content').style.display = 'block';
     document.getElementById('stats-updated').textContent = '⚠️ 불러오기 실패: ' + e.message;
@@ -2479,7 +2579,8 @@ function renderStats(data){
   const learning = data.learning || 0;
   const newCount = data.newCount || 0;
   const dueToday = data.dueToday || 0;
-  const pct      = total > 0 ? Math.round((mastered / total) * 100) : 0;
+  // 가중 진행률이 있으면 사용, 없으면 기존 방식
+  const pct      = data.pct !== undefined ? data.pct : (total > 0 ? Math.round((mastered / total) * 100) : 0);
 
   // 히어로
   setText('stat-total',    total + '단어');
@@ -3917,6 +4018,13 @@ async function loadExtractWsOptions() {
 // ── 단어장 상세 대시보드 업데이트 ──────────────────
 
 // ── 진행률 설명 모달 ─────────────────────────────────
+
+// ── 통계 설명 모달 ───────────────────────────────────
+function showStatsInfo() {
+  document.getElementById('stats-info-modal').style.display = 'flex';
+}
+// ─────────────────────────────────────────────────────
+
 function showProgressInfo() {
   document.getElementById('progress-info-modal').style.display = 'flex';
 }
