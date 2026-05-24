@@ -602,8 +602,8 @@ body{
             <div style="font-size:11px;color:rgba(255,255,255,.7);letter-spacing:.5px;margin-bottom:12px">ENGLISH WORD</div>
             <div style="font-size:34px;font-weight:500;color:#fff;margin-bottom:8px" id="fc-word">circumstance</div>
             <div style="font-size:14px;color:rgba(255,255,255,.65);margin-bottom:14px" id="fc-ph">/ˈsɜːrkəmstæns/</div>
-            <!-- 발음 버튼 -->
-            <div onclick="event.stopPropagation();speakWord(document.getElementById('fc-word').textContent)"
+            <!-- 발음 버튼 (앞면) - 역방향 모드일 때 자동 숨김 -->
+            <div id="fc-front-speak" onclick="event.stopPropagation();speakCurrentWord()"
               style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.2);border-radius:20px;padding:6px 16px;cursor:pointer;border:1px solid rgba(255,255,255,.3)">
               <i class="ti ti-volume" style="font-size:16px;color:#fff"></i>
               <span style="font-size:13px;color:#fff;font-weight:500">발음 듣기</span>
@@ -613,8 +613,8 @@ body{
           <div class="fc-face fc-back">
             <div style="background:var(--acc-l);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--acc-d)" id="fc-pos">noun</div>
             <div style="font-size:24px;font-weight:500;color:var(--tx);margin:10px 0 6px;text-align:center" id="fc-meaning">상황, 환경, 사정</div>
-            <!-- 뒷면 발음 버튼 -->
-            <div onclick="event.stopPropagation();speakWord(document.getElementById('fc-word').textContent)"
+            <!-- 뒷면 발음 버튼 - 항상 영어 단어 발음 -->
+            <div onclick="event.stopPropagation();speakCurrentWord()"
               style="display:inline-flex;align-items:center;gap:5px;background:var(--sf2);border-radius:20px;padding:5px 14px;cursor:pointer;margin-bottom:8px">
               <i class="ti ti-volume" style="font-size:14px;color:var(--acc)"></i>
               <span style="font-size:12px;color:var(--acc);font-weight:500">발음 듣기</span>
@@ -1442,6 +1442,16 @@ function fcRender(){
 }
 
 // 자동 발음 실행 (사용자 제스처 후 호출)
+
+// ── 현재 카드의 영어 단어 발음 (정/역방향 무관) ─────
+function speakCurrentWord() {
+  const w = WORDS[fcIdx % WORDS.length];
+  if(!w) return;
+  const en = w.en || w.word;
+  if(en) speakWord(en);
+}
+// ─────────────────────────────────────────────────────
+
 function autoSpeakWord(){
   if(localStorage.getItem('vs-auto-speak') === '0') return;
   const w = WORDS[fcIdx % WORDS.length];
