@@ -1208,6 +1208,17 @@ function showFcResult(){
     setText('res-time', mm+'분 '+ss+'초');
   } else { setText('res-time','--'); }
   setText('res-pts', total>0 ? Math.round((fcKnow/total)*100)+'%' : '--%');
+
+  // 학습 완료 - 캐시 무효화
+  localStorage.removeItem('vs-stats-cache');
+  localStorage.removeItem('vs-wslist-cache');
+
+  // 홈 즉시 업데이트
+  const done = Number(localStorage.getItem('vs-today-done')||0);
+  const acc  = Number(localStorage.getItem('vs-today-acc') ||0);
+  const mins = Number(localStorage.getItem('vs-today-time')||0);
+  updateHomeLiveStats(done, acc, mins);
+
   nav('s-qresult');
 }
 
@@ -1228,13 +1239,41 @@ function trackLearning(isCorrect) {
   // 학습 시간 (분 단위)
   if(!window._studyStart) window._studyStart = Date.now();
   const mins = Math.round((Date.now() - window._studyStart) / 60000);
-  if(mins > 0) {
-    localStorage.setItem('vs-today-time', String(mins));
-    localStorage.removeItem('vs-stats-cache');
-  }
+  localStorage.setItem('vs-today-time', String(mins));
+
+  // 매번 캐시 무효화 (시간 조건 제거)
+  localStorage.removeItem('vs-stats-cache');
+
+  // 홈 화면이 보이면 즉시 숫자 업데이트
+  updateHomeLiveStats(done, acc, mins);
 
   // 스트릭 업데이트
   updateStreak();
+}
+
+// 홈 화면 실시간 업데이트 (학습 중 즉시 반영)
+function updateHomeLiveStats(done, acc, mins) {
+  const dailyGoal = Number(localStorage.getItem('vs-daily-goal') || 30);
+  const pct       = Math.min(100, Math.round((done/dailyGoal)*100));
+
+  setText('home-done',       done);
+  setText('home-goal',       dailyGoal);
+  setText('home-acc',        acc > 0 ? acc+'%' : '--%');
+  setText('home-time',       mins > 0 ? mins+'분' : '0분');
+  setText('home-study-time', mins > 0 ? mins+'분' : '0분');
+  setText('home-pct-txt',    pct+'%');
+
+  const bar = document.getElementById('home-pct-bar');
+  if(bar) bar.style.width = pct + '%';
+
+  // CTA 버튼 업데이트
+  const remaining = Math.max(0, dailyGoal - done);
+  const ctaTxt    = document.getElementById('home-cta-txt');
+  const ctaIcon   = document.getElementById('home-cta-icon');
+  if(ctaTxt) ctaTxt.textContent = remaining > 0
+    ? ` 이어서 학습하기 (${remaining}개 남음)`
+    : ` 오늘 목표 달성! 🎉`;
+  if(ctaIcon) ctaIcon.className = remaining > 0 ? 'ti ti-player-play' : 'ti ti-check';
 }
 
 function updateStreak() {
@@ -1345,7 +1384,7 @@ function qNext(){
     const ss=qSec%60;
     document.getElementById('res-time').textContent=mm+'분 '+ss+'초';
     document.getElementById('res-pts').textContent=pct+'%';
-    // 틀린 단어 복습 버튼 업데이트
+    // 몰라요 단어 복습 버튼 업데이트
     const wrongBtn=document.getElementById('res-wrong-btn');
     if(wrongBtn){
       if(qWrong.length>0){
@@ -1359,6 +1398,15 @@ function qNext(){
         wrongBtn.style.pointerEvents='none';
       }
     }
+
+    // 학습 완료 - 캐시 무효화 + 홈 즉시 업데이트
+    localStorage.removeItem('vs-stats-cache');
+    localStorage.removeItem('vs-wslist-cache');
+    const _done = Number(localStorage.getItem('vs-today-done')||0);
+    const _acc  = Number(localStorage.getItem('vs-today-acc') ||0);
+    const _mins = Number(localStorage.getItem('vs-today-time')||0);
+    updateHomeLiveStats(_done, _acc, _mins);
+
     nav('s-qresult');
   } else qRender();
 }
