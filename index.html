@@ -556,12 +556,23 @@ body{
 
 <!-- ══ FLASHCARD ══ -->
 <div class="scr" id="s-fc">
-  <div class="tbar" style="padding-top:calc(env(safe-area-inset-top,0px) + 6px)"><button class="bk" onclick="back()"><i class="ti ti-arrow-left"></i></button><div style="flex:1"><div class="ttl">수능 필수 1800</div><div style="font-size:12px;color:var(--tx2)">플래시카드 모드</div></div></div>
+  <div class="tbar" style="padding-top:calc(env(safe-area-inset-top,0px) + 6px)">
+    <button class="bk" onclick="back()"><i class="ti ti-arrow-left"></i></button>
+    <div style="flex:1">
+      <div class="ttl" id="fc-ws-title">플래시카드</div>
+      <div style="font-size:12px;color:var(--tx2)" id="fc-mode-label">플래시카드 모드</div>
+    </div>
+    <span id="fc-total-badge" style="font-size:12px;color:var(--tx2);background:var(--sf2);padding:2px 8px;border-radius:20px"></span>
+  </div>
   <div style="background:var(--sf);padding:0 16px 10px;flex-shrink:0">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div class="pb-bg" style="flex:1;margin-bottom:0"><div class="pb-f" id="fc-prog" style="width:32%"></div></div><span style="font-size:12px;color:var(--tx2)" id="fc-cnt">8 / 25</span></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div class="pb-bg" style="flex:1;margin-bottom:0"><div class="pb-f" id="fc-prog" style="width:0%"></div></div>
+      <span style="font-size:12px;color:var(--tx2)" id="fc-cnt">0 / 0</span>
+    </div>
     <div style="display:flex;gap:8px">
-      <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:var(--grn-l);font-size:12px;color:var(--grn)"><i class="ti ti-check" style="font-size:12px"></i><span id="fc-know">5</span> 알아요</div>
-      <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:var(--red-l);font-size:12px;color:var(--red)"><i class="ti ti-x" style="font-size:12px"></i><span id="fc-dont">2</span> 몰라요</div>
+      <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:var(--grn-l);font-size:12px;color:var(--grn)"><i class="ti ti-check" style="font-size:12px"></i><span id="fc-know">0</span> 알아요</div>
+      <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:var(--red-l);font-size:12px;color:var(--red)"><i class="ti ti-x" style="font-size:12px"></i><span id="fc-dont">0</span> 몰라요</div>
+      <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:var(--sf2);font-size:12px;color:var(--tx2)" id="fc-remaining-badge"></div>
     </div>
   </div>
   <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
@@ -790,6 +801,10 @@ body{
       <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
         <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">📅</span><div><div style="font-size:14px;color:var(--tx)">하루 목표 단어</div><div style="font-size:12px;color:var(--tx2)">매일 학습할 단어 수</div></div></div>
         <div style="display:flex;align-items:center;gap:8px" onclick="setDailyGoal()"><span style="font-size:14px;font-weight:500;color:var(--acc)" id="goal-val">30개</span><span style="color:var(--tx3)">›</span></div>
+      </div>
+      <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🎯</span><div><div style="font-size:14px;color:var(--tx)">세션 학습 단어 수</div><div style="font-size:12px;color:var(--tx2)">한 번에 학습할 단어 수</div></div></div>
+        <div style="display:flex;align-items:center;gap:8px" onclick="setSessionGoal()"><span style="font-size:14px;font-weight:500;color:var(--acc)" id="session-val">20개</span><span style="color:var(--tx3)">›</span></div>
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
         <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔔</span><div><div style="font-size:14px;color:var(--tx)">복습 알림</div><div style="font-size:12px;color:var(--tx2)">오전 9시, 오후 8시</div></div></div>
@@ -1085,40 +1100,46 @@ function updateSel(){
 
 // ── 단어장 상세에서 학습 모드 진입 ──────────────────
 function startWordSetLearning(mode) {
-  // currentWordSet의 단어가 이미 WORDS에 로드돼 있으면 바로 진입
-  // 없으면 loadFcWords로 로드 후 진입
-  const wsId = currentWordSet?.id || null;
+  const wsId        = currentWordSet?.id   || null;
+  const wsName      = currentWordSet?.name || '플래시카드';
+  const sessionCount = Number(localStorage.getItem('vs-session-count') || 20);
   FC_WORDSET_ID = wsId;
 
-  if(mode === 'review') {
-    // 복습 모드: status가 review/learning인 단어만 필터
-    if(WORDS.length > 0) {
-      const reviewWords = WORDS.filter(w => ['review','learning','new'].includes(w.status||'new'));
-      if(reviewWords.length > 0) WORDS = reviewWords;
-    }
-    nav('s-fc');
-    return;
-  }
+  let targetWords = [...WORDS];
 
-  if(mode === 'quiz') {
+  if(mode === 'review') {
+    // 복습 모드: review/learning 우선, 없으면 new 포함
+    const due = targetWords.filter(w => ['review','learning'].includes(w.status||''));
+    targetWords = due.length > 0 ? due : targetWords.filter(w => (w.status||'new') !== 'mastered');
+    setText('fc-mode-label', '복습 모드 · 망각 곡선');
+  } else if(mode === 'quiz') {
+    // 퀴즈: 세션 단어 수만큼 랜덤
+    WORDS = targetWords.sort(()=>Math.random()-.5).slice(0, sessionCount);
+    setText('fc-ws-title', wsName);
     nav('s-quiz');
     return;
+  } else {
+    // 플래시카드: 랜덤 셔플 후 세션 단어 수 적용
+    targetWords = targetWords.sort(() => Math.random() - 0.5);
+    setText('fc-mode-label', '플래시카드 모드');
   }
 
-  // 플래시카드 - 전체 단어 랜덤 셔플
-  if(WORDS.length > 0) {
-    WORDS = [...WORDS].sort(() => Math.random() - 0.5);
-    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
-    const inner = document.getElementById('fc-inner');
-    if(inner) inner.classList.remove('flipped');
-    const titleEl = document.querySelector('#s-fc .ttl');
-    if(titleEl) titleEl.textContent = currentWordSet?.name || '플래시카드';
-    nav('s-fc');
-    fcRender();
-    setTimeout(autoSpeakWord, 400);
-  } else {
-    nav('s-fc'); // WORDS 없으면 loadFcWords가 로드
-  }
+  // 세션 단어 수 적용
+  WORDS = targetWords.slice(0, sessionCount);
+
+  // 상태 초기화
+  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
+  const inner = document.getElementById('fc-inner');
+  if(inner) inner.classList.remove('flipped');
+
+  // 제목 + 배지 업데이트
+  setText('fc-ws-title',      wsName);
+  setText('fc-total-badge',   WORDS.length + '개');
+  setText('fc-remaining-badge', '남은 ' + WORDS.length + '개');
+
+  nav('s-fc');
+  fcRender();
+  setTimeout(autoSpeakWord, 400);
 }
 // ─────────────────────────────────────────────────────
 
@@ -1151,6 +1172,13 @@ function fcRender(){
   setText('fc-ex',      w.ex   || w.example || '');
   setText('fc-cnt',     (fcIdx+1) + ' / ' + WORDS.length);
   setText('fc-idx',     (fcIdx+1) + '번째 카드');
+  setText('fc-total-badge', WORDS.length + '개');
+  const remaining = WORDS.length - fcIdx - 1;
+  const remBadge  = document.getElementById('fc-remaining-badge');
+  if(remBadge) {
+    remBadge.textContent = remaining > 0 ? '남은 ' + remaining + '개' : '마지막 카드!';
+    remBadge.style.display = 'flex';
+  }
   document.getElementById('fc-prog').style.width =
     Math.round(((fcIdx+1)/WORDS.length)*100) + '%';
   setText('fc-know', fcKnow);
@@ -1280,6 +1308,11 @@ function showFcResult(){
   const acc  = Number(localStorage.getItem('vs-today-acc') ||0);
   const mins = Number(localStorage.getItem('vs-today-time')||0);
   updateHomeLiveStats(done, acc, mins);
+
+  // 단어장 상세 통계 새로고침
+  if(currentWordSet?.id) {
+    setTimeout(() => loadWordListForSet(currentWordSet.id), 500);
+  }
 
   nav('s-qresult');
 }
@@ -1468,6 +1501,11 @@ function qNext(){
     const _acc  = Number(localStorage.getItem('vs-today-acc') ||0);
     const _mins = Number(localStorage.getItem('vs-today-time')||0);
     updateHomeLiveStats(_done, _acc, _mins);
+
+    // 단어장 상세 통계 새로고침
+    if(currentWordSet?.id) {
+      setTimeout(() => loadWordListForSet(currentWordSet.id), 500);
+    }
 
     nav('s-qresult');
   } else qRender();
@@ -2480,6 +2518,21 @@ function renderHomeWordSetsDynamic(wordSets) {
 
 
 // ── 하루 목표 설정 ──────────────────────────────────
+function setSessionGoal() {
+  const current = localStorage.getItem('vs-session-count') || '20';
+  const input   = prompt('한 번에 학습할 단어 수 (5~100):', current);
+  if(input === null) return;
+  const val = parseInt(input);
+  if(isNaN(val) || val < 5 || val > 100) { alert('5~100 사이 숫자를 입력해주세요'); return; }
+  localStorage.setItem('vs-session-count', String(val));
+  document.querySelectorAll('#session-val').forEach(el => el.textContent = val+'개');
+}
+
+function initSessionGoal() {
+  const val = localStorage.getItem('vs-session-count') || '20';
+  document.querySelectorAll('#session-val').forEach(el => el.textContent = val+'개');
+}
+
 function setDailyGoal() {
   const current = localStorage.getItem('vs-daily-goal') || '30';
   const input = prompt('하루 목표 단어 수 (1~200):', current);
@@ -2709,6 +2762,7 @@ async function loadProfile() {
   setText('profile-streak', streak > 0 ? streak+'일' : '--');
   // goal-val은 initGoalDisplay에서 이미 설정됨 - 덮어쓰지 않음
   document.querySelectorAll('#goal-val').forEach(el => el.textContent = goal+'개');
+  initSessionGoal();
 
   // 다크모드 토글 상태 반영
   initDarkToggle();
@@ -3228,6 +3282,7 @@ function saveDailyCount(){
 renderWeekChart();
 checkDailyReset();
 initGoalDisplay();
+initSessionGoal();
 initAutoSpeakToggle();
 initDarkToggle();
 
