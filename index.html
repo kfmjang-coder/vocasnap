@@ -558,10 +558,11 @@ body{
 </div>
     <div class="sh"><span class="st">학습 모드 선택</span></div>
     <div class="mgrid">
-      <div class="mcard" onclick="startWordSetLearning('fc')"><i class="ti ti-cards" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">플래시카드</div><div style="font-size:11px;color:var(--tx2)">앞뒤 뒤집기</div></div>
-      <div class="mcard" onclick="nav('s-quiz')"><i class="ti ti-list-check" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">퀴즈 모드</div><div style="font-size:11px;color:var(--tx2)">객관식·주관식</div></div>
+      <div class="mcard" onclick="startWordSetLearning('fc')"><i class="ti ti-cards" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">플래시카드</div><div style="font-size:11px;color:var(--tx2)">영어 → 한국어</div></div>
+      <div class="mcard" onclick="startWordSetLearning('fc-reverse')"><i class="ti ti-arrows-shuffle" style="font-size:22px;color:#EF9F27;margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">역방향 카드</div><div style="font-size:11px;color:var(--tx2)">한국어 → 영어</div></div>
+      <div class="mcard" onclick="startWordSetLearning('quiz')"><i class="ti ti-list-check" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">퀴즈 모드</div><div style="font-size:11px;color:var(--tx2)">객관식</div></div>
       <div class="mcard" onclick="startWordSetLearning('review')"><i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">복습 모드</div><div style="font-size:11px;color:var(--tx2)">학습한 단어만</div></div>
-      <div class="mcard" onclick="openImportModal()"><i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">단어 임포트</div><div style="font-size:11px;color:var(--tx2)">CSV/텍스트 추가</div></div>
+      <div class="mcard" onclick="openImportModal()" style="grid-column:span 2"><i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">단어 임포트</div><div style="font-size:11px;color:var(--tx2)">촬영 / 직접 입력</div></div>
     </div>
     <div style="height:20px"></div>
   </div>
@@ -966,7 +967,7 @@ body{
       <!-- 학습 모드별 효과 -->
       <div style="font-size:13px;font-weight:500;color:var(--tx);margin-top:14px;margin-bottom:8px">학습 모드별 효과</div>
       <div style="background:var(--sf2);border-radius:10px;padding:12px;font-size:12px;line-height:1.7">
-        <div style="color:var(--tx);margin-bottom:6px">📚 <b>플래시카드 / 퀴즈</b></div>
+        <div style="color:var(--tx);margin-bottom:6px">📚 <b>플래시카드 / 역방향 / 퀴즈</b></div>
         <div style="color:var(--tx2);margin-bottom:10px;padding-left:18px">단어장 전체에서 랜덤 선택. 알아요/정답 → 진행률 상승</div>
         <div style="color:var(--tx);margin-bottom:6px">🔄 <b>복습 모드</b></div>
         <div style="color:var(--tx2);padding-left:18px">학습 중 + 복습 단계 단어만 학습. 약한 단어 집중 강화</div>
@@ -1198,7 +1199,7 @@ const EW = []; // Gemini API 추출 결과가 채워짐
 
 // ── STATE ──
 let stack=['s-ob'],obStep=0,isDark=false,allChecked=false;
-let fcIdx=0,fcFlipped=false,fcKnow=0,fcDont=0;
+let fcIdx=0,fcFlipped=false,fcKnow=0,fcDont=0,fcReverse=false;
 let qIdx=0,qCorrect=0,qTotal=0,qSec=0,qTimer=null,qAnswered=false,qWrong=[];
 
 // ── NAVIGATION ──
@@ -1315,6 +1316,9 @@ async function startWordSetLearning(mode) {
 
   let targetWords = [...WORDS];
 
+  // 역방향 모드 플래그
+  fcReverse = (mode === 'fc-reverse');
+
   if(mode === 'review') {
     const due = targetWords.filter(w => ['review','learning'].includes(w.status||''));
     targetWords = due.length > 0 ? due : targetWords.filter(w => (w.status||'new') !== 'mastered');
@@ -1324,13 +1328,15 @@ async function startWordSetLearning(mode) {
     DIST.length = 0;
     WORDS.forEach(w => { if(w.ko) DIST.push(w.ko); });
     setText('fc-ws-title', wsName);
-    // 퀴즈 상태 초기화
     qIdx=0; qCorrect=0; qTotal=0; qSec=0; qAnswered=false; qWrong=[];
     nav('s-quiz');
     return;
+  } else if(mode === 'fc-reverse') {
+    targetWords = targetWords.sort(() => Math.random() - 0.5);
+    setText('fc-mode-label', '역방향 모드 · 한국어 → 영어');
   } else {
     targetWords = targetWords.sort(() => Math.random() - 0.5);
-    setText('fc-mode-label', '플래시카드 모드');
+    setText('fc-mode-label', '플래시카드 모드 · 영어 → 한국어');
   }
 
   WORDS = targetWords.slice(0, sessionCount);
@@ -1353,7 +1359,8 @@ async function startWordSetLearning(mode) {
 async function startLearning(){
   currentWordSet = null;
   FC_WORDSET_ID  = null;
-  WORDS = []; // 초기화해서 loadFcWords가 전체 단어 로드하게 함
+  WORDS = [];
+  fcReverse = false; // 홈은 항상 정방향 // 초기화해서 loadFcWords가 전체 단어 로드하게 함
 
   // 전체 단어 미리 로드 후 이동
   if(getSheetsUrl()) {
@@ -1402,11 +1409,21 @@ function fcRender(){
     return;
   }
   const w = WORDS[fcIdx % WORDS.length];
-  setText('fc-word',    w.en   || w.word    || '');
-  setText('fc-ph',      w.ph   || w.phonetic|| '');
-  setText('fc-meaning', w.ko   || w.meaning || '');
-  setText('fc-pos',     w.pos  || '');
-  setText('fc-ex',      w.ex   || w.example || '');
+  if(fcReverse) {
+    // 역방향: 앞면=한국어 뜻, 뒷면=영어 단어
+    setText('fc-word',    w.ko   || w.meaning || ''); // 앞면에 뜻 표시
+    setText('fc-ph',      '');                          // 발음 기호 숨김
+    setText('fc-meaning', w.en   || w.word    || ''); // 뒷면에 영어 단어
+    setText('fc-pos',     w.pos  || '');
+    setText('fc-ex',      w.ph   || w.phonetic || ''); // 발음 기호를 예문 자리에 표시
+  } else {
+    // 정방향: 앞면=영어, 뒷면=한국어
+    setText('fc-word',    w.en   || w.word    || '');
+    setText('fc-ph',      w.ph   || w.phonetic|| '');
+    setText('fc-meaning', w.ko   || w.meaning || '');
+    setText('fc-pos',     w.pos  || '');
+    setText('fc-ex',      w.ex   || w.example || '');
+  }
   setText('fc-cnt',     (fcIdx+1) + ' / ' + WORDS.length);
   setText('fc-idx',     (fcIdx+1) + '번째 카드');
   setText('fc-total-badge', WORDS.length + '개');
@@ -1428,7 +1445,16 @@ function fcRender(){
 function autoSpeakWord(){
   if(localStorage.getItem('vs-auto-speak') === '0') return;
   const w = WORDS[fcIdx % WORDS.length];
-  if(w && (w.en || w.word)) speakWord(w.en || w.word);
+  if(!w) return;
+  const en = w.en || w.word;
+  if(!en) return;
+  // 역방향: 카드 뒤집혔을 때(영어 단어가 보일 때) 발음
+  // 정방향: 카드 앞면(영어 단어 표시) 발음
+  if(fcReverse) {
+    if(fcFlipped) speakWord(en); // 뒷면에 영어 단어 보일 때
+  } else {
+    if(!fcFlipped) speakWord(en); // 앞면에 영어 단어 보일 때
+  }
 }
 
 // ── 플래시카드 단어 Sheets 로드 ──────────────────────
