@@ -568,12 +568,24 @@ body{
           <div class="fc-face fc-front">
             <div style="font-size:11px;color:rgba(255,255,255,.7);letter-spacing:.5px;margin-bottom:12px">ENGLISH WORD</div>
             <div style="font-size:34px;font-weight:500;color:#fff;margin-bottom:8px" id="fc-word">circumstance</div>
-            <div style="font-size:14px;color:rgba(255,255,255,.65)" id="fc-ph">/ˈsɜːrkəmstæns/</div>
+            <div style="font-size:14px;color:rgba(255,255,255,.65);margin-bottom:14px" id="fc-ph">/ˈsɜːrkəmstæns/</div>
+            <!-- 발음 버튼 -->
+            <div onclick="event.stopPropagation();speakWord(document.getElementById('fc-word').textContent)"
+              style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.2);border-radius:20px;padding:6px 16px;cursor:pointer;border:1px solid rgba(255,255,255,.3)">
+              <i class="ti ti-volume" style="font-size:16px;color:#fff"></i>
+              <span style="font-size:13px;color:#fff;font-weight:500">발음 듣기</span>
+            </div>
             <div style="position:absolute;bottom:16px;font-size:12px;color:rgba(255,255,255,.5)">탭해서 뜻 확인 👆</div>
           </div>
           <div class="fc-face fc-back">
             <div style="background:var(--acc-l);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--acc-d)" id="fc-pos">noun</div>
-            <div style="font-size:24px;font-weight:500;color:var(--tx);margin:12px 0 10px;text-align:center" id="fc-meaning">상황, 환경, 사정</div>
+            <div style="font-size:24px;font-weight:500;color:var(--tx);margin:10px 0 6px;text-align:center" id="fc-meaning">상황, 환경, 사정</div>
+            <!-- 뒷면 발음 버튼 -->
+            <div onclick="event.stopPropagation();speakWord(document.getElementById('fc-word').textContent)"
+              style="display:inline-flex;align-items:center;gap:5px;background:var(--sf2);border-radius:20px;padding:5px 14px;cursor:pointer;margin-bottom:8px">
+              <i class="ti ti-volume" style="font-size:14px;color:var(--acc)"></i>
+              <span style="font-size:12px;color:var(--acc);font-weight:500">발음 듣기</span>
+            </div>
             <div style="font-size:13px;color:var(--tx2);text-align:center;line-height:1.6;padding:0 8px" id="fc-ex">"Under no circumstances should you give up."</div>
           </div>
         </div>
@@ -774,6 +786,10 @@ body{
       <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
         <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔔</span><div><div style="font-size:14px;color:var(--tx)">복습 알림</div><div style="font-size:12px;color:var(--tx2)">오전 9시, 오후 8시</div></div></div>
         <div id="notif-toggle" onclick="toggleSwitch('notif-toggle')" style="width:44px;height:26px;border-radius:13px;background:var(--acc);cursor:pointer;position:relative;transition:background .2s"><div id="notif-thumb" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:10px;background:#fff;transition:all .2s"></div></div>
+      </div>
+      <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔊</span><div><div style="font-size:14px;color:var(--tx)">자동 발음</div><div style="font-size:12px;color:var(--tx2)">플래시카드 넘길 때 자동 재생</div></div></div>
+        <div id="speak-toggle" onclick="toggleAutoSpeak()" style="width:44px;height:26px;border-radius:13px;background:var(--acc);cursor:pointer;position:relative;transition:background .2s"><div id="speak-thumb" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:10px;background:#fff;transition:all .2s"></div></div>
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🌙</span><div><div style="font-size:14px;color:var(--tx)">다크 모드</div><div style="font-size:12px;color:var(--tx2)">시스템 설정 따름</div></div></div>
@@ -1091,6 +1107,12 @@ function fcRender(){
   setText('fc-know', fcKnow);
   setText('fc-dont', fcDont);
   setText('fc-hint', fcFlipped ? '알고 있나요?' : '↻ 카드를 탭해서 뜻을 확인하세요');
+
+  // 카드 넘길 때 자동 발음 (설정에 따라)
+  const autoSpeak = localStorage.getItem('vs-auto-speak') !== '0';
+  if(autoSpeak && w && (w.en || w.word)) {
+    setTimeout(() => speakWord(w.en || w.word), 300);
+  }
 }
 
 // ── 플래시카드 단어 Sheets 로드 ──────────────────────
@@ -2075,11 +2097,17 @@ function renderWordListInDetail(words) {
 
   const show = words.slice(0, 30);
   listEl.innerHTML = show.map((w,i) => `
-    <div onclick="speakWord('${(w.word||w.en||'').replace(/'/g,"\'")}'')" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;${i<show.length-1?'border-bottom:0.5px solid var(--bd)':''}">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;${i<show.length-1?'border-bottom:0.5px solid var(--bd)':''}">
       <div style="width:8px;height:8px;border-radius:4px;flex-shrink:0;background:${dotColor[w.status]||'var(--tx3)'}"></div>
       <div style="flex:1;font-size:14px;font-weight:500;color:var(--tx)">${w.word||w.en||''}</div>
-      <div style="font-size:12px;color:var(--tx2);text-align:right">${w.meaning||w.ko||''}
-        <span style="display:block;font-size:11px;color:${statusColor[w.status]||'var(--tx3)'}">${statusLabel[w.status]||'미학습'}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:12px;color:var(--tx2);text-align:right">${w.meaning||w.ko||''}
+          <span style="display:block;font-size:11px;color:${statusColor[w.status]||'var(--tx3)'}">${statusLabel[w.status]||'미학습'}</span>
+        </div>
+        <div onclick="speakWord('${(w.word||w.en||'').replace(/'/g,"\'")}'")"
+          style="width:28px;height:28px;border-radius:14px;background:var(--acc-l);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="ti ti-volume" style="font-size:14px;color:var(--acc)"></i>
+        </div>
       </div>
     </div>`).join('');
 
@@ -2399,27 +2427,64 @@ function checkDailyReset() {
 
 // ── TTS 발음 듣기 ────────────────────────────────────
 function speakWord(word) {
-  if(!word || !window.speechSynthesis) {
-    alert('이 브라우저에서는 발음 듣기가 지원되지 않아요');
+  if(!word || !word.trim()) return;
+  if(!window.speechSynthesis) {
+    console.warn('TTS 미지원 브라우저');
     return;
   }
+  word = word.trim();
   window.speechSynthesis.cancel(); // 기존 발음 중지
-  const utter = new SpeechSynthesisUtterance(word);
-  utter.lang = 'en-US';
-  utter.rate = 0.85;
-  utter.pitch = 1;
 
-  // 영어 목소리 우선 선택
-  const voices = window.speechSynthesis.getVoices();
-  const enVoice = voices.find(v => v.lang.startsWith('en'));
-  if(enVoice) utter.voice = enVoice;
+  const speak = () => {
+    const utter = new SpeechSynthesisUtterance(word);
+    utter.lang  = 'en-US';
+    utter.rate  = 0.85;
+    utter.pitch = 1;
+    utter.volume = 1;
 
-  window.speechSynthesis.speak(utter);
+    // 영어 목소리 우선 선택 (iOS: com.apple.voice, Android: en-US)
+    const voices = window.speechSynthesis.getVoices();
+    const enVoice = voices.find(v => v.lang === 'en-US') ||
+                    voices.find(v => v.lang.startsWith('en'));
+    if(enVoice) utter.voice = enVoice;
+
+    // 발음 버튼 시각 피드백
+    document.querySelectorAll('.ti-volume').forEach(el => {
+      el.style.color = 'var(--grn)';
+      setTimeout(() => el.style.color = '', 1200);
+    });
+
+    window.speechSynthesis.speak(utter);
+  };
+
+  // 목소리 로딩 대기 (iOS 필수)
+  if(window.speechSynthesis.getVoices().length === 0) {
+    window.speechSynthesis.addEventListener('voiceschanged', speak, {once: true});
+  } else {
+    speak();
+  }
 }
 
-// 단어장 상세에서도 단어 클릭시 발음
-function speakWordFromList(word) {
-  speakWord(word);
+function speakWordFromList(word) { speakWord(word); }
+
+function toggleAutoSpeak() {
+  const current = localStorage.getItem('vs-auto-speak') !== '0';
+  const next    = !current;
+  localStorage.setItem('vs-auto-speak', next ? '1' : '0');
+  const toggle = document.getElementById('speak-toggle');
+  const thumb  = document.getElementById('speak-thumb');
+  if(toggle) toggle.style.background = next ? 'var(--acc)' : 'var(--sf2)';
+  if(thumb)  { thumb.style.right = next ? '3px' : 'auto'; thumb.style.left = next ? 'auto' : '3px'; }
+  // 테스트 발음
+  if(next) speakWord('hello');
+}
+
+function initAutoSpeakToggle() {
+  const on     = localStorage.getItem('vs-auto-speak') !== '0';
+  const toggle = document.getElementById('speak-toggle');
+  const thumb  = document.getElementById('speak-thumb');
+  if(toggle) toggle.style.background = on ? 'var(--acc)' : 'var(--sf2)';
+  if(thumb)  { thumb.style.right = on ? '3px' : 'auto'; thumb.style.left = on ? 'auto' : '3px'; }
 }
 // ─────────────────────────────────────────────────────
 
@@ -2850,6 +2915,7 @@ function saveDailyCount(){
 renderWeekChart();
 checkDailyReset();
 initGoalDisplay();
+initAutoSpeakToggle();
 
 
 </script>
