@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260524-143440">
+<meta name="app-build" content="20260524-144551">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2439,6 +2439,17 @@ const _origTrackLearning = window.trackLearning;
 // ─────────────────────────────────────────────────────
 
 // ── 인증 (로그인/회원가입) ───────────────────────────
+
+// ── Sheets URL 강제 보장 ───────────────────────────
+(function ensureSheetsUrl() {
+  const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbz_DYwee5U9U-ZMwHcGG3-H9LVDdbhsJlFc64CqPcRFTjvpk0_nXG3Ne_GYB2dfOitZ/exec';
+  if(!localStorage.getItem('vs-sheets-url')) {
+    localStorage.setItem('vs-sheets-url', DEFAULT_URL);
+    console.log('🔧 [INIT] Sheets URL 기본값 설정');
+  }
+})();
+// ─────────────────────────────────────────────────────
+
 const AUTH_USERS_KEY = 'vs-users';     // 사용자 DB (localStorage)
 const AUTH_SESSION_KEY = 'vs-session'; // 현재 로그인 세션
 
@@ -3883,7 +3894,7 @@ function qRestart(){qWrong=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260524-143440';
+  window.APP_BUILD = '20260524-144551';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -4384,7 +4395,18 @@ function fileToBase64(file){
 
 
 // ── Google Sheets (Apps Script) API ────────────────
-function getSheetsUrl(){ return localStorage.getItem('vs-sheets-url')||''; }
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbz_DYwee5U9U-ZMwHcGG3-H9LVDdbhsJlFc64CqPcRFTjvpk0_nXG3Ne_GYB2dfOitZ/exec';
+
+function getSheetsUrl(){
+  let url = localStorage.getItem('vs-sheets-url') || '';
+  // URL이 비어있으면 기본값 자동 설정
+  if(!url) {
+    localStorage.setItem('vs-sheets-url', DEFAULT_SHEETS_URL);
+    url = DEFAULT_SHEETS_URL;
+    console.log('🔧 Sheets URL 자동 설정:', url);
+  }
+  return url;
+}
 function openSheetsModal(){
   document.getElementById('sheets-modal').style.display='flex';
   const saved=getSheetsUrl();
