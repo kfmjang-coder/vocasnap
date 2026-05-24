@@ -720,17 +720,40 @@ body{
       <div style="font-size:13px;opacity:.7" id="mock-play-count">탭해서 들어보세요</div>
     </div>
 
-    <!-- 입력 영역 -->
-    <div style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">영어 스펠</div>
-      <input id="mock-input-en" type="text" placeholder="들은 단어를 입력하세요" autocomplete="off" autocapitalize="off" spellcheck="false"
-        style="width:100%;padding:14px 16px;border:1px solid var(--bd);border-radius:10px;font-size:18px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;text-align:center">
-    </div>
+    <!-- 입력 영역 + 우측 네비 버튼 -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;align-items:stretch">
+      <!-- 좌측: 입력 영역 (flex:1) -->
+      <div style="flex:1;min-width:0">
+        <div style="margin-bottom:10px">
+          <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:4px">영어 스펠</div>
+          <input id="mock-input-en" type="text" placeholder="들은 단어를 입력하세요" autocomplete="off" autocapitalize="off" spellcheck="false"
+            style="width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;font-size:16px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:4px">한글 뜻</div>
+          <input id="mock-input-ko" type="text" placeholder="뜻을 입력하세요"
+            style="width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;font-size:15px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+        </div>
+      </div>
 
-    <div style="margin-bottom:20px">
-      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">한글 뜻</div>
-      <input id="mock-input-ko" type="text" placeholder="뜻을 입력하세요"
-        style="width:100%;padding:14px 16px;border:1px solid var(--bd);border-radius:10px;font-size:16px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;text-align:center">
+      <!-- 우측: 세로 네비 버튼 (3개, 입력 영역과 같은 높이) -->
+      <div style="display:flex;flex-direction:column;gap:6px;width:72px;flex-shrink:0">
+        <button onclick="prevMockQuestion()" id="mock-prev-btn-side"
+          style="flex:1;padding:6px 4px;background:var(--sf2);color:var(--tx);border:0.5px solid var(--bd);border-radius:10px;font-size:11px;font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+          <i class="ti ti-arrow-left" style="font-size:16px"></i>
+          <span>이전</span>
+        </button>
+        <button onclick="skipMockQuestion()" id="mock-skip-btn-side"
+          style="flex:1;padding:6px 4px;background:var(--amb-l);color:var(--amb);border:0.5px solid var(--amb);border-radius:10px;font-size:11px;font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+          <i class="ti ti-player-skip-forward" style="font-size:16px"></i>
+          <span>건너뛰기</span>
+        </button>
+        <button onclick="nextMockQuestion()" id="mock-next-btn-side"
+          style="flex:1;padding:6px 4px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:11px;font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+          <i class="ti ti-arrow-right" style="font-size:16px"></i>
+          <span>다음</span>
+        </button>
+      </div>
     </div>
 
     <!-- 문제 번호 점프 그리드 -->
@@ -745,13 +768,8 @@ body{
     </div>
   </div>
 
-  <!-- 하단 버튼 -->
+  <!-- 하단 버튼 - 제출만 -->
   <div class="bbar">
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <button onclick="prevMockQuestion()" id="mock-prev-btn" style="flex:1;padding:13px;background:var(--sf2);color:var(--tx);border:0.5px solid var(--bd);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">← 이전</button>
-      <button onclick="skipMockQuestion()" id="mock-skip-btn" style="flex:1;padding:13px;background:var(--amb-l);color:var(--amb);border:0.5px solid var(--amb);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">건너뛰기</button>
-      <button onclick="nextMockQuestion()" id="mock-next-btn" style="flex:1;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">다음 →</button>
-    </div>
     <button id="mock-submit-btn" class="savbtn" onclick="confirmSubmitMock()" style="background:var(--grn)">제출하기</button>
   </div>
 </div>
@@ -3980,14 +3998,21 @@ function renderMockQuestion() {
   // 점프 그리드 업데이트
   renderMockJumpGrid();
 
-  // 이전/다음 버튼 상태
-  document.getElementById('mock-prev-btn').style.opacity = MOCK.idx === 0 ? '.4' : '1';
-  document.getElementById('mock-prev-btn').disabled = MOCK.idx === 0;
-
+  // 사이드 네비 버튼 상태 업데이트
+  const prevBtn = document.getElementById('mock-prev-btn-side');
+  const nextBtn = document.getElementById('mock-next-btn-side');
+  if(prevBtn) {
+    prevBtn.style.opacity = MOCK.idx === 0 ? '.4' : '1';
+    prevBtn.disabled = MOCK.idx === 0;
+  }
   const isLast = MOCK.idx === MOCK.words.length - 1;
-  document.getElementById('mock-next-btn').textContent = isLast ? '마지막' : '다음 →';
-  document.getElementById('mock-next-btn').style.opacity = isLast ? '.4' : '1';
-  document.getElementById('mock-next-btn').disabled = isLast;
+  if(nextBtn) {
+    nextBtn.style.opacity = isLast ? '.4' : '1';
+    nextBtn.disabled = isLast;
+    // 마지막 문제면 다음 → 회색
+    nextBtn.style.background = isLast ? 'var(--sf2)' : 'var(--acc)';
+    nextBtn.style.color      = isLast ? 'var(--tx3)' : '#fff';
+  }
 
   // 자동 발음 (첫 진입 시만)
   if(pc === 0) setTimeout(() => mockSpeak(), 500);
