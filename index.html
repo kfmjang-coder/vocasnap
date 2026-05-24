@@ -793,7 +793,7 @@ body{
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🌙</span><div><div style="font-size:14px;color:var(--tx)">다크 모드</div><div style="font-size:12px;color:var(--tx2)">시스템 설정 따름</div></div></div>
-        <div id="dark-toggle" onclick="toggleSwitch('dark-toggle')" style="width:44px;height:26px;border-radius:13px;background:var(--sf2);border:0.5px solid var(--bd);cursor:pointer;position:relative;transition:background .2s"><div id="dark-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:10px;background:var(--tx3);transition:all .2s"></div></div>
+        <div id="dark-toggle" onclick="toggleDark()" style="width:44px;height:26px;border-radius:13px;background:var(--sf2);border:0.5px solid var(--bd);cursor:pointer;position:relative;transition:background .2s"><div id="dark-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:10px;background:var(--tx3);transition:all .2s"></div></div>
       </div>
     </div>
     <div class="sh"><span class="st">연동 설정</span></div>
@@ -1454,6 +1454,45 @@ function toggleSwitch(id){
     if(thumb){thumb.style.right='3px';thumb.style.left='auto';}
   }
 }
+
+// ── 다크모드 전용 토글 ───────────────────────────────
+function toggleDark(){
+  isDark = !isDark;
+  document.body.classList.toggle('dk', isDark);
+  localStorage.setItem('vs-dark', isDark ? '1' : '0');
+
+  const toggle = document.getElementById('dark-toggle');
+  const thumb  = document.getElementById('dark-thumb');
+  if(toggle){
+    toggle.style.background = isDark ? 'var(--acc)' : 'var(--sf2)';
+    toggle.style.border      = isDark ? 'none' : '0.5px solid var(--bd)';
+  }
+  if(thumb){
+    thumb.style.right = isDark ? '3px' : 'auto';
+    thumb.style.left  = isDark ? 'auto' : '3px';
+    thumb.style.background = '#fff';
+  }
+}
+
+// 다크모드 초기 토글 상태 반영
+function initDarkToggle(){
+  const toggle = document.getElementById('dark-toggle');
+  const thumb  = document.getElementById('dark-thumb');
+  if(!toggle || !thumb) return;
+  if(isDark){
+    toggle.style.background = 'var(--acc)';
+    toggle.style.border      = 'none';
+    thumb.style.right = '3px';
+    thumb.style.left  = 'auto';
+    thumb.style.background = '#fff';
+  } else {
+    toggle.style.background = 'var(--sf2)';
+    toggle.style.border      = '0.5px solid var(--bd)';
+    thumb.style.left  = '3px';
+    thumb.style.right = 'auto';
+  }
+}
+// ─────────────────────────────────────────────────────
 
 
 function camTab(tab){
@@ -2326,22 +2365,21 @@ function renderHomeWordSetsDynamic(wordSets) {
 // ── 하루 목표 설정 ──────────────────────────────────
 function setDailyGoal() {
   const current = localStorage.getItem('vs-daily-goal') || '30';
-  const input = prompt('하루 목표 단어 수를 입력해주세요 (1~100):', current);
+  const input = prompt('하루 목표 단어 수 (1~200):', current);
   if(input === null) return;
   const val = parseInt(input);
-  if(isNaN(val) || val < 1 || val > 100) { alert('1~100 사이 숫자를 입력해주세요'); return; }
+  if(isNaN(val) || val < 1 || val > 200) { alert('1~200 사이 숫자를 입력해주세요'); return; }
   localStorage.setItem('vs-daily-goal', String(val));
-  const el = document.getElementById('goal-val');
-  if(el) el.textContent = val + '개';
-  // 홈 목표도 업데이트
-  const homeStatVals = document.querySelectorAll('#s-home .card .sv');
-  if(homeStatVals[1]) homeStatVals[1].textContent = val;
+  // 모든 goal-val 요소 업데이트
+  document.querySelectorAll('#goal-val, #home-goal').forEach(el => {
+    if(el) el.textContent = el.id === 'goal-val' ? val+'개' : val;
+  });
 }
 
 function initGoalDisplay() {
   const val = localStorage.getItem('vs-daily-goal') || '30';
-  const el = document.getElementById('goal-val');
-  if(el) el.textContent = val + '개';
+  document.querySelectorAll('#goal-val').forEach(el => el.textContent = val + '개');
+  setText('home-goal', val);
   // 학습 시간 추적 시작
   window._studyStart = Date.now();
 }
@@ -2542,11 +2580,15 @@ function initAutoSpeakToggle() {
 // ── 내정보 로드 ──────────────────────────────────────
 async function loadProfile() {
   // 로컬 데이터 즉시 표시
-  const streak   = Number(localStorage.getItem('vs-streak')     || 0);
-  const goal     = Number(localStorage.getItem('vs-daily-goal') || 30);
+  const streak = Number(localStorage.getItem('vs-streak')     || 0);
+  const goal   = Number(localStorage.getItem('vs-daily-goal') || 30);
 
   setText('profile-streak', streak > 0 ? streak+'일' : '--');
-  setText('goal-val', goal+'개');
+  // goal-val은 initGoalDisplay에서 이미 설정됨 - 덮어쓰지 않음
+  document.querySelectorAll('#goal-val').forEach(el => el.textContent = goal+'개');
+
+  // 다크모드 토글 상태 반영
+  initDarkToggle();
 
   // Sheets 통계
   const url = getSheetsUrl();
@@ -2966,6 +3008,7 @@ renderWeekChart();
 checkDailyReset();
 initGoalDisplay();
 initAutoSpeakToggle();
+initDarkToggle();
 
 
 </script>
