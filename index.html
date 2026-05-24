@@ -645,7 +645,7 @@ body{
       <div class="sc"><div style="font-size:24px;font-weight:500;color:#EF9F27;margin-bottom:2px" id="res-pts">+0</div><div style="font-size:11px;color:var(--tx2)">획득 포인트</div></div>
     </div>
     <button class="savbtn" style="margin-bottom:10px" onclick="qRestart()">다시 풀기</button>
-    <button class="savbtn" style="background:var(--sf2);color:var(--tx2);margin-bottom:10px;border:0.5px solid var(--bd)" onclick="nav('s-fc')">틀린 단어 복습하기</button>
+    <button id="res-wrong-btn" class="savbtn" style="background:var(--sf2);color:var(--tx2);margin-bottom:10px;border:0.5px solid var(--bd)" onclick="reviewWrongWords()">틀린 단어 복습하기</button>
     <button class="savbtn" style="background:var(--sf2);color:var(--tx2);border:0.5px solid var(--bd)" onclick="nav('s-home')">홈으로 돌아가기</button>
     <div style="height:20px"></div>
   </div>
@@ -994,7 +994,7 @@ const EW = []; // Gemini API 추출 결과가 채워짐
 // ── STATE ──
 let stack=['s-ob'],obStep=0,isDark=false,allChecked=false;
 let fcIdx=0,fcFlipped=false,fcKnow=0,fcDont=0;
-let qIdx=0,qCorrect=0,qTotal=0,qSec=0,qTimer=null,qAnswered=false;
+let qIdx=0,qCorrect=0,qTotal=0,qSec=0,qTimer=null,qAnswered=false,qWrong=[];
 
 // ── NAVIGATION ──
 function nav(id){
@@ -1202,7 +1202,12 @@ function showFcResult(){
   setText('res-title', pct>=80?'완벽해요!':pct>=60?'훌륭해요!':'더 연습해봐요!');
   setText('res-score', fcKnow+' / '+total);
   setText('res-pct',   pct+'%');
-  setText('res-time',  '--');
+  // 플래시카드 소요시간 계산
+  if(window._studyStart){
+    const elapsed = Math.floor((Date.now()-window._studyStart)/1000);
+    const mm=Math.floor(elapsed/60), ss=elapsed%60;
+    setText('res-time', mm+'분 '+ss+'초');
+  } else { setText('res-time','--'); }
   setText('res-pts',   '+'+(fcKnow*5));
   nav('s-qresult');
 }
@@ -1273,7 +1278,7 @@ function fcPrev(){
 // ── QUIZ ──
 function qStart(){
   clearInterval(qTimer);
-  qIdx=0;qCorrect=0;qTotal=0;qSec=0;qAnswered=false;
+  qIdx=0;qCorrect=0;qTotal=0;qSec=0;qAnswered=false;qWrong=[];
   qTimer=setInterval(()=>{
     qSec++;
     const el=document.getElementById('q-timer');
@@ -1317,6 +1322,11 @@ function qPick(chosen,ans){
   });
   const ok=chosen===ans;
   if(ok) qCorrect++;
+  else {
+    // 틀린 단어 저장
+    const w = WORDS[qIdx % WORDS.length];
+    if(w && !qWrong.find(x=>x.en===w.en)) qWrong.push({...w});
+  }
   trackLearning(ok);
   const fb=document.getElementById('q-fbk');
   fb.style.cssText='display:flex;margin:0 16px 10px;border-radius:10px;padding:11px 14px;align-items:center;gap:8px;background:'+(ok?'var(--grn-l)':'var(--red-l)');
@@ -1331,12 +1341,52 @@ function qNext(){
     document.getElementById('res-title').textContent=pct>=80?'완벽해요!':pct>=60?'훌륭해요!':'더 연습해봐요!';
     document.getElementById('res-score').textContent=qCorrect+' / '+qTotal;
     document.getElementById('res-pct').textContent=pct+'%';
-    document.getElementById('res-time').textContent=Math.floor(qSec/60)+':'+(qSec%60<10?'0':'')+qSec%60;
+    // 소요시간 - 분:초 형식
+    const mm=Math.floor(qSec/60);
+    const ss=qSec%60;
+    document.getElementById('res-time').textContent=mm+'분 '+ss+'초';
     document.getElementById('res-pts').textContent='+'+(qCorrect*7);
+    // 틀린 단어 복습 버튼 업데이트
+    const wrongBtn=document.getElementById('res-wrong-btn');
+    if(wrongBtn){
+      if(qWrong.length>0){
+        wrongBtn.textContent='틀린 단어 '+qWrong.length+'개 복습하기';
+        wrongBtn.style.display='block';
+        wrongBtn.style.opacity='1';
+        wrongBtn.style.pointerEvents='auto';
+      } else {
+        wrongBtn.textContent='틀린 단어 없음 🎉';
+        wrongBtn.style.opacity='.5';
+        wrongBtn.style.pointerEvents='none';
+      }
+    }
     nav('s-qresult');
   } else qRender();
 }
-function qRestart(){nav('s-quiz');}
+
+// ── 틀린 단어 복습 ──────────────────────────────────
+function reviewWrongWords(){
+  if(!qWrong.length){
+    alert('틀린 단어가 없어요! 🎉');
+    return;
+  }
+  // WORDS를 틀린 단어들로 교체 후 플래시카드로
+  WORDS = [...qWrong];
+  DIST.length = 0;
+  WORDS.forEach(w => { if(w.ko||w.meaning) DIST.push(w.ko||w.meaning); });
+  // 플래시카드 상태 초기화
+  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
+  const inner=document.getElementById('fc-inner');
+  if(inner) inner.classList.remove('flipped');
+  // 단어장 제목 변경
+  const titleEl=document.querySelector('#s-fc .ttl');
+  if(titleEl) titleEl.textContent='틀린 단어 복습 ('+qWrong.length+'개)';
+  nav('s-fc');
+  fcRender(); // loadFcWords 호출 없이 바로 렌더 (틀린 단어만)
+}
+// ─────────────────────────────────────────────────────
+
+function qRestart(){qWrong=[];nav('s-quiz');}
 
 // ── CLOCK ──
 // 상태바 제거됨 (safe-area-inset으로 대체)
