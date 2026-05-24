@@ -444,7 +444,20 @@ body{
     </div>
   </div>
   <div class="scroll" id="wlist"></div>
-  <div class="bbar"><button class="savbtn" id="savbtn" onclick="saveWordsToSheets('default')">단어 저장하기</button></div>
+  <div class="bbar">
+    <!-- 단어장 선택 -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="font-size:12px;color:var(--tx2);white-space:nowrap;flex-shrink:0">저장할 단어장</div>
+      <select id="extract-ws-select"
+        style="flex:1;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none">
+        <option value="new">+ 새 단어장 만들기</option>
+      </select>
+    </div>
+    <!-- 새 단어장 이름 입력 (새 단어장 선택 시) -->
+    <input id="extract-ws-name" placeholder="새 단어장 이름 입력"
+      style="display:none;width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none;margin-bottom:8px;box-sizing:border-box">
+    <button class="savbtn" id="savbtn" onclick="saveExtractWords()">단어 저장하기</button>
+  </div>
 </div>
 
 <!-- ══ WORDSET LIST ══ -->
@@ -3436,6 +3449,54 @@ async function deleteWordSet(wsId, name) {
   } catch(e) {
     alert('삭제 실패: ' + e.message);
   }
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── 추출 결과 단어장 선택 ───────────────────────────
+async function loadExtractWsOptions() {
+  const sel    = document.getElementById('extract-ws-select');
+  const nameEl = document.getElementById('extract-ws-name');
+  if(!sel) return;
+
+  // 기본 옵션
+  sel.innerHTML = '<option value="new">+ 새 단어장 만들기</option>';
+
+  // select 변경 시 이름 입력창 표시
+  sel.onchange = () => {
+    if(nameEl) nameEl.style.display = sel.value === 'new' ? 'block' : 'none';
+  };
+
+  const url = getSheetsUrl();
+  if(!url) return;
+
+  try {
+    // 캐시 활용
+    const cached = localStorage.getItem('vs-wslist-cache');
+    let wordSets = [];
+    if(cached) {
+      const {data} = JSON.parse(cached);
+      wordSets = data?.wordSets || [];
+    }
+    if(!wordSets.length) {
+      const res = await sheetsGet('getWordSets');
+      wordSets  = res.wordSets || [];
+    }
+
+    wordSets.forEach(ws => {
+      const opt = document.createElement('option');
+      opt.value       = ws.id;
+      opt.textContent = ws.name + (ws.totalWords ? ` (${ws.totalWords}개)` : '');
+      sel.appendChild(opt);
+    });
+
+    // currentWordSet 있으면 자동 선택
+    if(currentWordSet?.id) {
+      sel.value = currentWordSet.id;
+      if(nameEl) nameEl.style.display = 'none';
+    }
+
+  } catch(e) { console.warn('단어장 목록 로드 실패:', e); }
 }
 // ─────────────────────────────────────────────────────
 
