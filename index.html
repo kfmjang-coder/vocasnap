@@ -5,6 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<meta name="app-build" content="20260524-115838">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -3642,7 +3643,7 @@ function qRestart(){qWrong=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260524-0615';
+  window.APP_BUILD = '20260524-115838';
 console.log('App build:', window.APP_BUILD);
   navigator.serviceWorker.register('./sw.js').then(reg => {
     console.log('SW registered');
