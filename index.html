@@ -641,10 +641,10 @@ body{
       <div class="sc"><div style="font-size:24px;font-weight:500;color:var(--acc);margin-bottom:2px" id="res-score">0/5</div><div style="font-size:11px;color:var(--tx2)">정답 수</div></div>
       <div class="sc"><div style="font-size:24px;font-weight:500;color:var(--grn);margin-bottom:2px" id="res-pct">0%</div><div style="font-size:11px;color:var(--tx2)">정답률</div></div>
       <div class="sc"><div style="font-size:24px;font-weight:500;color:var(--tx);margin-bottom:2px" id="res-time">0:00</div><div style="font-size:11px;color:var(--tx2)">소요 시간</div></div>
-      <div class="sc"><div style="font-size:24px;font-weight:500;color:#EF9F27;margin-bottom:2px" id="res-pts">+0</div><div style="font-size:11px;color:var(--tx2)">획득 포인트</div></div>
+      <div class="sc"><div style="font-size:24px;font-weight:500;color:#EF9F27;margin-bottom:2px" id="res-pts">--%</div><div style="font-size:11px;color:var(--tx2)">정확도</div></div>
     </div>
     <button class="savbtn" style="margin-bottom:10px" onclick="qRestart()">다시 풀기</button>
-    <button id="res-wrong-btn" class="savbtn" style="background:var(--sf2);color:var(--tx2);margin-bottom:10px;border:0.5px solid var(--bd)" onclick="reviewWrongWords()">틀린 단어 복습하기</button>
+    <button id="res-wrong-btn" class="savbtn" style="background:var(--sf2);color:var(--tx2);margin-bottom:10px;border:0.5px solid var(--bd)" onclick="reviewWrongWords()">몰라요 단어 복습하기</button>
     <button class="savbtn" style="background:var(--sf2);color:var(--tx2);border:0.5px solid var(--bd)" onclick="nav('s-home')">홈으로 돌아가기</button>
     <div style="height:20px"></div>
   </div>
@@ -1207,7 +1207,7 @@ function showFcResult(){
     const mm=Math.floor(elapsed/60), ss=elapsed%60;
     setText('res-time', mm+'분 '+ss+'초');
   } else { setText('res-time','--'); }
-  setText('res-pts',   '+'+(fcKnow*5));
+  setText('res-pts', total>0 ? Math.round((fcKnow/total)*100)+'%' : '--%');
   nav('s-qresult');
 }
 
@@ -1344,17 +1344,17 @@ function qNext(){
     const mm=Math.floor(qSec/60);
     const ss=qSec%60;
     document.getElementById('res-time').textContent=mm+'분 '+ss+'초';
-    document.getElementById('res-pts').textContent='+'+(qCorrect*7);
+    document.getElementById('res-pts').textContent=pct+'%';
     // 틀린 단어 복습 버튼 업데이트
     const wrongBtn=document.getElementById('res-wrong-btn');
     if(wrongBtn){
       if(qWrong.length>0){
-        wrongBtn.textContent='틀린 단어 '+qWrong.length+'개 복습하기';
+        wrongBtn.textContent='몰라요 단어 '+qWrong.length+'개 복습하기';
         wrongBtn.style.display='block';
         wrongBtn.style.opacity='1';
         wrongBtn.style.pointerEvents='auto';
       } else {
-        wrongBtn.textContent='틀린 단어 없음 🎉';
+        wrongBtn.textContent='몰라요 단어 없음 🎉';
         wrongBtn.style.opacity='.5';
         wrongBtn.style.pointerEvents='none';
       }
@@ -1379,7 +1379,7 @@ function reviewWrongWords(){
   if(inner) inner.classList.remove('flipped');
   // 단어장 제목 변경
   const titleEl=document.querySelector('#s-fc .ttl');
-  if(titleEl) titleEl.textContent='틀린 단어 복습 ('+qWrong.length+'개)';
+  if(titleEl) titleEl.textContent='몰라요 단어 복습 ('+qWrong.length+'개)';
   nav('s-fc');
   fcRender(); // loadFcWords 호출 없이 바로 렌더 (틀린 단어만)
 }
