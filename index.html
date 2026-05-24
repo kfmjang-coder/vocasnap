@@ -678,6 +678,7 @@ body{
     </div>
     <button class="savbtn" style="margin-bottom:10px" onclick="qRestart()">다시 풀기</button>
     <button id="res-wrong-btn" class="savbtn" style="background:var(--sf2);color:var(--tx2);margin-bottom:10px;border:0.5px solid var(--bd)" onclick="reviewWrongWords()">몰라요 단어 복습하기</button>
+    <button class="savbtn" style="background:var(--sf2);color:var(--tx2);margin-bottom:10px;border:0.5px solid var(--bd)" onclick="goBackToWordSet()">단어장으로 돌아가기</button>
     <button class="savbtn" style="background:var(--sf2);color:var(--tx2);border:0.5px solid var(--bd)" onclick="nav('s-home')">홈으로 돌아가기</button>
     <div style="height:20px"></div>
   </div>
@@ -1460,12 +1461,8 @@ function showFcResult(){
   const mins = Number(localStorage.getItem('vs-today-time')||0);
   updateHomeLiveStats(done, acc, mins);
 
-  // 단어장 상세 대시보드 즉시 업데이트
-  updateWsdDashboard();
-
   // Sheets에서 최신 status로 갱신 (백그라운드)
-  setTimeout(() => refreshWsdFromSheets(), 800);
-
+  // nav('s-wsd') 시 loadWordListForSet이 자동으로 갱신하므로 별도 처리 불필요
   nav('s-qresult');
 }
 
@@ -1664,12 +1661,7 @@ function qNext(){
     const _mins = Number(localStorage.getItem('vs-today-time')||0);
     updateHomeLiveStats(_done, _acc, _mins);
 
-    // 단어장 상세 대시보드 즉시 업데이트
-    updateWsdDashboard();
-
-    // Sheets에서 최신 status로 갱신 (백그라운드)
-    setTimeout(() => refreshWsdFromSheets(), 800);
-
+    // nav('s-wsd') 시 loadWordListForSet이 자동 갱신
     nav('s-qresult');
   } else qRender();
 }
@@ -1693,6 +1685,17 @@ function reviewWrongWords(){
   if(titleEl) titleEl.textContent='몰라요 단어 복습 ('+qWrong.length+'개)';
   nav('s-fc');
   fcRender(); // loadFcWords 호출 없이 바로 렌더 (틀린 단어만)
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── 결과 화면 → 단어장으로 돌아가기 ────────────────
+function goBackToWordSet() {
+  if(currentWordSet?.id) {
+    nav('s-wsd'); // nav에서 loadWordListForSet 자동 호출
+  } else {
+    nav('s-wslist');
+  }
 }
 // ─────────────────────────────────────────────────────
 
@@ -2456,19 +2459,20 @@ async function loadWordListForSet(wordSetId) {
     if(res.error) throw new Error(res.error);
 
     const words = res.words || [];
-    // WORDS 배열도 업데이트 (플래시카드/퀴즈용)
+    // WORDS 배열 전체 동기화 (status 포함) - 학습 후 복귀 시 정확한 집계
     WORDS = words.map(w => ({
       id: w.id, en: w.word||w.en||'', ko: w.meaning||w.ko||'',
       pos: w.pos||'', ph: w.phonetic||'', ex: w.example||'',
+      status: w.status || 'new',
     })).filter(w => w.en);
     // 퀴즈 오답지 갱신
     DIST.length = 0;
     WORDS.forEach(w => { if(w.ko) DIST.push(w.ko); });
 
-    // 통계 업데이트
+    // 통계 업데이트 (Sheets 실제 status 기반)
     const mastered = words.filter(w=>w.status==='mastered').length;
-    const learning = words.filter(w=>['learning','review'].includes(w.status)).length;
-    const newW     = words.filter(w=>w.status==='new').length;
+    const learning = words.filter(w=>['learning','review'].includes(w.status||'')).length;
+    const newW     = words.filter(w=>!w.status||w.status==='new').length;
     const pct      = words.length>0 ? Math.round((mastered/words.length)*100) : 0;
     setText('wsd-mastered', mastered);
     setText('wsd-learning', learning);
