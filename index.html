@@ -1305,6 +1305,92 @@ function nav(id){
   if(id==='s-extract') renderExtract();
   if(id==='s-fc') fcRender();
 }
+
+// ── 모바일 뒤로가기 버튼 처리 ─────────────────────────
+// 홈화면(s-home)에서 뒤로가기 → 앱 종료 (브라우저 기본 동작)
+// 다른 화면에서 뒤로가기 → 이전 페이지 이동
+
+let _backExitConfirm = false; // 홈에서 뒤로가기 두 번 누르면 종료
+
+function getCurrentScreen() {
+  const on = document.querySelector('.scr.on');
+  return on ? on.id : 's-home';
+}
+
+function isModalOpen() {
+  // 열려있는 모달 우선 닫기
+  const modals = [
+    'import-modal',
+    'profile-edit-modal',
+    'progress-info-modal',
+    'stats-info-modal',
+  ];
+  for(const id of modals) {
+    const el = document.getElementById(id);
+    if(el && el.style.display && el.style.display !== 'none') {
+      return el;
+    }
+  }
+  return null;
+}
+
+function handleBackButton() {
+  // 1) 모달이 열려있으면 모달부터 닫기
+  const openModal = isModalOpen();
+  if(openModal) {
+    openModal.style.display = 'none';
+    return false; // 처리됨
+  }
+
+  const current = getCurrentScreen();
+
+  // 2) 홈화면이면 종료 확인 (두 번 누르기)
+  if(current === 's-home' || current === 's-ob') {
+    if(_backExitConfirm) {
+      // 두 번째 누름 - 실제 종료 시도
+      window.close();
+      // 그래도 안 닫히면 history로 종료 시도
+      window.history.go(-window.history.length);
+      return true; // 종료 처리
+    }
+    // 첫 번째 누름 - 토스트 표시
+    _backExitConfirm = true;
+    showExitToast();
+    setTimeout(() => { _backExitConfirm = false; }, 2000);
+    return false;
+  }
+
+  // 3) 그 외 화면 → 이전 페이지
+  back();
+  return false;
+}
+
+function showExitToast() {
+  let toast = document.getElementById('exit-toast');
+  if(!toast) {
+    toast = document.createElement('div');
+    toast.id = 'exit-toast';
+    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:12px 20px;border-radius:24px;font-size:13px;z-index:9999;display:none;align-items:center;gap:8px';
+    toast.innerHTML = '<span style="font-size:16px">👋</span><span>한 번 더 누르면 앱이 종료돼요</span>';
+    document.body.appendChild(toast);
+  }
+  toast.style.display = 'flex';
+  setTimeout(() => { toast.style.display = 'none'; }, 2000);
+}
+
+// popstate 이벤트 - 브라우저 뒤로가기
+window.addEventListener('popstate', (e) => {
+  const handled = handleBackButton();
+  if(!handled) {
+    // 화면 이동 처리됐으니 history에 다시 푸시
+    history.pushState({app:'vocasnap'}, '', '');
+  }
+});
+
+// 초기 history 항목 (뒤로가기 첫 트리거용)
+history.pushState({app:'vocasnap', initial:true}, '', '');
+// ─────────────────────────────────────────────────────
+
 function back(){
   if(stack.length<=1) return;
   stack.pop();
