@@ -2161,32 +2161,26 @@ async function loadWordSets(forceRefresh) {
   if(!url) {
     const el = document.getElementById('wslist-no-sheets');
     if(el) el.style.display = 'block';
-    renderHomeWordSets([]); // 홈도 초기화
+    renderHomeWordSets([]);
     return;
   }
 
-  // 캐시 확인 (3분)
+  // 캐시 있으면 즉시 표시 (UX 개선)
   const cacheKey = 'vs-wslist-cache';
-  const cached = localStorage.getItem(cacheKey);
-  if(!forceRefresh && cached) {
-    const {data, ts} = JSON.parse(cached);
-    if(Date.now() - ts < 3*60*1000) {
-      renderWordSetList(data.wordSets, data.stats);
-      return;
-    }
+  const cached   = localStorage.getItem(cacheKey);
+  if(cached && !forceRefresh) {
+    try {
+      const {data} = JSON.parse(cached);
+      if(data?.wordSets?.length) renderWordSetList(data.wordSets, data.stats);
+    } catch(e2) {}
   }
 
-  const loadingEl = document.getElementById('wslist-loading');
-  if(loadingEl) loadingEl.style.display = 'block';
-
+  // 항상 백그라운드에서 최신 데이터 가져오기 (캐시와 무관)
   try {
-    // 단어장 목록 + 통계 병렬 호출
     const [wsRes, statsRes] = await Promise.all([
       sheetsGet('getWordSets'),
       sheetsGet('getStats'),
     ]);
-
-    if(loadingEl) loadingEl.style.display = 'none';
 
     if(wsRes.error) throw new Error(wsRes.error);
 
@@ -2195,11 +2189,13 @@ async function loadWordSets(forceRefresh) {
     renderWordSetList(data.wordSets, data.stats);
 
   } catch(e) {
-    if(loadingEl) loadingEl.style.display = 'none';
-    const contentEl = document.getElementById('wslist-content');
-    if(contentEl) {
-      contentEl.style.display = 'block';
-      contentEl.innerHTML = `<div style="padding:32px;text-align:center;color:var(--red)">⚠️ 불러오기 실패<br><span style="font-size:12px;color:var(--tx2)">${e.message}</span></div>`;
+    // 캐시 없고 오류면 에러 표시
+    if(!cached) {
+      const contentEl = document.getElementById('wslist-content');
+      if(contentEl) {
+        contentEl.style.display = 'block';
+        contentEl.innerHTML = `<div style="padding:32px;text-align:center;color:var(--red)">⚠️ 불러오기 실패<br><span style="font-size:12px;color:var(--tx2)">${e.message}</span></div>`;
+      }
     }
   }
 }
