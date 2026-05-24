@@ -184,12 +184,198 @@ body{
 .ib-steps{font-size:12px;color:var(--tx2);line-height:1.6;background:var(--sf2);border-radius:8px;padding:8px 12px}
 .ib-install-btn{width:100%;padding:11px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer}
 </style>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <!-- 상태바 제거됨 - safe-area-inset으로 처리 -->
 
+
+<!-- ══ AUTH (로그인/회원가입) ══ -->
+<div class="scr on" id="s-auth">
+  <div style="background:linear-gradient(135deg,var(--acc) 0%,#5A52C9 100%);min-height:100vh;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 40px) 24px 24px">
+
+    <!-- 로고 -->
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="display:inline-block;width:64px;height:64px;border-radius:18px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin-bottom:12px">
+        <span style="font-size:34px">📚</span>
+      </div>
+      <div style="font-size:26px;font-weight:600;color:#fff;letter-spacing:-.5px">VocaSnap</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px">찍고 · 외우고 · 마스터하기</div>
+    </div>
+
+    <!-- 카드 -->
+    <div style="background:var(--sf);border-radius:20px;padding:24px;flex:1;display:flex;flex-direction:column">
+
+      <!-- 탭 -->
+      <div style="display:flex;background:var(--sf2);border-radius:10px;padding:4px;margin-bottom:20px">
+        <div onclick="authTab('login')" id="auth-tab-login"
+          style="flex:1;text-align:center;padding:9px;font-size:14px;font-weight:500;color:#fff;background:var(--acc);border-radius:8px;cursor:pointer;transition:all .2s">로그인</div>
+        <div onclick="authTab('signup')" id="auth-tab-signup"
+          style="flex:1;text-align:center;padding:9px;font-size:14px;font-weight:500;color:var(--tx2);cursor:pointer;transition:all .2s">회원가입</div>
+      </div>
+
+      <!-- 로그인 폼 -->
+      <div id="auth-form-login">
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">이메일</div>
+          <input id="login-email" type="email" autocomplete="email" placeholder="example@email.com"
+            style="width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:8px">
+          <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">비밀번호</div>
+          <input id="login-password" type="password" autocomplete="current-password" placeholder="••••••••"
+            style="width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);cursor:pointer">
+            <input type="checkbox" id="login-remember" checked style="width:14px;height:14px;accent-color:var(--acc)">
+            <span>로그인 유지</span>
+          </label>
+          <span onclick="forgotPassword()" style="font-size:12px;color:var(--acc);cursor:pointer">비밀번호 찾기</span>
+        </div>
+
+        <button onclick="doLogin()" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;margin-bottom:12px">로그인</button>
+
+        <div id="login-error" style="display:none;background:var(--red-l);color:var(--red);padding:10px;border-radius:8px;font-size:12px;margin-bottom:12px;text-align:center"></div>
+      </div>
+
+      <!-- 회원가입 폼 -->
+      <div id="auth-form-signup" style="display:none">
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">이름</div>
+          <input id="signup-name" type="text" autocomplete="name" placeholder="이름을 입력해주세요" maxlength="20"
+            style="width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">이메일</div>
+          <input id="signup-email" type="email" autocomplete="email" placeholder="example@email.com"
+            style="width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">비밀번호</div>
+          <input id="signup-password" type="password" autocomplete="new-password" placeholder="6자 이상"
+            style="width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:18px">
+          <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">비밀번호 확인</div>
+          <input id="signup-password2" type="password" autocomplete="new-password" placeholder="비밀번호 재입력"
+            style="width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);margin-bottom:18px;cursor:pointer">
+          <input type="checkbox" id="signup-agree" style="width:14px;height:14px;accent-color:var(--acc);flex-shrink:0">
+          <span>이용약관 및 개인정보 처리방침에 동의합니다</span>
+        </label>
+
+        <button onclick="doSignup()" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;margin-bottom:12px">회원가입</button>
+
+        <div id="signup-error" style="display:none;background:var(--red-l);color:var(--red);padding:10px;border-radius:8px;font-size:12px;margin-bottom:12px;text-align:center"></div>
+      </div>
+
+      <!-- 구분선 -->
+      <div style="display:flex;align-items:center;gap:10px;margin:8px 0 16px">
+        <div style="flex:1;height:0.5px;background:var(--bd)"></div>
+        <span style="font-size:11px;color:var(--tx3)">또는</span>
+        <div style="flex:1;height:0.5px;background:var(--bd)"></div>
+      </div>
+
+      <!-- 비회원 시작 -->
+      <button onclick="skipAuth()" style="width:100%;padding:12px;background:var(--sf2);color:var(--tx);border:0.5px solid var(--bd);border-radius:10px;font-size:14px;cursor:pointer">
+        🚀 비회원으로 둘러보기
+      </button>
+
+      <!-- Firebase 설정 안내 -->
+      <div id="firebase-status-bar" style="margin-top:12px;padding:10px;border-radius:8px;font-size:12px;text-align:center"></div>
+
+      <div style="font-size:11px;color:var(--tx3);text-align:center;margin-top:10px;line-height:1.5">
+        클라우드 동기화 (모든 기기에서 학습 기록 공유):<br>
+        <span onclick="openFirebaseSetup()" style="color:var(--acc);text-decoration:underline;cursor:pointer">🔥 Firebase 설정하기</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ Firebase 설정 모달 ══ -->
+<div id="firebase-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;padding:16px;overflow-y:auto">
+  <div style="background:var(--sf);border-radius:16px;width:100%;max-width:430px;max-height:90vh;overflow-y:auto;padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <div style="font-size:17px;font-weight:500;color:var(--tx)">🔥 Firebase 설정</div>
+        <div style="font-size:12px;color:var(--tx2);margin-top:2px">클라우드 동기화를 위한 연결</div>
+      </div>
+      <div onclick="closeFirebaseSetup()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
+      </div>
+    </div>
+
+    <!-- 가이드 -->
+    <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:14px">
+      <div style="font-size:12px;color:var(--acc-d);line-height:1.7">
+        <b>설정 방법</b><br>
+        1. <span onclick="window.open('https://console.firebase.google.com','_blank')" style="color:var(--acc);text-decoration:underline;cursor:pointer">Firebase 콘솔</span> 접속<br>
+        2. 프로젝트 만들기 → 웹 앱 추가<br>
+        3. Authentication → 이메일/비밀번호 활성화<br>
+        4. Firestore Database 생성 (테스트 모드)<br>
+        5. firebaseConfig 복사해서 아래에 붙여넣기
+      </div>
+    </div>
+
+    <!-- 입력 폼 -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">API Key</div>
+      <input id="fb-apiKey" type="text" placeholder="AIzaSy..."
+        style="width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;font-size:12px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;font-family:monospace">
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">Auth Domain</div>
+      <input id="fb-authDomain" type="text" placeholder="project.firebaseapp.com"
+        style="width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;font-size:12px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;font-family:monospace">
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">Project ID</div>
+      <input id="fb-projectId" type="text" placeholder="my-project"
+        style="width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;font-size:12px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;font-family:monospace">
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">Storage Bucket</div>
+      <input id="fb-storageBucket" type="text" placeholder="project.appspot.com"
+        style="width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;font-size:12px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;font-family:monospace">
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">Messaging Sender ID</div>
+      <input id="fb-messagingSenderId" type="text" placeholder="123456789"
+        style="width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;font-size:12px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;font-family:monospace">
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">App ID</div>
+      <input id="fb-appId" type="text" placeholder="1:123456789:web:abc..."
+        style="width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;font-size:12px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;font-family:monospace">
+    </div>
+
+    <!-- 한꺼번에 붙여넣기 옵션 -->
+    <div style="background:var(--sf2);border-radius:8px;padding:10px;margin-bottom:14px">
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:6px">또는 firebaseConfig 객체를 통째로 붙여넣기:</div>
+      <textarea id="fb-bulk-paste" placeholder='const firebaseConfig = { apiKey: "...", ... };'
+        style="width:100%;height:80px;padding:8px;border:1px solid var(--bd);border-radius:6px;font-size:11px;background:var(--sf);color:var(--tx);outline:none;box-sizing:border-box;font-family:monospace;resize:none"></textarea>
+      <button onclick="parseFirebaseBulk()" style="margin-top:6px;width:100%;padding:8px;background:var(--sf);color:var(--acc);border:0.5px solid var(--acc);border-radius:6px;font-size:12px;cursor:pointer">파싱해서 채우기</button>
+    </div>
+
+    <button onclick="saveFirebaseConfig()" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:8px">저장 및 연결</button>
+
+    <button onclick="clearFirebaseConfig()" id="fb-clear-btn" style="display:none;width:100%;padding:10px;background:var(--red-l);color:var(--red);border:0.5px solid var(--red);border-radius:8px;font-size:13px;cursor:pointer">연결 해제</button>
+
+    <div id="fb-setup-status" style="display:none;text-align:center;font-size:12px;margin-top:10px"></div>
+  </div>
+</div>
+
 <!-- ══ ONBOARDING ══ -->
-<div class="scr on" id="s-ob">
+<div class="scr" id="s-ob">
   <div class="ob" style="padding-top:calc(env(safe-area-inset-top,0px) + 32px)">
     <div class="ob-icon-wrap">
       <svg width="58" height="58" viewBox="0 0 56 56" fill="none">
@@ -226,7 +412,7 @@ body{
       <div class="dot on"></div><div class="dot"></div><div class="dot"></div>
     </div>
     <button class="ob-btn" id="ob-btn" onclick="obNext()">다음 →</button>
-    <div style="font-size:13px;color:rgba(255,255,255,.55);margin-top:14px;cursor:pointer" onclick="(function(){document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));document.getElementById('s-home').classList.add('on');stack=['s-home'];setTimeout(()=>{try{loadHomeData();}catch(e){}},100);})()">건너뛰기</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.55);margin-top:14px;cursor:pointer" onclick="(function(){document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));document.getElementById('s-home').classList.add('on');localStorage.setItem('vs-onboarding-done','1');stack=['s-home'];setTimeout(()=>{try{loadHomeData();}catch(e){}},100);})()">건너뛰기</div>
   </div>
 </div>
 
@@ -1046,9 +1232,52 @@ body{
       <div style="padding:14px 16px;display:flex;justify-content:space-between;border-bottom:0.5px solid var(--bd)"><span style="font-size:14px;color:var(--tx)">버전</span><span style="font-size:14px;color:var(--tx2)">1.0.0</span></div>
       <div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="font-size:14px;color:var(--tx)">만든 곳</span><span style="font-size:14px;color:var(--tx2)">VocaSnap Team</span></div>
     </div>
-    <div style="margin:0 16px 24px">
-      <button onclick="logout()" style="width:100%;padding:13px;background:var(--red-l);color:var(--red);border:0.5px solid var(--red);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">로그아웃</button>
+
+    <!-- 계정 -->
+    <div class="sh"><span class="st">계정</span></div>
+    <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
+      <div onclick="openFirebaseSetup()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">🔥</span>
+          <div>
+            <div style="font-size:14px;color:var(--tx)">Firebase 클라우드</div>
+            <div style="font-size:12px;color:var(--tx2)" id="profile-firebase-status">미설정</div>
+          </div>
+        </div>
+        <span style="color:var(--tx3)">›</span>
+      </div>
+      <div onclick="manualSyncFirebase()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">☁️</span>
+          <div>
+            <div style="font-size:14px;color:var(--tx)">지금 동기화</div>
+            <div style="font-size:12px;color:var(--tx2)">학습 기록을 클라우드에 백업</div>
+          </div>
+        </div>
+        <span style="color:var(--tx3)">›</span>
+      </div>
+      <div onclick="doLogout()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">🚪</span>
+          <div>
+            <div style="font-size:14px;color:var(--tx)">로그아웃</div>
+            <div style="font-size:12px;color:var(--tx2)" id="profile-account-info">계정 정보</div>
+          </div>
+        </div>
+        <span style="color:var(--tx3)">›</span>
+      </div>
+      <div onclick="resetAllData()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">🗑️</span>
+          <div>
+            <div style="font-size:14px;color:var(--red)">앱 데이터 초기화</div>
+            <div style="font-size:12px;color:var(--tx2)">모든 설정/캐시 삭제</div>
+          </div>
+        </div>
+        <span style="color:var(--tx3)">›</span>
+      </div>
     </div>
+    <div style="height:24px"></div>
   </div>
   <div class="nav">
     <div class="ni" onclick="nav('s-home')"><i class="ti ti-home"></i><span>홈</span></div>
@@ -1519,11 +1748,631 @@ const DIST=[]; // Sheets 단어 로드 후 채워짐
 const EW = []; // Gemini API 추출 결과가 채워짐
 
 // ── STATE ──
-let stack=['s-ob'],obStep=0,isDark=false,allChecked=false;
+let stack=['s-auth'],obStep=0,isDark=false,allChecked=false;
 let fcIdx=0,fcFlipped=false,fcKnow=0,fcDont=0,fcReverse=false;
 let qIdx=0,qCorrect=0,qTotal=0,qSec=0,qTimer=null,qAnswered=false,qWrong=[];
 
 // ── NAVIGATION ──
+
+
+// ── Firebase 클라우드 동기화 ──────────────────────────
+const FB_CONFIG_KEY = 'vs-firebase-config';
+
+let firebaseApp     = null;
+let firebaseAuth    = null;
+let firebaseDB      = null;
+let firebaseUser    = null; // 현재 Firebase 인증 사용자
+
+function getFirebaseConfig() {
+  try { return JSON.parse(localStorage.getItem(FB_CONFIG_KEY) || 'null'); }
+  catch(e) { return null; }
+}
+
+function isFirebaseConfigured() {
+  const cfg = getFirebaseConfig();
+  return !!(cfg && cfg.apiKey && cfg.projectId);
+}
+
+function initFirebase() {
+  const cfg = getFirebaseConfig();
+  if(!cfg) return false;
+  if(typeof firebase === 'undefined') {
+    console.warn('Firebase SDK가 로드되지 않았어요');
+    return false;
+  }
+  try {
+    if(!firebaseApp) {
+      firebaseApp  = firebase.initializeApp(cfg);
+      firebaseAuth = firebase.auth();
+      firebaseDB   = firebase.firestore();
+
+      // 인증 상태 변경 리스너
+      firebaseAuth.onAuthStateChanged(user => {
+        firebaseUser = user;
+        if(user) {
+          console.log('🔥 Firebase 로그인됨:', user.email);
+          updateFirebaseStatusBar(true);
+        } else {
+          console.log('🔥 Firebase 로그아웃됨');
+          updateFirebaseStatusBar(false);
+        }
+      });
+    }
+    return true;
+  } catch(e) {
+    console.error('Firebase 초기화 실패:', e);
+    return false;
+  }
+}
+
+function updateFirebaseStatusBar(loggedIn) {
+  const bar = document.getElementById('firebase-status-bar');
+  if(!bar) return;
+  if(loggedIn && firebaseUser) {
+    bar.style.background = 'var(--grn-l)';
+    bar.style.color      = 'var(--grn)';
+    bar.innerHTML        = `🔥 클라우드 연결됨 · ${firebaseUser.email}`;
+  } else if(isFirebaseConfigured()) {
+    bar.style.background = 'var(--acc-l)';
+    bar.style.color      = 'var(--acc)';
+    bar.innerHTML        = '🔥 Firebase 설정됨 · 로그인 가능';
+  } else {
+    bar.style.display    = 'none';
+    return;
+  }
+  bar.style.display = 'block';
+}
+
+function openFirebaseSetup() {
+  document.getElementById('firebase-setup-modal').style.display = 'flex';
+  const cfg = getFirebaseConfig();
+  if(cfg) {
+    document.getElementById('fb-apiKey').value             = cfg.apiKey            || '';
+    document.getElementById('fb-authDomain').value         = cfg.authDomain        || '';
+    document.getElementById('fb-projectId').value          = cfg.projectId         || '';
+    document.getElementById('fb-storageBucket').value      = cfg.storageBucket     || '';
+    document.getElementById('fb-messagingSenderId').value  = cfg.messagingSenderId || '';
+    document.getElementById('fb-appId').value              = cfg.appId             || '';
+    document.getElementById('fb-clear-btn').style.display  = 'block';
+  } else {
+    document.getElementById('fb-clear-btn').style.display = 'none';
+  }
+}
+
+function closeFirebaseSetup() {
+  document.getElementById('firebase-setup-modal').style.display = 'none';
+}
+
+function parseFirebaseBulk() {
+  const text = document.getElementById('fb-bulk-paste').value;
+  if(!text.trim()) { alert('firebaseConfig를 붙여넣어주세요'); return; }
+
+  // const firebaseConfig = { ... }; 형태에서 {...} 추출
+  let cfg = null;
+  try {
+    // 패턴 1: const X = { ... };
+    const m = text.match(/=\s*(\{[\s\S]*?\})\s*;?/);
+    const objStr = m ? m[1] : text;
+    // 키에 따옴표 없는 경우 추가
+    const fixed = objStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+    cfg = JSON.parse(fixed);
+  } catch(e) {
+    alert('파싱 실패. firebaseConfig 객체 전체를 정확히 복사해주세요.\n\n예시:\nconst firebaseConfig = {\n  apiKey: "...",\n  ...\n};');
+    return;
+  }
+
+  if(!cfg || !cfg.apiKey || !cfg.projectId) {
+    alert('apiKey와 projectId가 반드시 필요해요');
+    return;
+  }
+
+  // 폼 채우기
+  document.getElementById('fb-apiKey').value            = cfg.apiKey            || '';
+  document.getElementById('fb-authDomain').value        = cfg.authDomain        || '';
+  document.getElementById('fb-projectId').value         = cfg.projectId         || '';
+  document.getElementById('fb-storageBucket').value     = cfg.storageBucket     || '';
+  document.getElementById('fb-messagingSenderId').value = cfg.messagingSenderId || '';
+  document.getElementById('fb-appId').value             = cfg.appId             || '';
+  document.getElementById('fb-bulk-paste').value        = '';
+
+  alert('✅ 파싱 완료! "저장 및 연결" 버튼을 눌러주세요');
+}
+
+async function saveFirebaseConfig() {
+  const cfg = {
+    apiKey:            document.getElementById('fb-apiKey').value.trim(),
+    authDomain:        document.getElementById('fb-authDomain').value.trim(),
+    projectId:         document.getElementById('fb-projectId').value.trim(),
+    storageBucket:     document.getElementById('fb-storageBucket').value.trim(),
+    messagingSenderId: document.getElementById('fb-messagingSenderId').value.trim(),
+    appId:             document.getElementById('fb-appId').value.trim(),
+  };
+
+  if(!cfg.apiKey || !cfg.projectId) {
+    alert('API Key와 Project ID는 필수예요');
+    return;
+  }
+
+  const status = document.getElementById('fb-setup-status');
+  status.style.display = 'block';
+  status.style.color = 'var(--acc)';
+  status.textContent = '⏳ 연결 테스트 중...';
+
+  // 기존 앱 정리
+  if(firebaseApp) {
+    try { await firebase.app().delete(); } catch(e){}
+    firebaseApp = null;
+    firebaseAuth = null;
+    firebaseDB = null;
+  }
+
+  try {
+    firebaseApp  = firebase.initializeApp(cfg);
+    firebaseAuth = firebase.auth();
+    firebaseDB   = firebase.firestore();
+
+    // 간단한 연결 테스트 (익명 인증 시도 안 하고 그냥 초기화 성공 여부만)
+    status.style.color = 'var(--grn)';
+    status.textContent = '✅ 연결 성공! 저장됨';
+
+    localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg));
+    updateFirebaseStatusBar(false);
+
+    setTimeout(() => {
+      closeFirebaseSetup();
+      alert('🎉 Firebase 연결 완료!\n이제 회원가입/로그인하면 자동으로 클라우드에 저장돼요.');
+    }, 1000);
+
+  } catch(e) {
+    status.style.color = 'var(--red)';
+    status.textContent = '❌ 실패: ' + e.message;
+  }
+}
+
+function clearFirebaseConfig() {
+  if(!confirm('Firebase 연결을 해제할까요?\n로컬 데이터는 유지돼요.')) return;
+  localStorage.removeItem(FB_CONFIG_KEY);
+  if(firebaseAuth?.currentUser) {
+    firebaseAuth.signOut().catch(()=>{});
+  }
+  if(firebaseApp) {
+    try { firebase.app().delete(); } catch(e){}
+    firebaseApp = null;
+    firebaseAuth = null;
+    firebaseDB = null;
+  }
+  alert('✅ Firebase 연결 해제됨');
+  closeFirebaseSetup();
+  updateFirebaseStatusBar(false);
+}
+
+// ── Firebase 인증 (로컬 인증 대체) ──────────────────
+async function fbSignup(email, password, name) {
+  if(!firebaseAuth) throw new Error('Firebase가 설정되지 않았어요');
+  const cred = await firebaseAuth.createUserWithEmailAndPassword(email, password);
+  await cred.user.updateProfile({ displayName: name });
+  // Firestore에 프로필 저장
+  await firebaseDB.collection('users').doc(cred.user.uid).set({
+    name: name,
+    email: email,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  });
+  return cred.user;
+}
+
+async function fbLogin(email, password) {
+  if(!firebaseAuth) throw new Error('Firebase가 설정되지 않았어요');
+  const cred = await firebaseAuth.signInWithEmailAndPassword(email, password);
+  return cred.user;
+}
+
+async function fbLogout() {
+  if(firebaseAuth) await firebaseAuth.signOut();
+}
+
+async function fbResetPassword(email) {
+  if(!firebaseAuth) throw new Error('Firebase가 설정되지 않았어요');
+  await firebaseAuth.sendPasswordResetEmail(email);
+}
+
+// ── 데이터 동기화 (학습 기록을 Firestore에) ──────────
+async function syncUserDataToFirestore() {
+  if(!firebaseUser || !firebaseDB) return;
+  try {
+    const data = {
+      // 학습 통계
+      streak:        localStorage.getItem('vs-streak') || '0',
+      bestStreak:    localStorage.getItem('vs-best-streak') || '0',
+      totalAnswered: localStorage.getItem('vs-total-answered') || '0',
+      correctCount:  localStorage.getItem('vs-correct-count') || '0',
+      dailyGoal:     localStorage.getItem('vs-daily-goal') || '30',
+      sessionCount:  localStorage.getItem('vs-session-count') || '20',
+      // 프로필
+      profileName:   localStorage.getItem('vs-profile-name') || '',
+      profileAvatar: localStorage.getItem('vs-profile-avatar') || '👤',
+      // 단어 학습 이력
+      wordHistory:   getAllWordHistory(),
+      mockHistory:   getMockHistory(),
+      // 메타
+      lastSyncAt:    firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    await firebaseDB.collection('users').doc(firebaseUser.uid).set(data, {merge: true});
+    console.log('☁️ Firestore 동기화 완료');
+  } catch(e) {
+    console.warn('동기화 실패:', e);
+  }
+}
+
+async function loadUserDataFromFirestore() {
+  if(!firebaseUser || !firebaseDB) return;
+  try {
+    const doc = await firebaseDB.collection('users').doc(firebaseUser.uid).get();
+    if(!doc.exists) return;
+    const data = doc.data();
+    if(data.streak)        localStorage.setItem('vs-streak',         data.streak);
+    if(data.bestStreak)    localStorage.setItem('vs-best-streak',    data.bestStreak);
+    if(data.totalAnswered) localStorage.setItem('vs-total-answered', data.totalAnswered);
+    if(data.correctCount)  localStorage.setItem('vs-correct-count',  data.correctCount);
+    if(data.dailyGoal)     localStorage.setItem('vs-daily-goal',     data.dailyGoal);
+    if(data.sessionCount)  localStorage.setItem('vs-session-count',  data.sessionCount);
+    if(data.profileName)   localStorage.setItem('vs-profile-name',   data.profileName);
+    if(data.profileAvatar) localStorage.setItem('vs-profile-avatar', data.profileAvatar);
+    if(data.wordHistory)   restoreWordHistory(data.wordHistory);
+    if(data.mockHistory)   localStorage.setItem('vs-mock-history', JSON.stringify(data.mockHistory));
+    console.log('☁️ Firestore에서 데이터 복원 완료');
+  } catch(e) {
+    console.warn('데이터 로드 실패:', e);
+  }
+}
+
+function getAllWordHistory() {
+  const result = {};
+  Object.keys(localStorage).filter(k => k.startsWith('vs-word-')).forEach(k => {
+    try {
+      const id = k.replace('vs-word-', '');
+      result[id] = JSON.parse(localStorage.getItem(k));
+    } catch(e){}
+  });
+  return result;
+}
+
+function restoreWordHistory(data) {
+  Object.keys(data || {}).forEach(id => {
+    localStorage.setItem('vs-word-' + id, JSON.stringify(data[id]));
+  });
+}
+
+// 자동 동기화 (5분마다)
+setInterval(() => {
+  if(firebaseUser) syncUserDataToFirestore();
+}, 5 * 60 * 1000);
+
+// 학습 완료 시 동기화 트리거 (trackLearning 후크)
+const _origTrackLearning = window.trackLearning;
+window.addEventListener('load', () => {
+  if(isFirebaseConfigured()) initFirebase();
+});
+// ─────────────────────────────────────────────────────
+
+// ── 인증 (로그인/회원가입) ───────────────────────────
+const AUTH_USERS_KEY = 'vs-users';     // 사용자 DB (localStorage)
+const AUTH_SESSION_KEY = 'vs-session'; // 현재 로그인 세션
+
+// 간단한 해시 함수 (보안 강한 건 아니지만 평문 저장 방지)
+function simpleHash(str) {
+  let h = 0;
+  for(let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h) + str.charCodeAt(i);
+    h |= 0;
+  }
+  // 두 번 해시 + salt
+  const salt = 'vocasnap_v1_salt';
+  const combined = String(h) + salt + str.length;
+  let h2 = 5381;
+  for(let i = 0; i < combined.length; i++) {
+    h2 = ((h2 << 5) + h2) + combined.charCodeAt(i);
+    h2 |= 0;
+  }
+  return Math.abs(h).toString(36) + '.' + Math.abs(h2).toString(36);
+}
+
+function getUsers() {
+  try { return JSON.parse(localStorage.getItem(AUTH_USERS_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveUsers(users) {
+  localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
+}
+
+function getCurrentUser() {
+  try {
+    const session = JSON.parse(localStorage.getItem(AUTH_SESSION_KEY) || 'null');
+    if(!session) return null;
+    // 세션 만료 확인 (로그인 유지 30일, 단발 1일)
+    const now = Date.now();
+    if(session.expiresAt && session.expiresAt < now) {
+      localStorage.removeItem(AUTH_SESSION_KEY);
+      return null;
+    }
+    return session;
+  } catch(e) { return null; }
+}
+
+function isLoggedIn() {
+  return !!getCurrentUser();
+}
+
+function authTab(tab) {
+  const loginTab    = document.getElementById('auth-tab-login');
+  const signupTab   = document.getElementById('auth-tab-signup');
+  const loginForm   = document.getElementById('auth-form-login');
+  const signupForm  = document.getElementById('auth-form-signup');
+
+  if(tab === 'login') {
+    loginTab.style.background = 'var(--acc)';
+    loginTab.style.color = '#fff';
+    signupTab.style.background = 'transparent';
+    signupTab.style.color = 'var(--tx2)';
+    loginForm.style.display = 'block';
+    signupForm.style.display = 'none';
+  } else {
+    signupTab.style.background = 'var(--acc)';
+    signupTab.style.color = '#fff';
+    loginTab.style.background = 'transparent';
+    loginTab.style.color = 'var(--tx2)';
+    signupForm.style.display = 'block';
+    loginForm.style.display = 'none';
+  }
+  // 에러 메시지 숨김
+  document.getElementById('login-error').style.display  = 'none';
+  document.getElementById('signup-error').style.display = 'none';
+}
+
+function showAuthError(formId, msg) {
+  const el = document.getElementById(formId + '-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function doSignup() {
+  const name      = document.getElementById('signup-name').value.trim();
+  const email     = document.getElementById('signup-email').value.trim().toLowerCase();
+  const password  = document.getElementById('signup-password').value;
+  const password2 = document.getElementById('signup-password2').value;
+  const agreed    = document.getElementById('signup-agree').checked;
+
+  // 검증
+  if(!name) return showAuthError('signup', '이름을 입력해주세요');
+  if(!email) return showAuthError('signup', '이메일을 입력해주세요');
+  if(!validateEmail(email)) return showAuthError('signup', '올바른 이메일 형식이 아니에요');
+  if(!password) return showAuthError('signup', '비밀번호를 입력해주세요');
+  if(password.length < 6) return showAuthError('signup', '비밀번호는 6자 이상이어야 해요');
+  if(password !== password2) return showAuthError('signup', '비밀번호가 일치하지 않아요');
+  if(!agreed) return showAuthError('signup', '이용약관에 동의해주세요');
+
+  // 중복 확인
+  const users = getUsers();
+  if(users.find(u => u.email === email)) {
+    return showAuthError('signup', '이미 가입된 이메일이에요');
+  }
+
+  // Firebase 사용 가능하면 우선 사용
+  if(isFirebaseConfigured() && initFirebase() && firebaseAuth) {
+    try {
+      showAuthError('signup', '⏳ 가입 중...');
+      const fbUser = await fbSignup(email, password, name);
+      // 로컬 세션도 저장 (호환성)
+      const user = {
+        id: fbUser.uid, name, email, password: simpleHash(password),
+        createdAt: new Date().toISOString(), firebase: true,
+      };
+      loginUser(user, true);
+      localStorage.setItem('vs-profile-name',  name);
+      localStorage.setItem('vs-profile-email', email);
+      if(!localStorage.getItem('vs-profile-avatar')) localStorage.setItem('vs-profile-avatar', '😊');
+      alert(`🎉 ${name}님, 환영해요!\n클라우드에 계정이 저장됐어요.`);
+      goToOnboarding();
+      return;
+    } catch(e) {
+      // Firebase 에러 코드 처리
+      const msg = e.code === 'auth/email-already-in-use' ? '이미 가입된 이메일이에요' :
+                  e.code === 'auth/weak-password' ? '비밀번호가 너무 약해요 (6자 이상)' :
+                  e.code === 'auth/invalid-email' ? '올바른 이메일이 아니에요' :
+                  '가입 실패: ' + e.message;
+      showAuthError('signup', msg);
+      return;
+    }
+  }
+
+  // 로컬 모드 (Firebase 미설정)
+  const user = {
+    id:        'u_' + Date.now(),
+    name:      name,
+    email:     email,
+    password:  simpleHash(password),
+    createdAt: new Date().toISOString(),
+  };
+  users.push(user);
+  saveUsers(users);
+  loginUser(user, true);
+  localStorage.setItem('vs-profile-name',  name);
+  localStorage.setItem('vs-profile-email', email);
+  if(!localStorage.getItem('vs-profile-avatar')) {
+    localStorage.setItem('vs-profile-avatar', '😊');
+  }
+  alert(`🎉 ${name}님, 환영해요!\n로컬에 저장됐어요. (Firebase 미연결)`);
+  goToOnboarding();
+}
+
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+  const remember = document.getElementById('login-remember').checked;
+
+  if(!email) return showAuthError('login', '이메일을 입력해주세요');
+  if(!password) return showAuthError('login', '비밀번호를 입력해주세요');
+
+  // Firebase 우선
+  if(isFirebaseConfigured() && initFirebase() && firebaseAuth) {
+    try {
+      showAuthError('login', '⏳ 로그인 중...');
+      const fbUser = await fbLogin(email, password);
+      const name = fbUser.displayName || email.split('@')[0];
+      const user = { id: fbUser.uid, name, email, firebase: true };
+      loginUser(user, remember);
+      localStorage.setItem('vs-profile-name',  name);
+      localStorage.setItem('vs-profile-email', email);
+      // 클라우드 데이터 복원
+      setTimeout(() => loadUserDataFromFirestore(), 500);
+      document.querySelectorAll('.scr').forEach(s => s.classList.remove('on'));
+      document.getElementById('s-home').classList.add('on');
+      stack = ['s-home'];
+      setTimeout(() => { try { loadHomeData(); applyProfile(); } catch(e){} }, 800);
+      return;
+    } catch(e) {
+      const msg = e.code === 'auth/user-not-found' ? '등록되지 않은 이메일이에요' :
+                  e.code === 'auth/wrong-password' ? '비밀번호가 일치하지 않아요' :
+                  e.code === 'auth/invalid-credential' ? '이메일 또는 비밀번호가 잘못됐어요' :
+                  e.code === 'auth/too-many-requests' ? '너무 많이 시도했어요. 잠시 후 다시 시도' :
+                  '로그인 실패: ' + e.message;
+      showAuthError('login', msg);
+      return;
+    }
+  }
+
+  // 로컬 모드
+  const users = getUsers();
+  const user  = users.find(u => u.email === email);
+  if(!user) return showAuthError('login', '등록되지 않은 이메일이에요');
+  if(user.password !== simpleHash(password)) {
+    return showAuthError('login', '비밀번호가 일치하지 않아요');
+  }
+  loginUser(user, remember);
+  localStorage.setItem('vs-profile-name',  user.name);
+  localStorage.setItem('vs-profile-email', user.email);
+  document.querySelectorAll('.scr').forEach(s => s.classList.remove('on'));
+  document.getElementById('s-home').classList.add('on');
+  stack = ['s-home'];
+  setTimeout(() => { try { loadHomeData(); applyProfile(); } catch(e){} }, 100);
+}
+
+function loginUser(user, remember) {
+  const expiresAt = Date.now() + (remember ? 30 : 1) * 24 * 60 * 60 * 1000;
+  localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({
+    userId:    user.id,
+    name:      user.name,
+    email:     user.email,
+    loginAt:   Date.now(),
+    expiresAt: expiresAt,
+  }));
+}
+
+async function doLogout() {
+  if(!confirm('정말 로그아웃 하시겠어요?\n학습 기록은 남아있어요.')) return;
+
+  // Firebase 로그아웃 + 동기화
+  if(firebaseUser) {
+    await syncUserDataToFirestore();
+    await fbLogout();
+  }
+
+  localStorage.removeItem(AUTH_SESSION_KEY);
+
+  // 인증 화면으로 돌아가기
+  document.querySelectorAll('.scr').forEach(s => s.classList.remove('on'));
+  document.getElementById('s-auth').classList.add('on');
+  stack = ['s-auth'];
+
+  // 입력란 초기화
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+function skipAuth() {
+  // 비회원 진입 - 온보딩으로
+  if(!confirm('비회원으로 시작하시겠어요?\n\n• 학습 기록은 이 기기에만 저장돼요\n• 나중에 가입하면 데이터를 가져올 수 있어요')) return;
+
+  // 비회원 표시
+  localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({
+    userId:   'guest',
+    name:     '게스트',
+    email:    '',
+    isGuest:  true,
+    loginAt:  Date.now(),
+    expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+  }));
+
+  goToOnboarding();
+}
+
+async function forgotPassword() {
+  const email = prompt('가입한 이메일을 입력해주세요:');
+  if(!email) return;
+  const e = email.trim().toLowerCase();
+
+  // Firebase 모드: 이메일로 재설정 링크 전송
+  if(isFirebaseConfigured() && initFirebase() && firebaseAuth) {
+    try {
+      await fbResetPassword(e);
+      alert('✅ 비밀번호 재설정 이메일을 보냈어요!\n메일함을 확인해주세요.');
+      return;
+    } catch(err) {
+      const msg = err.code === 'auth/user-not-found' ? '등록되지 않은 이메일이에요' :
+                  '실패: ' + err.message;
+      alert(msg);
+      return;
+    }
+  }
+
+  // 로컬 모드
+  const users = getUsers();
+  const user  = users.find(u => u.email === e);
+  if(!user) { alert('등록되지 않은 이메일이에요'); return; }
+  const newPw = prompt(`${user.name}님, 새 비밀번호를 입력해주세요 (6자 이상):`);
+  if(!newPw || newPw.length < 6) { alert('비밀번호는 6자 이상이어야 해요'); return; }
+  user.password = simpleHash(newPw);
+  saveUsers(users);
+  alert('✅ 비밀번호가 변경됐어요!');
+}
+
+function goToOnboarding() {
+  document.querySelectorAll('.scr').forEach(s => s.classList.remove('on'));
+  // 온보딩 본 적 있으면 홈으로 바로
+  if(localStorage.getItem('vs-onboarding-done')) {
+    document.getElementById('s-home').classList.add('on');
+    stack = ['s-home'];
+    setTimeout(() => { try { loadHomeData(); applyProfile(); } catch(e){} }, 100);
+  } else {
+    document.getElementById('s-ob').classList.add('on');
+    stack = ['s-ob'];
+  }
+}
+
+// 앱 시작 시 로그인 상태 확인
+function checkAuthOnStart() {
+  const user = getCurrentUser();
+  if(user) {
+    // 로그인된 상태 - 온보딩 건너뛰거나 홈으로
+    document.querySelectorAll('.scr').forEach(s => s.classList.remove('on'));
+    if(localStorage.getItem('vs-onboarding-done')) {
+      document.getElementById('s-home').classList.add('on');
+      stack = ['s-home'];
+      setTimeout(() => { try { loadHomeData(); applyProfile(); } catch(e){} }, 100);
+    } else {
+      document.getElementById('s-ob').classList.add('on');
+      stack = ['s-ob'];
+    }
+  }
+  // 비로그인 상태는 s-auth가 기본 표시됨
+}
+// ─────────────────────────────────────────────────────
+
 function nav(id){
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   const el=document.getElementById(id);
@@ -1642,6 +2491,7 @@ function obNext(){
   obStep++;
   if(obStep > 2){
     // 온보딩 완료 → 홈으로 강제 이동
+    localStorage.setItem('vs-onboarding-done', '1');
     document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
     const home=document.getElementById('s-home');
     if(home) home.classList.add('on');
@@ -5319,9 +6169,26 @@ function saveProfileEdit() {
 }
 
 function applyProfile() {
-  const name   = localStorage.getItem('vs-profile-name')  || '나의 VocaSnap';
-  const email  = localStorage.getItem('vs-profile-email') || '이메일을 등록해보세요';
+  const user   = getCurrentUser ? getCurrentUser() : null;
+  const name   = (user?.name)  || localStorage.getItem('vs-profile-name')  || '나의 VocaSnap';
+  const email  = (user?.email) || localStorage.getItem('vs-profile-email') || '이메일을 등록해보세요';
   const avatar = localStorage.getItem('vs-profile-avatar')|| '👤';
+
+  // 계정 정보 표시
+  const acctEl = document.getElementById('profile-account-info');
+  if(acctEl) {
+    if(user?.isGuest) acctEl.textContent = '게스트 모드 · 로그인하기';
+    else if(user) acctEl.textContent = email + ' · 로그아웃';
+    else acctEl.textContent = '로그인하기';
+  }
+
+  // Firebase 상태 표시
+  const fbStatus = document.getElementById('profile-firebase-status');
+  if(fbStatus) {
+    if(firebaseUser) fbStatus.textContent = '✅ 연결됨 · ' + firebaseUser.email;
+    else if(isFirebaseConfigured()) fbStatus.textContent = '설정됨 · 로그인 필요';
+    else fbStatus.textContent = '미설정 · 탭해서 연결';
+  }
 
   setText('profile-username', name);
   setText('profile-email',    email || '이메일을 등록해보세요');
@@ -5387,6 +6254,9 @@ function saveDailyCount(){
   localStorage.setItem(key, String(done));
 }
 
+if(isFirebaseConfigured()) initFirebase();
+setTimeout(updateFirebaseStatusBar, 200);
+checkAuthOnStart();
 renderWeekChart();
 checkDailyReset();
 refreshStreakBanner(Number(localStorage.getItem("vs-streak")||0));
