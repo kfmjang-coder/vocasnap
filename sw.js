@@ -1,21 +1,27 @@
-// VocaSnap Service Worker v6 - 강제 캐시 무효화
-const CACHE_VERSION = 'v6-' + new Date().toISOString().split('T')[0];
-const CACHE_NAME    = 'vocasnap-' + CACHE_VERSION;
+// VocaSnap Service Worker v7 - 캐시 완전 비활성화 (개발 중)
+const SW_VERSION = 'v7-' + Date.now();
 
 self.addEventListener('install', e => {
-  console.log('[SW] Installing', CACHE_VERSION);
+  console.log('[SW] Installing', SW_VERSION);
   self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
-  console.log('[SW] Activating', CACHE_VERSION);
+  console.log('[SW] Activating', SW_VERSION);
   e.waitUntil(
+    // 모든 기존 캐시 완전 삭제
     caches.keys().then(keys =>
       Promise.all(keys.map(k => {
-        console.log('[SW] Deleting old cache:', k);
+        console.log('[SW] Deleting cache:', k);
         return caches.delete(k);
       }))
     ).then(() => self.clients.claim())
+     .then(() => {
+       // 모든 클라이언트에 강제 리로드 메시지
+       return self.clients.matchAll().then(clients => {
+         clients.forEach(c => c.postMessage({type: 'FORCE_RELOAD'}));
+       });
+     })
   );
 });
 
@@ -26,46 +32,20 @@ self.addEventListener('message', e => {
   }
 });
 
-// Network-first 전략 - HTML/JS는 항상 최신
+// Network-only - 모든 요청을 항상 네트워크에서 가져옴 (캐시 사용 안 함)
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // API 호출은 캐싱 제외
+  // API는 그냥 통과 (캐싱/가로채기 안 함)
   if(url.hostname.includes('script.google.com') ||
      url.hostname.includes('googleapis.com')) return;
 
-  // HTML / JS / CSS는 항상 네트워크 우선
-  if(e.request.mode === 'navigate' ||
-     url.pathname.endsWith('.html') ||
-     url.pathname.endsWith('.js') ||
-     url.pathname.endsWith('.css') ||
-     url.pathname === '/' ||
-     url.pathname.endsWith('/')) {
-    e.respondWith(
-      fetch(e.request, {cache: 'no-store'})
-        .then(res => {
-          if(res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
-          }
-          return res;
-        })
-        .catch(() => caches.match(e.request))
-    );
-    return;
-  }
-
-  // 이미지/아이콘 등 정적 자원: 캐시 우선
+  // 모든 자원을 항상 네트워크에서 가져옴 (no-cache)
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fetched = fetch(e.request).then(res => {
-        if(res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
-        }
-        return res;
-      }).catch(() => cached);
-      return cached || fetched;
-    })
+    fetch(e.request, {cache: 'no-store'})
+      .catch(() => {
+        // 네트워크 실패 시에만 캐시 폴백 (오프라인 대비)
+        return caches.match(e.request);
+      })
   );
 });

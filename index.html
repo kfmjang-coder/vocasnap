@@ -2,6 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2421,6 +2424,8 @@ function qRestart(){qWrong=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트) ──
 if('serviceWorker' in navigator){
+  window.APP_BUILD = '20260524-0615';
+console.log('App build:', window.APP_BUILD);
   navigator.serviceWorker.register('./sw.js').then(reg => {
     console.log('SW registered');
     // 1시간마다 업데이트 체크
@@ -2440,7 +2445,15 @@ if('serviceWorker' in navigator){
   // SW 변경 시 페이지 리로드
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     console.log('SW updated, reloading...');
-    window.location.reload();
+    window.location.reload(true);
+  });
+
+  // SW에서 강제 리로드 요청 받으면 즉시 새로고침
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if(e.data?.type === 'FORCE_RELOAD') {
+      console.log('SW: force reload received');
+      window.location.reload(true);
+    }
   });
 }
 
