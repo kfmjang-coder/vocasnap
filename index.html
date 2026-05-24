@@ -1854,9 +1854,29 @@ function qRestart(){qWrong=[];nav('s-quiz');}
 // ── CLOCK ──
 // 상태바 제거됨 (safe-area-inset으로 대체)
 
-// ── PWA: SERVICE WORKER ──
+// ── PWA: SERVICE WORKER (강제 업데이트) ──
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js').then(r=>console.log('SW registered'));
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    console.log('SW registered');
+    // 1시간마다 업데이트 체크
+    setInterval(()=>reg.update(), 3600000);
+    // 새 버전 감지 시 즉시 활성화
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      if(!nw) return;
+      nw.addEventListener('statechange', () => {
+        if(nw.state === 'installed' && navigator.serviceWorker.controller) {
+          // 새 SW 대기 중 - 즉시 적용
+          nw.postMessage({type:'SKIP_WAITING'});
+        }
+      });
+    });
+  });
+  // SW 변경 시 페이지 리로드
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    console.log('SW updated, reloading...');
+    window.location.reload();
+  });
 }
 
 // ── PWA: INSTALL BANNER ──
