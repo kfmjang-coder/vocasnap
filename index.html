@@ -289,12 +289,8 @@ body{
         🚀 비회원으로 둘러보기
       </button>
 
-      <!-- Firebase 설정 안내 -->
-      <div id="firebase-status-bar" style="margin-top:12px;padding:10px;border-radius:8px;font-size:12px;text-align:center"></div>
-
-      <div style="font-size:11px;color:var(--tx3);text-align:center;margin-top:10px;line-height:1.5">
-        클라우드 동기화 (모든 기기에서 학습 기록 공유):<br>
-        <span onclick="openFirebaseSetup()" style="color:var(--acc);text-decoration:underline;cursor:pointer">🔥 Firebase 설정하기</span>
+      <div style="font-size:11px;color:var(--tx3);text-align:center;margin-top:14px;line-height:1.5">
+        가입하시면 모든 기기에서 학습 기록을 동기화할 수 있어요
       </div>
     </div>
   </div>
@@ -1236,36 +1232,6 @@ body{
     <!-- 계정 -->
     <div class="sh"><span class="st">계정</span></div>
     <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
-      <div onclick="openFirebaseSetup()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:18px">🔥</span>
-          <div>
-            <div style="font-size:14px;color:var(--tx)">Firebase 클라우드</div>
-            <div style="font-size:12px;color:var(--tx2)" id="profile-firebase-status">미설정</div>
-          </div>
-        </div>
-        <span style="color:var(--tx3)">›</span>
-      </div>
-      <div onclick="manualSyncFirebase()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:18px">☁️</span>
-          <div>
-            <div style="font-size:14px;color:var(--tx)">지금 동기화</div>
-            <div style="font-size:12px;color:var(--tx2)">학습 기록을 클라우드에 백업</div>
-          </div>
-        </div>
-        <span style="color:var(--tx3)">›</span>
-      </div>
-      <div onclick="migrateSheetsToFirestore()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:18px">📥</span>
-          <div>
-            <div style="font-size:14px;color:var(--tx)">Sheets → Firestore 마이그레이션</div>
-            <div style="font-size:12px;color:var(--tx2)">기존 단어를 클라우드로 복사</div>
-          </div>
-        </div>
-        <span style="color:var(--tx3)">›</span>
-      </div>
       <div onclick="doLogout()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
         <div style="display:flex;align-items:center;gap:10px">
           <span style="font-size:18px">🚪</span>
@@ -2018,7 +1984,8 @@ async function fsGetStats() {
 
 // 데이터 모드 확인
 function isFirestoreMode() {
-  return !!firebaseUser;
+  // Firebase 모드 비활성화 - Google Sheets 사용
+  return false;
 }
 
 // 기존 sheetsGet을 가로채는 통합 데이터 함수
@@ -2136,33 +2103,11 @@ function _sheetsGetIntercepted(action, params) {
   return _origSheetsGet ? _origSheetsGet(action, params) : Promise.resolve({error: 'no backend'});
 }
 
-// 페이지 로드 후 sheetsGet을 가로채기
-window.addEventListener('load', () => {
-  if(typeof sheetsGet === 'function') {
-    const orig = sheetsGet;
-    window.sheetsGet = function(action, params) {
-      if(isFirestoreMode()) {
-        return dataGet(action, params);
-      }
-      return orig(action, params);
-    };
-    console.log('✅ sheetsGet 인터셉터 활성화 (Firestore 우선)');
-  }
-});
+// sheetsGet 인터셉터 비활성화 (Sheets 직접 사용)
+// window.addEventListener('load', () => { ... });
 
-// getSheetsUrl도 가로채기 - Firestore 모드면 항상 true 반환 (호출 통과시키기)
-const _origGetSheetsUrl = window.getSheetsUrl;
-window.addEventListener('load', () => {
-  if(typeof getSheetsUrl === 'function') {
-    const orig = getSheetsUrl;
-    window.getSheetsUrl = function() {
-      // Firestore 모드면 더미 URL 반환 (호출이 진행되도록)
-      if(isFirestoreMode()) return 'firestore://active';
-      return orig();
-    };
-    console.log('✅ getSheetsUrl 인터셉터 활성화');
-  }
-});
+// getSheetsUrl 인터셉터 비활성화
+// window.addEventListener('load', () => { ... });
 // ─────────────────────────────────────────────────────
 
 // ── Firebase 클라우드 동기화 ──────────────────────────
@@ -2453,15 +2398,17 @@ function restoreWordHistory(data) {
 }
 
 // 자동 동기화 (5분마다)
-setInterval(() => {
-  if(firebaseUser) syncUserDataToFirestore();
-}, 5 * 60 * 1000);
+// Firebase 자동 동기화 비활성화
+// setInterval(() => {
+//   if(firebaseUser) syncUserDataToFirestore();
+// }, 5 * 60 * 1000);
 
 // 학습 완료 시 동기화 트리거 (trackLearning 후크)
 const _origTrackLearning = window.trackLearning;
-window.addEventListener('load', () => {
-  if(isFirebaseConfigured()) initFirebase();
-});
+// Firebase 자동 초기화 비활성화 (Sheets 모드)
+// window.addEventListener('load', () => {
+//   if(isFirebaseConfigured()) initFirebase();
+// });
 // ─────────────────────────────────────────────────────
 
 // ── 인증 (로그인/회원가입) ───────────────────────────
@@ -2572,8 +2519,8 @@ async function doSignup() {
     return showAuthError('signup', '이미 가입된 이메일이에요');
   }
 
-  // Firebase 사용 가능하면 우선 사용
-  if(isFirebaseConfigured() && initFirebase() && firebaseAuth) {
+  // Firebase 비활성화 - 로컬 모드만 사용
+  if(false && isFirebaseConfigured() && initFirebase() && firebaseAuth) {
     try {
       showAuthError('signup', '⏳ 가입 중...');
       const fbUser = await fbSignup(email, password, name);
@@ -2628,8 +2575,8 @@ async function doLogin() {
   if(!email) return showAuthError('login', '이메일을 입력해주세요');
   if(!password) return showAuthError('login', '비밀번호를 입력해주세요');
 
-  // Firebase 우선
-  if(isFirebaseConfigured() && initFirebase() && firebaseAuth) {
+  // Firebase 비활성화 - 로컬 모드만 사용
+  if(false && isFirebaseConfigured() && initFirebase() && firebaseAuth) {
     try {
       showAuthError('login', '⏳ 로그인 중...');
       const fbUser = await fbLogin(email, password);
@@ -2686,11 +2633,11 @@ function loginUser(user, remember) {
 async function doLogout() {
   if(!confirm('정말 로그아웃 하시겠어요?\n학습 기록은 남아있어요.')) return;
 
-  // Firebase 로그아웃 + 동기화
-  if(firebaseUser) {
-    await syncUserDataToFirestore();
-    await fbLogout();
-  }
+  // Firebase 비활성화 - 호출 제거
+  // if(firebaseUser) {
+  //   await syncUserDataToFirestore();
+  //   await fbLogout();
+  // }
 
   localStorage.removeItem(AUTH_SESSION_KEY);
 
@@ -2726,8 +2673,8 @@ async function forgotPassword() {
   if(!email) return;
   const e = email.trim().toLowerCase();
 
-  // Firebase 모드: 이메일로 재설정 링크 전송
-  if(isFirebaseConfigured() && initFirebase() && firebaseAuth) {
+  // Firebase 비활성화
+  if(false && isFirebaseConfigured() && initFirebase() && firebaseAuth) {
     try {
       await fbResetPassword(e);
       alert('✅ 비밀번호 재설정 이메일을 보냈어요!\n메일함을 확인해주세요.');
@@ -3339,22 +3286,16 @@ function fcAns(type){
     // 단어별 학습 이력 (localStorage)
     w.status = computeWordStatus(w, know);
 
-    // 학습 결과 저장
-    if(w.id) {
-      if(isFirestoreMode() && w.wordSetId) {
-        // Firestore에 학습 기록 (트랜잭션)
-        fsRecordLearning(w, know).catch(e => console.warn('FS 기록 실패:', e));
-      } else if(getSheetsUrl()) {
-        // Sheets fallback
-        const history = getWordHistory(w.id);
-        const sm2Result = sm2({
-          easeFactor: history.easeFactor || 2.5,
-          interval:   history.interval   || 1,
-          repetitions: history.knowCount || 0
-        }, know ? 4 : 1);
-        sm2Result.status = w.status;
-        saveReviewToSheets(w.id, sm2Result).catch(()=>{});
-      }
+    // Sheets 저장 (SM-2 + status)
+    if(w.id && getSheetsUrl()) {
+      const history = getWordHistory(w.id);
+      const sm2Result = sm2({
+        easeFactor: history.easeFactor || 2.5,
+        interval:   history.interval   || 1,
+        repetitions: history.knowCount || 0
+      }, know ? 4 : 1);
+      sm2Result.status = w.status;
+      saveReviewToSheets(w.id, sm2Result).catch(()=>{});
     }
   }
 
@@ -3587,19 +3528,15 @@ function qPick(chosen,ans){
   if(qw) {
     qw.status = computeWordStatus(qw, ok);
 
-    if(qw.id) {
-      if(isFirestoreMode() && qw.wordSetId) {
-        fsRecordLearning(qw, ok).catch(e => console.warn('FS 기록 실패:', e));
-      } else if(getSheetsUrl()) {
-        const history = getWordHistory(qw.id);
-        const sm2Result = sm2({
-          easeFactor: history.easeFactor || 2.5,
-          interval:   history.interval   || 1,
-          repetitions: history.knowCount || 0
-        }, ok ? 4 : 1);
-        sm2Result.status = qw.status;
-        saveReviewToSheets(qw.id, sm2Result).catch(()=>{});
-      }
+    if(qw.id && getSheetsUrl()) {
+      const history = getWordHistory(qw.id);
+      const sm2Result = sm2({
+        easeFactor: history.easeFactor || 2.5,
+        interval:   history.interval   || 1,
+        repetitions: history.knowCount || 0
+      }, ok ? 4 : 1);
+      sm2Result.status = qw.status;
+      saveReviewToSheets(qw.id, sm2Result).catch(()=>{});
     }
   }
 
@@ -4450,8 +4387,7 @@ async function loadWordSets(forceRefresh) {
     if(el) el.style.display = 'none';
   });
 
-  // Firestore 모드 우선 - URL 체크 무시
-  if(!isFirestoreMode() && !url) {
+  if(!url) {
     const el = document.getElementById('wslist-no-sheets');
     if(el) el.style.display = 'block';
     renderHomeWordSets([]);
@@ -4679,22 +4615,17 @@ async function showCreateWordSet() {
   if(!name?.trim()) return;
   const trimmed = name.trim();
 
+  const url = getSheetsUrl();
+  if(!url) {
+    alert('Google Sheets를 먼저 연결해주세요.');
+    return;
+  }
+
   try {
-    if(isFirestoreMode()) {
-      // Firestore 모드
-      await fsCreateWordSet(trimmed, '#7F77DD');
-    } else {
-      // Sheets 모드 (fallback)
-      const url = getSheetsUrl();
-      if(!url) {
-        alert('Google Sheets를 먼저 연결해주세요.');
-        return;
-      }
-      const apiUrl = url + '?action=createWordSet&name=' + encodeURIComponent(trimmed) + '&color=' + encodeURIComponent('#7F77DD');
-      const res  = await fetch(apiUrl);
-      const data = await res.json();
-      if(data.error) throw new Error(data.error);
-    }
+    const apiUrl = url + '?action=createWordSet&name=' + encodeURIComponent(trimmed) + '&color=' + encodeURIComponent('#7F77DD');
+    const res  = await fetch(apiUrl);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
     alert(`"${trimmed}" 단어장이 만들어졌어요!`);
     localStorage.removeItem('vs-wslist-cache');
     loadWordSets(true);
@@ -6381,16 +6312,12 @@ async function renameWordSet(wsId, currentName) {
   if(!newName?.trim() || newName.trim() === currentName) return;
 
   try {
-    if(isFirestoreMode()) {
-      await fsRenameWordSet(wsId, newName.trim());
-    } else {
-      const url  = getSheetsUrl() + '?action=renameWordSet&wsId=' + encodeURIComponent(wsId) + '&name=' + encodeURIComponent(newName.trim());
-      const res  = await fetch(url);
-      const text = await res.text();
-      if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
-      const data = JSON.parse(text);
-      if(data.error) throw new Error(data.error);
-    }
+    const url  = getSheetsUrl() + '?action=renameWordSet&wsId=' + encodeURIComponent(wsId) + '&name=' + encodeURIComponent(newName.trim());
+    const res  = await fetch(url);
+    const text = await res.text();
+    if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
+    const data = JSON.parse(text);
+    if(data.error) throw new Error(data.error);
 
     // 화면 즉시 업데이트
     const nameEl = document.getElementById('ws-name-' + wsId);
@@ -6409,16 +6336,12 @@ async function deleteWordSet(wsId, name) {
   if(!confirm(`"${name}" 단어장을 삭제할까요?\n\n⚠️ 단어장에 포함된 단어는 삭제되지 않아요.`)) return;
 
   try {
-    if(isFirestoreMode()) {
-      await fsDeleteWordSet(wsId);
-    } else {
-      const url  = getSheetsUrl() + '?action=deleteWordSet&wsId=' + encodeURIComponent(wsId);
-      const res  = await fetch(url);
-      const text = await res.text();
-      if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
-      const data = JSON.parse(text);
-      if(data.error) throw new Error(data.error);
-    }
+    const url  = getSheetsUrl() + '?action=deleteWordSet&wsId=' + encodeURIComponent(wsId);
+    const res  = await fetch(url);
+    const text = await res.text();
+    if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
+    const data = JSON.parse(text);
+    if(data.error) throw new Error(data.error);
 
     // 캐시 초기화 + 화면 새로고침
     localStorage.removeItem('vs-wslist-cache');
@@ -6689,8 +6612,7 @@ function saveDailyCount(){
   localStorage.setItem(key, String(done));
 }
 
-if(isFirebaseConfigured()) initFirebase();
-setTimeout(updateFirebaseStatusBar, 200);
+// Firebase 초기화 비활성화
 checkAuthOnStart();
 renderWeekChart();
 checkDailyReset();
