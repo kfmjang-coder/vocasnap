@@ -562,7 +562,8 @@ body{
       <div class="mcard" onclick="startWordSetLearning('fc-reverse')"><i class="ti ti-arrows-shuffle" style="font-size:22px;color:#EF9F27;margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">역방향 카드</div><div style="font-size:11px;color:var(--tx2)">한국어 → 영어</div></div>
       <div class="mcard" onclick="startWordSetLearning('quiz')"><i class="ti ti-list-check" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">퀴즈 모드</div><div style="font-size:11px;color:var(--tx2)">객관식</div></div>
       <div class="mcard" onclick="startWordSetLearning('review')"><i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">복습 모드</div><div style="font-size:11px;color:var(--tx2)">학습한 단어만</div></div>
-      <div class="mcard" onclick="openImportModal()" style="grid-column:span 2"><i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">단어 임포트</div><div style="font-size:11px;color:var(--tx2)">촬영 / 직접 입력</div></div>
+      <div class="mcard" onclick="openMockTestModal()"><i class="ti ti-pencil" style="font-size:22px;color:var(--red);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">모의테스트</div><div style="font-size:11px;color:var(--tx2)">발음 듣고 받아쓰기</div></div>
+      <div class="mcard" onclick="openImportModal()"><i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">단어 임포트</div><div style="font-size:11px;color:var(--tx2)">촬영 / 직접 입력</div></div>
     </div>
     <div style="height:20px"></div>
   </div>
@@ -685,6 +686,117 @@ body{
   </div>
 </div>
 
+
+
+<!-- ══ 모의테스트 진행 화면 ══ -->
+<div class="scr" id="s-mock">
+  <div class="tbar" style="padding-top:calc(env(safe-area-inset-top,0px) + 6px)">
+    <button class="bk" onclick="exitMockTest()"><i class="ti ti-arrow-left"></i></button>
+    <div style="flex:1">
+      <div class="ttl">모의테스트</div>
+      <div style="font-size:12px;color:var(--tx2)" id="mock-progress-label">1 / 10</div>
+    </div>
+    <div id="mock-timer" style="font-size:14px;font-weight:500;color:var(--acc);background:var(--acc-l);padding:5px 12px;border-radius:14px">00:00</div>
+  </div>
+
+  <!-- 진행률 바 -->
+  <div style="padding:0 16px;background:var(--sf);flex-shrink:0">
+    <div class="pb-bg" style="margin-bottom:10px"><div class="pb-f" id="mock-prog" style="width:0%"></div></div>
+  </div>
+
+  <div class="scroll" style="padding:24px 16px">
+    <!-- 문제 번호 -->
+    <div style="text-align:center;font-size:13px;color:var(--tx2);margin-bottom:14px">
+      문제 <span id="mock-qnum" style="color:var(--acc);font-weight:500">1</span> / <span id="mock-qtotal">10</span>
+    </div>
+
+    <!-- 발음 듣기 영역 -->
+    <div style="background:var(--acc);border-radius:20px;padding:36px 24px;text-align:center;margin-bottom:20px;color:#fff">
+      <div style="font-size:14px;opacity:.8;margin-bottom:14px">발음을 듣고 단어를 맞춰보세요</div>
+      <div onclick="mockSpeak()" style="width:80px;height:80px;border-radius:40px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;cursor:pointer;border:3px solid rgba(255,255,255,.4)">
+        <i class="ti ti-volume" style="font-size:38px;color:#fff"></i>
+      </div>
+      <div style="font-size:13px;opacity:.7" id="mock-play-count">탭해서 들어보세요</div>
+    </div>
+
+    <!-- 입력 영역 -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">영어 스펠</div>
+      <input id="mock-input-en" type="text" placeholder="들은 단어를 입력하세요" autocomplete="off" autocapitalize="off" spellcheck="false"
+        style="width:100%;padding:14px 16px;border:1px solid var(--bd);border-radius:10px;font-size:18px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;text-align:center"
+        oninput="this.style.borderColor='var(--acc)'">
+    </div>
+
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">한글 뜻</div>
+      <input id="mock-input-ko" type="text" placeholder="뜻을 입력하세요"
+        style="width:100%;padding:14px 16px;border:1px solid var(--bd);border-radius:10px;font-size:16px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;text-align:center"
+        oninput="this.style.borderColor='var(--acc)'">
+    </div>
+
+    <!-- 정답 확인 결과 -->
+    <div id="mock-feedback" style="display:none;border-radius:10px;padding:14px;margin-bottom:14px;text-align:center">
+      <div id="mock-feedback-emoji" style="font-size:32px;margin-bottom:6px">✅</div>
+      <div id="mock-feedback-text" style="font-size:14px;font-weight:500;margin-bottom:8px">정답이에요!</div>
+      <div id="mock-correct-answer" style="font-size:13px;line-height:1.7"></div>
+    </div>
+
+    <!-- 점수 표시 -->
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <div style="flex:1;padding:8px;background:var(--grn-l);border-radius:8px;text-align:center">
+        <div style="font-size:11px;color:var(--grn);margin-bottom:2px">정답</div>
+        <div style="font-size:16px;font-weight:500;color:var(--grn)"><span id="mock-correct">0</span></div>
+      </div>
+      <div style="flex:1;padding:8px;background:var(--red-l);border-radius:8px;text-align:center">
+        <div style="font-size:11px;color:var(--red);margin-bottom:2px">오답</div>
+        <div style="font-size:16px;font-weight:500;color:var(--red)"><span id="mock-wrong">0</span></div>
+      </div>
+      <div style="flex:1;padding:8px;background:var(--acc-l);border-radius:8px;text-align:center">
+        <div style="font-size:11px;color:var(--acc);margin-bottom:2px">정확도</div>
+        <div style="font-size:16px;font-weight:500;color:var(--acc)"><span id="mock-acc">--</span>%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하단 버튼 -->
+  <div class="bbar">
+    <button id="mock-submit-btn" class="savbtn" onclick="checkMockAnswer()">정답 확인하기</button>
+  </div>
+</div>
+
+
+<!-- ══ 모의테스트 결과 ══ -->
+<div class="scr" id="s-mock-result">
+  <div class="tbar" style="padding-top:calc(env(safe-area-inset-top,0px) + 6px)">
+    <span class="ttl">테스트 결과</span>
+  </div>
+  <div class="scroll" style="padding:28px 16px">
+
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:60px;margin-bottom:12px" id="mock-res-emoji">🎉</div>
+      <div style="font-size:24px;font-weight:500;color:var(--tx);margin-bottom:6px" id="mock-res-title">훌륭해요!</div>
+      <div style="font-size:14px;color:var(--tx2)" id="mock-res-sub">모의테스트를 완료했어요</div>
+    </div>
+
+    <!-- 점수 카드 -->
+    <div class="sg" style="margin-bottom:20px">
+      <div class="sc"><div style="font-size:22px;font-weight:500;color:var(--acc);margin-bottom:2px" id="mock-res-score">0/10</div><div style="font-size:11px;color:var(--tx2)">정답 수</div></div>
+      <div class="sc"><div style="font-size:22px;font-weight:500;color:var(--grn);margin-bottom:2px" id="mock-res-pct">0%</div><div style="font-size:11px;color:var(--tx2)">정확도</div></div>
+      <div class="sc"><div style="font-size:22px;font-weight:500;color:var(--tx);margin-bottom:2px" id="mock-res-time">0분</div><div style="font-size:11px;color:var(--tx2)">소요 시간</div></div>
+      <div class="sc"><div style="font-size:22px;font-weight:500;color:var(--amb);margin-bottom:2px" id="mock-res-grade">B</div><div style="font-size:11px;color:var(--tx2)">등급</div></div>
+    </div>
+
+    <!-- 틀린 단어 리스트 -->
+    <div class="sh"><span class="st" id="mock-wrong-title">틀린 단어</span></div>
+    <div id="mock-wrong-list" style="margin:0 16px 20px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
+    </div>
+
+    <button class="savbtn" style="margin:0 16px 10px;width:calc(100% - 32px)" onclick="reviewMockWrong()">틀린 단어 복습하기</button>
+    <button class="savbtn" style="background:var(--sf2);color:var(--tx2);border:0.5px solid var(--bd);margin:0 16px 10px;width:calc(100% - 32px)" onclick="openMockTestModal();nav('s-home')">다시 시험보기</button>
+    <button class="savbtn" style="background:var(--sf2);color:var(--tx2);border:0.5px solid var(--bd);margin:0 16px;width:calc(100% - 32px)" onclick="nav('s-home')">홈으로</button>
+    <div style="height:20px"></div>
+  </div>
+</div>
 
 <!-- ══ STATS ══ -->
 <div class="scr" id="s-stats">
@@ -968,6 +1080,60 @@ body{
     <div style="padding:0 20px 20px">
       <button onclick="document.getElementById('stats-info-modal').style.display='none'" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">알겠어요!</button>
     </div>
+  </div>
+</div>
+
+
+<!-- ══ 모의테스트 설정 모달 ══ -->
+<div id="mock-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:flex-end;justify-content:center">
+  <div style="background:var(--sf);border-radius:20px 20px 0 0;width:100%;max-width:430px;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div>
+        <div style="font-size:17px;font-weight:500;color:var(--tx)">📝 모의테스트</div>
+        <div style="font-size:12px;color:var(--tx2);margin-top:2px">발음 듣고 영어/한글 받아쓰기</div>
+      </div>
+      <div onclick="document.getElementById('mock-setup-modal').style.display='none'" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
+      </div>
+    </div>
+
+    <!-- 테스트 단어 수 -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:8px">테스트할 단어 수</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div onclick="setMockCount(10)" id="mc-10" class="mock-count-btn" style="flex:1;padding:12px;background:var(--acc);color:#fff;border-radius:10px;font-size:14px;font-weight:500;text-align:center;cursor:pointer">10개</div>
+        <div onclick="setMockCount(20)" id="mc-20" class="mock-count-btn" style="flex:1;padding:12px;background:var(--sf2);color:var(--tx);border-radius:10px;font-size:14px;font-weight:500;text-align:center;cursor:pointer">20개</div>
+        <div onclick="setMockCount(30)" id="mc-30" class="mock-count-btn" style="flex:1;padding:12px;background:var(--sf2);color:var(--tx);border-radius:10px;font-size:14px;font-weight:500;text-align:center;cursor:pointer">30개</div>
+        <div onclick="setMockCount(50)" id="mc-50" class="mock-count-btn" style="flex:1;padding:12px;background:var(--sf2);color:var(--tx);border-radius:10px;font-size:14px;font-weight:500;text-align:center;cursor:pointer">50개</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;color:var(--tx2)">직접 입력</span>
+        <input type="number" id="mock-custom-count" min="1" max="200" placeholder="예: 25"
+          oninput="setMockCount(parseInt(this.value)||0)"
+          style="flex:1;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none">
+      </div>
+    </div>
+
+    <!-- 테스트 범위 -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:8px">테스트 범위</div>
+      <div style="display:flex;gap:8px">
+        <div onclick="setMockScope('all')" id="ms-all" class="mock-scope-btn" style="flex:1;padding:10px;background:var(--acc);color:#fff;border-radius:8px;font-size:13px;text-align:center;cursor:pointer">전체 단어</div>
+        <div onclick="setMockScope('current')" id="ms-current" class="mock-scope-btn" style="flex:1;padding:10px;background:var(--sf2);color:var(--tx);border-radius:8px;font-size:13px;text-align:center;cursor:pointer">현재 단어장</div>
+      </div>
+    </div>
+
+    <!-- 안내 -->
+    <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--acc-d);line-height:1.7">
+        🔊 영어 발음을 듣고 영어 스펠과 한글 뜻을 입력해요<br>
+        💡 발음은 여러 번 들을 수 있어요<br>
+        ✅ 채점: 영어 스펠 완벽 일치 / 한글 뜻 포함 매칭
+      </div>
+    </div>
+
+    <button onclick="startMockTest()" style="width:100%;padding:14px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer">테스트 시작 →</button>
+    <div style="padding-bottom:env(safe-area-inset-bottom,0px)"></div>
   </div>
 </div>
 
@@ -2167,6 +2333,13 @@ function goBackToWordSet() {
     FC_WORDSET_ID  = null;
     localStorage.removeItem('vs-stats-cache');
     nav('s-stats');
+    return;
+  }
+  // 모의테스트 오답 복습 → 결과 화면으로
+  if(currentWordSet?.id === '__mock-review__') {
+    currentWordSet = null;
+    FC_WORDSET_ID  = null;
+    nav('s-mock-result');
     return;
   }
   if(currentWordSet?.id) {
@@ -3645,6 +3818,387 @@ async function loadProfile() {
 }
 // ─────────────────────────────────────────────────────
 
+
+
+// ── 모의테스트 ───────────────────────────────────────
+let MOCK = {
+  words:    [],     // 시험 단어들
+  idx:      0,      // 현재 문제 인덱스
+  correct:  0,      // 정답 수
+  wrong:    0,      // 오답 수
+  wrongList:[],     // 틀린 단어 리스트
+  count:    10,     // 시험 단어 수
+  scope:    'all',  // 'all' | 'current'
+  startTime:0,      // 시작 시간
+  timer:    null,   // 타이머
+  playCount:0,      // 재생 횟수
+  answered: false,  // 현재 문제 답변 여부
+};
+
+function openMockTestModal() {
+  document.getElementById('mock-setup-modal').style.display = 'flex';
+  setMockCount(MOCK.count || 10);
+  setMockScope(currentWordSet?.id ? 'current' : 'all');
+}
+
+function setMockCount(n) {
+  MOCK.count = n;
+  document.querySelectorAll('.mock-count-btn').forEach(el => {
+    el.style.background = 'var(--sf2)';
+    el.style.color = 'var(--tx)';
+  });
+  const presets = [10, 20, 30, 50];
+  if(presets.includes(n)) {
+    const el = document.getElementById('mc-' + n);
+    if(el) { el.style.background = 'var(--acc)'; el.style.color = '#fff'; }
+    document.getElementById('mock-custom-count').value = '';
+  } else if(n > 0) {
+    // 커스텀 입력
+    document.getElementById('mock-custom-count').value = n;
+  }
+}
+
+function setMockScope(scope) {
+  MOCK.scope = scope;
+  ['all','current'].forEach(s => {
+    const el = document.getElementById('ms-' + s);
+    if(el) {
+      el.style.background = s === scope ? 'var(--acc)' : 'var(--sf2)';
+      el.style.color      = s === scope ? '#fff' : 'var(--tx)';
+    }
+  });
+}
+
+async function startMockTest() {
+  if(MOCK.count < 1) { alert('테스트할 단어 수를 입력해주세요'); return; }
+  if(MOCK.count > 200) { alert('최대 200개까지 가능해요'); return; }
+
+  const url = getSheetsUrl();
+  if(!url) { alert('Google Sheets를 먼저 연결해주세요'); return; }
+
+  document.getElementById('mock-setup-modal').style.display = 'none';
+
+  // 토스트
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999';
+  toast.textContent = '⏳ 시험 준비 중...';
+  document.body.appendChild(toast);
+
+  try {
+    // 단어 가져오기 (범위에 따라)
+    const params = (MOCK.scope === 'current' && currentWordSet?.id)
+      ? {wordSetId: currentWordSet.id} : null;
+    const res = await sheetsGet('getWords', params);
+    if(res.error) throw new Error(res.error);
+
+    const all = (res.words || []).filter(w => (w.word||w.en) && (w.meaning||w.ko));
+    if(all.length === 0) { toast.remove(); alert('단어가 없어요'); return; }
+
+    // 랜덤 셔플 + count만큼
+    const shuffled = [...all].sort(() => Math.random() - 0.5);
+    MOCK.words   = shuffled.slice(0, Math.min(MOCK.count, shuffled.length));
+    MOCK.idx     = 0;
+    MOCK.correct = 0;
+    MOCK.wrong   = 0;
+    MOCK.wrongList = [];
+    MOCK.startTime = Date.now();
+    MOCK.playCount = 0;
+    MOCK.answered  = false;
+
+    toast.remove();
+
+    // 타이머 시작
+    if(MOCK.timer) clearInterval(MOCK.timer);
+    MOCK.timer = setInterval(updateMockTimer, 1000);
+
+    nav('s-mock');
+    renderMockQuestion();
+
+  } catch(e) {
+    toast.remove();
+    alert('시험 시작 실패: ' + e.message);
+  }
+}
+
+function renderMockQuestion() {
+  const w = MOCK.words[MOCK.idx];
+  if(!w) return;
+
+  // 진행 상태
+  setText('mock-qnum', MOCK.idx + 1);
+  setText('mock-qtotal', MOCK.words.length);
+  setText('mock-progress-label', (MOCK.idx + 1) + ' / ' + MOCK.words.length);
+  const pct = Math.round(((MOCK.idx + 1) / MOCK.words.length) * 100);
+  document.getElementById('mock-prog').style.width = pct + '%';
+
+  // 입력 초기화
+  document.getElementById('mock-input-en').value = '';
+  document.getElementById('mock-input-ko').value = '';
+  document.getElementById('mock-input-en').style.borderColor = 'var(--bd)';
+  document.getElementById('mock-input-ko').style.borderColor = 'var(--bd)';
+  document.getElementById('mock-feedback').style.display = 'none';
+
+  // 점수
+  setText('mock-correct', MOCK.correct);
+  setText('mock-wrong', MOCK.wrong);
+  const total = MOCK.correct + MOCK.wrong;
+  setText('mock-acc', total > 0 ? Math.round((MOCK.correct/total)*100) : '--');
+
+  // 버튼
+  const btn = document.getElementById('mock-submit-btn');
+  btn.textContent = '정답 확인하기';
+  btn.style.background = 'var(--acc)';
+  btn.onclick = checkMockAnswer;
+
+  MOCK.playCount = 0;
+  MOCK.answered  = false;
+  setText('mock-play-count', '탭해서 들어보세요');
+
+  // 자동 발음 (한 번)
+  setTimeout(() => mockSpeak(), 500);
+
+  // 영어 입력란 포커스
+  setTimeout(() => document.getElementById('mock-input-en').focus(), 600);
+}
+
+function mockSpeak() {
+  const w = MOCK.words[MOCK.idx];
+  if(!w) return;
+  speakWord(w.word || w.en);
+  MOCK.playCount++;
+  setText('mock-play-count', `🔊 ${MOCK.playCount}회 들었어요`);
+}
+
+function updateMockTimer() {
+  const elapsed = Math.floor((Date.now() - MOCK.startTime) / 1000);
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const ss = String(elapsed % 60).padStart(2, '0');
+  setText('mock-timer', mm + ':' + ss);
+}
+
+function checkMockAnswer() {
+  if(MOCK.answered) {
+    // 이미 답변 처리됨 → 다음 문제
+    nextMockQuestion();
+    return;
+  }
+
+  const w = MOCK.words[MOCK.idx];
+  if(!w) return;
+
+  const inputEn = document.getElementById('mock-input-en').value.trim().toLowerCase();
+  const inputKo = document.getElementById('mock-input-ko').value.trim();
+
+  if(!inputEn && !inputKo) {
+    alert('답을 입력해주세요');
+    return;
+  }
+
+  const correctEn = (w.word || w.en || '').trim().toLowerCase();
+  const correctKo = (w.meaning || w.ko || '').trim();
+
+  // 영어: 정확히 일치
+  const enOk = inputEn === correctEn;
+
+  // 한글: 정답에 포함되거나, 정답이 입력에 포함 (관대하게)
+  const koTokens = correctKo.split(/[,，、\/]/).map(t => t.trim()).filter(Boolean);
+  const koOk = koTokens.some(t =>
+    inputKo === t ||
+    inputKo.includes(t) ||
+    t.includes(inputKo)
+  ) || !inputKo === false && correctKo.includes(inputKo) && inputKo.length >= 2;
+
+  // 둘 다 맞아야 정답
+  const isCorrect = enOk && koOk;
+
+  MOCK.answered = true;
+
+  if(isCorrect) {
+    MOCK.correct++;
+  } else {
+    MOCK.wrong++;
+    MOCK.wrongList.push({
+      ...w,
+      userEn: inputEn,
+      userKo: inputKo,
+      enOk, koOk,
+    });
+  }
+
+  // 피드백 표시
+  showMockFeedback(isCorrect, w, inputEn, inputKo, enOk, koOk);
+  setText('mock-correct', MOCK.correct);
+  setText('mock-wrong', MOCK.wrong);
+  const total = MOCK.correct + MOCK.wrong;
+  setText('mock-acc', total > 0 ? Math.round((MOCK.correct/total)*100) : '--');
+
+  // 학습 이력 저장
+  if(w.id) {
+    const hist = getWordHistory(w.id);
+    if(isCorrect) hist.knowCount = (hist.knowCount || 0) + 1;
+    else hist.dontCount = (hist.dontCount || 0) + 1;
+    saveWordHistory(w.id, hist);
+  }
+  trackLearning(isCorrect);
+
+  // 버튼을 "다음 문제"로 변경
+  const btn = document.getElementById('mock-submit-btn');
+  btn.textContent = MOCK.idx >= MOCK.words.length - 1 ? '결과 보기 →' : '다음 문제 →';
+  btn.style.background = isCorrect ? 'var(--grn)' : 'var(--red)';
+}
+
+function showMockFeedback(isCorrect, w, inputEn, inputKo, enOk, koOk) {
+  const fb = document.getElementById('mock-feedback');
+  const correctEn = w.word || w.en;
+  const correctKo = w.meaning || w.ko;
+
+  fb.style.display = 'block';
+  fb.style.background = isCorrect ? 'var(--grn-l)' : 'var(--red-l)';
+
+  setText('mock-feedback-emoji', isCorrect ? '✅' : '❌');
+  setText('mock-feedback-text',
+    isCorrect ? '정답이에요!' :
+    (!enOk && !koOk ? '둘 다 틀렸어요' :
+     !enOk ? '영어 스펠이 틀렸어요' : '한글 뜻이 틀렸어요')
+  );
+
+  const answerEl = document.getElementById('mock-correct-answer');
+  answerEl.innerHTML = `
+    <div style="margin-top:4px;color:var(--tx)"><b>정답:</b> ${correctEn} = ${correctKo}</div>
+    ${!isCorrect ? `<div style="margin-top:4px;color:var(--tx2)"><b>입력:</b> ${inputEn || '(없음)'} = ${inputKo || '(없음)'}</div>` : ''}
+  `;
+
+  // 입력란 색상
+  document.getElementById('mock-input-en').style.borderColor = enOk ? 'var(--grn)' : 'var(--red)';
+  document.getElementById('mock-input-ko').style.borderColor = koOk ? 'var(--grn)' : 'var(--red)';
+}
+
+function nextMockQuestion() {
+  if(MOCK.idx >= MOCK.words.length - 1) {
+    // 마지막 문제 → 결과
+    showMockResult();
+    return;
+  }
+  MOCK.idx++;
+  renderMockQuestion();
+}
+
+function showMockResult() {
+  if(MOCK.timer) { clearInterval(MOCK.timer); MOCK.timer = null; }
+
+  const total    = MOCK.words.length;
+  const pct      = total > 0 ? Math.round((MOCK.correct / total) * 100) : 0;
+  const elapsed  = Math.floor((Date.now() - MOCK.startTime) / 1000);
+  const mm       = Math.floor(elapsed / 60);
+  const ss       = elapsed % 60;
+
+  // 등급
+  let grade, emoji, title;
+  if(pct >= 90)      { grade = 'A+'; emoji = '🏆'; title = '완벽해요!'; }
+  else if(pct >= 80) { grade = 'A';  emoji = '🎉'; title = '훌륭해요!'; }
+  else if(pct >= 70) { grade = 'B';  emoji = '👍'; title = '잘했어요!'; }
+  else if(pct >= 60) { grade = 'C';  emoji = '💪'; title = '조금만 더!'; }
+  else               { grade = 'D';  emoji = '📚'; title = '더 학습해봐요'; }
+
+  setText('mock-res-emoji', emoji);
+  setText('mock-res-title', title);
+  setText('mock-res-sub', `${MOCK.words.length}개 단어 테스트 완료`);
+  setText('mock-res-score', `${MOCK.correct} / ${total}`);
+  setText('mock-res-pct', pct + '%');
+  setText('mock-res-time', mm + '분 ' + ss + '초');
+  setText('mock-res-grade', grade);
+
+  // 틀린 단어 리스트
+  const wrongEl = document.getElementById('mock-wrong-list');
+  setText('mock-wrong-title', `틀린 단어 (${MOCK.wrongList.length}개)`);
+
+  if(MOCK.wrongList.length === 0) {
+    wrongEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--grn);font-size:14px">🎉 모두 정답이에요!</div>';
+  } else {
+    wrongEl.innerHTML = MOCK.wrongList.map((w, i) => `
+      <div style="padding:12px 16px;${i<MOCK.wrongList.length-1?'border-bottom:0.5px solid var(--bd)':''}">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <div style="font-size:14px;font-weight:500;color:var(--tx);flex:1">${w.word||w.en}</div>
+          <i onclick="speakWord('${(w.word||w.en).replace(/'/g, '')}')" class="ti ti-volume" style="font-size:16px;color:var(--acc);cursor:pointer"></i>
+        </div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:4px">정답: ${w.meaning||w.ko}</div>
+        <div style="font-size:11px;color:var(--red)">
+          ${!w.enOk ? `스펠: ${w.userEn || '(없음)'}` : ''}
+          ${!w.enOk && !w.koOk ? ' · ' : ''}
+          ${!w.koOk ? `뜻: ${w.userKo || '(없음)'}` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  // 캐시 무효화
+  localStorage.removeItem('vs-stats-cache');
+  localStorage.removeItem('vs-wslist-cache');
+
+  nav('s-mock-result');
+}
+
+function reviewMockWrong() {
+  if(MOCK.wrongList.length === 0) {
+    alert('틀린 단어가 없어요! 🎉');
+    return;
+  }
+  // WORDS로 변환해서 플래시카드로
+  WORDS = MOCK.wrongList.map(w => ({
+    id: w.id, en: w.word||w.en, ko: w.meaning||w.ko,
+    pos: w.pos||'', ph: w.phonetic||'', ex: w.example||'',
+    status: 'learning',
+  }));
+  DIST.length = 0;
+  WORDS.forEach(w => { if(w.ko) DIST.push(w.ko); });
+
+  currentWordSet = { id:'__mock-review__', name:'모의테스트 오답', total: WORDS.length, done: 0 };
+  FC_WORDSET_ID = null;
+  fcReverse = false;
+  fcIdx = 0; fcKnow = 0; fcDont = 0; fcFlipped = false;
+
+  const inner = document.getElementById('fc-inner');
+  if(inner) inner.classList.remove('flipped');
+
+  setText('fc-ws-title', '모의테스트 오답 복습');
+  setText('fc-mode-label', '플래시카드 · ' + WORDS.length + '개');
+  setText('fc-total-badge', WORDS.length + '개');
+  setText('fc-remaining-badge', '남은 ' + WORDS.length + '개');
+
+  nav('s-fc');
+  fcRender();
+  setTimeout(autoSpeakWord, 400);
+}
+
+function exitMockTest() {
+  if(MOCK.idx > 0 && MOCK.correct + MOCK.wrong < MOCK.words.length) {
+    if(!confirm('진행 중인 시험을 종료할까요? 진행 상황이 사라져요.')) return;
+  }
+  if(MOCK.timer) { clearInterval(MOCK.timer); MOCK.timer = null; }
+  back();
+}
+
+// 영어 입력란 Enter 키 → 한글 입력란으로
+document.addEventListener('DOMContentLoaded', () => {
+  const enInput = document.getElementById('mock-input-en');
+  const koInput = document.getElementById('mock-input-ko');
+  if(enInput) {
+    enInput.addEventListener('keydown', e => {
+      if(e.key === 'Enter') {
+        e.preventDefault();
+        if(koInput) koInput.focus();
+      }
+    });
+  }
+  if(koInput) {
+    koInput.addEventListener('keydown', e => {
+      if(e.key === 'Enter') {
+        e.preventDefault();
+        checkMockAnswer();
+      }
+    });
+  }
+});
+// ─────────────────────────────────────────────────────
 
 // ── 단어 임포트 기능 ────────────────────────────────
 let impWords = []; // 파싱된 단어들
