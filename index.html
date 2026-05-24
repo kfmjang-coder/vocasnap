@@ -724,7 +724,7 @@ body{
     <div style="display:flex;gap:8px;margin-bottom:20px;align-items:stretch">
       <!-- 좌측: 입력 영역 (flex:1) -->
       <div style="flex:1;min-width:0">
-        <div style="margin-bottom:10px">
+        <div id="mock-input-en-wrap" style="margin-bottom:10px">
           <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:4px">영어 스펠</div>
           <input id="mock-input-en" type="text" placeholder="들은 단어를 입력하세요" autocomplete="off" autocapitalize="off" spellcheck="false"
             style="width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;font-size:16px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
@@ -1162,11 +1162,28 @@ body{
     </div>
 
     <!-- 테스트 범위 -->
-    <div style="margin-bottom:20px">
+    <div style="margin-bottom:16px">
       <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:8px">테스트 범위</div>
       <div style="display:flex;gap:8px">
         <div onclick="setMockScope('all')" id="ms-all" class="mock-scope-btn" style="flex:1;padding:10px;background:var(--acc);color:#fff;border-radius:8px;font-size:13px;text-align:center;cursor:pointer">전체 단어</div>
         <div onclick="setMockScope('current')" id="ms-current" class="mock-scope-btn" style="flex:1;padding:10px;background:var(--sf2);color:var(--tx);border-radius:8px;font-size:13px;text-align:center;cursor:pointer">현재 단어장</div>
+      </div>
+    </div>
+
+    <!-- 출제 항목 선택 -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:8px">출제 항목</div>
+      <div style="display:flex;gap:8px">
+        <div onclick="setMockMode('both')" id="mm-both" class="mock-mode-btn" style="flex:1;padding:12px 8px;background:var(--acc);color:#fff;border-radius:8px;font-size:12px;text-align:center;cursor:pointer">
+          <div style="font-size:18px;margin-bottom:2px">📝</div>
+          <div style="font-weight:500">영어 + 한글</div>
+          <div style="font-size:10px;opacity:.8;margin-top:2px">스펠 + 뜻</div>
+        </div>
+        <div onclick="setMockMode('ko-only')" id="mm-ko-only" class="mock-mode-btn" style="flex:1;padding:12px 8px;background:var(--sf2);color:var(--tx);border-radius:8px;font-size:12px;text-align:center;cursor:pointer">
+          <div style="font-size:18px;margin-bottom:2px">🔤</div>
+          <div style="font-weight:500">한글만</div>
+          <div style="font-size:10px;color:var(--tx2);margin-top:2px">뜻만 입력</div>
+        </div>
       </div>
     </div>
 
@@ -3880,6 +3897,7 @@ let MOCK = {
   wrongList:[],     // 틀린 단어 리스트
   count:    10,
   scope:    'all',
+  mode:     'both', // 'both' (영어+한글) | 'ko-only' (한글만)
   startTime:0,
   timer:    null,
   playCount:[],     // 문제별 재생 횟수
@@ -3889,6 +3907,7 @@ function openMockTestModal() {
   document.getElementById('mock-setup-modal').style.display = 'flex';
   setMockCount(MOCK.count || 10);
   setMockScope(currentWordSet?.id ? 'current' : 'all');
+  setMockMode(MOCK.mode || 'both');
 }
 
 function setMockCount(n) {
@@ -3906,6 +3925,25 @@ function setMockCount(n) {
     // 커스텀 입력
     document.getElementById('mock-custom-count').value = n;
   }
+}
+
+
+function setMockMode(mode) {
+  MOCK.mode = mode;
+  ['both', 'ko-only'].forEach(m => {
+    const el = document.getElementById('mm-' + m);
+    if(el) {
+      el.style.background = m === mode ? 'var(--acc)' : 'var(--sf2)';
+      el.style.color      = m === mode ? '#fff' : 'var(--tx)';
+      // 내부 텍스트 색상도 조정
+      const labels = el.querySelectorAll('div');
+      labels.forEach((lbl, i) => {
+        if(i === labels.length - 1 && lbl.style.fontSize === '10px') {
+          lbl.style.color = m === mode ? 'rgba(255,255,255,.8)' : 'var(--tx2)';
+        }
+      });
+    }
+  });
 }
 
 function setMockScope(scope) {
@@ -3981,12 +4019,16 @@ function renderMockQuestion() {
   const pct = Math.round(((MOCK.idx + 1) / MOCK.words.length) * 100);
   document.getElementById('mock-prog').style.width = pct + '%';
 
-  // 답안 복원 (이미 작성한 답이 있으면)
+  // 답안 복원
   const ans = MOCK.answers[MOCK.idx];
   document.getElementById('mock-input-en').value = ans.en || '';
   document.getElementById('mock-input-ko').value = ans.ko || '';
   document.getElementById('mock-input-en').style.borderColor = 'var(--bd)';
   document.getElementById('mock-input-ko').style.borderColor = 'var(--bd)';
+
+  // mode에 따라 영어 입력란 영역 표시/숨김
+  const enWrap = document.getElementById('mock-input-en-wrap');
+  if(enWrap) enWrap.style.display = MOCK.mode === 'ko-only' ? 'none' : 'block';
 
   // 재생 횟수 표시
   const pc = MOCK.playCount[MOCK.idx] || 0;
@@ -4007,25 +4049,39 @@ function renderMockQuestion() {
   }
   const isLast = MOCK.idx === MOCK.words.length - 1;
   if(nextBtn) {
-    nextBtn.style.opacity = isLast ? '.4' : '1';
-    nextBtn.disabled = isLast;
-    // 마지막 문제면 다음 → 회색
-    nextBtn.style.background = isLast ? 'var(--sf2)' : 'var(--acc)';
-    nextBtn.style.color      = isLast ? 'var(--tx3)' : '#fff';
+    if(isLast) {
+      // 마지막 문제: "다음" → "제출" 으로 변경
+      nextBtn.disabled = false;
+      nextBtn.style.opacity = '1';
+      nextBtn.style.background = 'var(--grn)';
+      nextBtn.style.color = '#fff';
+      nextBtn.innerHTML = '<i class="ti ti-check" style="font-size:16px"></i><span>제출</span>';
+      nextBtn.onclick = confirmSubmitMock;
+    } else {
+      nextBtn.disabled = false;
+      nextBtn.style.opacity = '1';
+      nextBtn.style.background = 'var(--acc)';
+      nextBtn.style.color = '#fff';
+      nextBtn.innerHTML = '<i class="ti ti-arrow-right" style="font-size:16px"></i><span>다음</span>';
+      nextBtn.onclick = nextMockQuestion;
+    }
   }
 
   // 자동 발음 (첫 진입 시만)
   if(pc === 0) setTimeout(() => mockSpeak(), 500);
 
-  // 영어 입력란 포커스
-  setTimeout(() => document.getElementById('mock-input-en').focus(), 600);
+  // 포커스 - mode에 따라
+  setTimeout(() => {
+    const focusId = MOCK.mode === 'ko-only' ? 'mock-input-ko' : 'mock-input-en';
+    document.getElementById(focusId).focus();
+  }, 600);
 }
 
 function saveCurrentMockAnswer(targetIdx) {
-  // targetIdx 미지정 시 현재 MOCK.idx 사용
   const idx = (typeof targetIdx === 'number') ? targetIdx : MOCK.idx;
   if(idx < 0 || idx >= MOCK.answers.length) return;
-  const en = document.getElementById('mock-input-en')?.value || '';
+  // ko-only 모드면 영어 입력은 무시
+  const en = MOCK.mode === 'ko-only' ? '' : (document.getElementById('mock-input-en')?.value || '');
   const ko = document.getElementById('mock-input-ko')?.value || '';
   const ans = MOCK.answers[idx];
   // 둘 다 비어있으면 빈 상태 유지
@@ -4154,15 +4210,15 @@ function gradeMockTest() {
     const correctEn = (w.word || w.en || '').trim().toLowerCase();
     const correctKo = (w.meaning || w.ko || '').trim();
 
-    const enOk = inputEn !== '' && inputEn === correctEn;
-
     const koTokens = correctKo.split(/[,，、\/]/).map(t => t.trim()).filter(Boolean);
     const koOk = inputKo !== '' && (
       koTokens.some(t => inputKo === t || inputKo.includes(t) || t.includes(inputKo)) ||
       (correctKo.includes(inputKo) && inputKo.length >= 2)
     );
 
-    const isCorrect = enOk && koOk;
+    // mode에 따라 채점 방식 다름
+    const enOk = MOCK.mode === 'ko-only' ? true : (inputEn !== '' && inputEn === correctEn);
+    const isCorrect = MOCK.mode === 'ko-only' ? koOk : (enOk && koOk);
 
     if(isCorrect) {
       MOCK.correct++;
@@ -4228,6 +4284,7 @@ function showMockResult() {
     grade:    grade,
     elapsed:  elapsed,
     scope:    MOCK.scope,
+    mode:     MOCK.mode,
     wsName:   MOCK.scope === 'current' ? (currentWordSet?.name || '') : '전체',
     wrongWords: MOCK.wrongList.map(w => ({
       en: w.word||w.en, ko: w.meaning||w.ko, userEn: w.userEn, userKo: w.userKo, skipped: w.skipped
