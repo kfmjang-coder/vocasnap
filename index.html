@@ -426,16 +426,25 @@ body{
   <div class="tbar" style="padding-top:calc(env(safe-area-inset-top,0px) + 6px)"><button class="bk" onclick="back()"><i class="ti ti-arrow-left"></i></button><span class="ttl">단어 추출 결과</span></div>
   <div style="padding:0 16px 10px;background:var(--sf);flex-shrink:0;border-bottom:0.5px solid var(--bd)">
     <div style="background:var(--sf2);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center;margin-bottom:8px">
-      <div style="width:52px;height:52px;border-radius:8px;background:#1a1a2e;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);flex-shrink:0"><i class="ti ti-file-text" style="font-size:22px"></i></div>
-      <div><div style="font-size:14px;font-weight:500;color:var(--tx)">수능 어휘 p.42 촬영본</div><div style="font-size:12px;color:var(--tx2)">25개 단어 인식됨</div><div style="display:inline-flex;align-items:center;gap:4px;background:var(--acc-l);color:var(--acc-d);font-size:11px;padding:2px 8px;border-radius:20px;margin-top:4px"><i class="ti ti-sparkles" style="font-size:11px"></i> Claude AI 추출</div></div>
+      <div style="width:52px;height:52px;border-radius:8px;background:#1a1a2e;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);flex-shrink:0" id="extract-thumb">
+        <i class="ti ti-file-text" style="font-size:22px"></i>
+      </div>
+      <div>
+        <div id="extract-filename" style="font-size:14px;font-weight:500;color:var(--tx)">이미지 분석 결과</div>
+        <div id="extract-wordcnt" style="font-size:12px;color:var(--tx2)">0개 단어 인식됨</div>
+        <div style="display:inline-flex;align-items:center;gap:4px;background:var(--acc-l);color:var(--acc-d);font-size:11px;padding:2px 8px;border-radius:20px;margin-top:4px">
+          <i class="ti ti-sparkles" style="font-size:11px"></i>
+          <span id="extract-ai-label">Gemini AI 추출</span>
+        </div>
+      </div>
     </div>
     <div style="display:flex;justify-content:space-between">
-      <span style="font-size:12px;color:var(--tx2)" id="sel-cnt">23개 선택됨</span>
+      <span style="font-size:12px;color:var(--tx2)" id="sel-cnt">0개 선택됨</span>
       <span style="font-size:12px;color:var(--acc);cursor:pointer" onclick="toggleAll()">전체 선택/해제</span>
     </div>
   </div>
   <div class="scroll" id="wlist"></div>
-  <div class="bbar"><button class="savbtn" id="savbtn" onclick="saveWordsToSheets('default')">23개 단어 저장하기</button></div>
+  <div class="bbar"><button class="savbtn" id="savbtn" onclick="saveWordsToSheets('default')">단어 저장하기</button></div>
 </div>
 
 <!-- ══ WORDSET LIST ══ -->
@@ -1742,6 +1751,11 @@ async function handleImageFile(e){
   if(!file) return;
   e.target.value = '';
 
+  // 파일명 표시 (확장자 제거)
+  const fname = file.name.replace(/\.[^/.]+$/, '') || '이미지 분석 결과';
+  setText('extract-filename', fname.length > 20 ? fname.slice(0,18)+'...' : fname);
+  setText('extract-wordcnt', '분석 중...');
+
   const key = getApiKey();
   if(!key){
     // API 키 없으면 설정 유도
@@ -1833,6 +1847,9 @@ async function handleImageFile(e){
 
     setTimeout(() => {
       overlay.style.display = 'none';
+      // 추출 결과 헤더 업데이트
+      setText('extract-wordcnt', words.length + '개 단어 인식됨');
+      setText('extract-ai-label', 'Gemini AI 추출');
       nav('s-extract');
     }, 600);
 
