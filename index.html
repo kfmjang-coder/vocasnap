@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-061915">
+<meta name="app-build" content="20260525-063054">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -184,6 +184,11 @@ body{
 .ib-close{margin-left:auto;width:28px;height:28px;border-radius:14px;background:var(--sf2);border:none;display:flex;align-items:center;justify-content:center;color:var(--tx2);cursor:pointer;font-size:16px}
 .ib-steps{font-size:12px;color:var(--tx2);line-height:1.6;background:var(--sf2);border-radius:8px;padding:8px 12px}
 .ib-install-btn{width:100%;padding:11px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer}
+
+@keyframes voice-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 16px rgba(231,111,81,.3); }
+  50%      { transform: scale(1.08); box-shadow: 0 6px 24px rgba(231,111,81,.6); }
+}
 </style>
 
 <!-- Firebase SDK -->
@@ -769,6 +774,7 @@ body{
       <div class="mcard" onclick="startWordSetLearning('quiz')"><i class="ti ti-list-check" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">퀴즈 모드</div><div style="font-size:11px;color:var(--tx2)">객관식</div></div>
       <div class="mcard" onclick="startWordSetLearning('review')"><i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">복습 모드</div><div style="font-size:11px;color:var(--tx2)">학습한 단어만</div></div>
       <div class="mcard" onclick="openMockTestModal()"><i class="ti ti-pencil" style="font-size:22px;color:var(--red);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">모의테스트</div><div style="font-size:11px;color:var(--tx2)">발음 듣고 받아쓰기</div></div>
+      <div class="mcard" onclick="startVoiceDictation()"><i class="ti ti-microphone" style="font-size:22px;color:#E76F51;margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">🎤 음성 받아쓰기</div><div style="font-size:11px;color:var(--tx2)">발음 듣고 말로 답하기</div></div>
       <div class="mcard" onclick="openImportModal()"><i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">단어 임포트</div><div style="font-size:11px;color:var(--tx2)">촬영 / 직접 입력</div></div>
     </div>
     <div style="height:20px"></div>
@@ -893,6 +899,72 @@ body{
 </div>
 
 
+
+
+<!-- ══ 음성 받아쓰기 화면 ══ -->
+<div class="scr" id="s-voice">
+  <div class="tbar" style="padding-top:calc(env(safe-area-inset-top,0px) + 6px)">
+    <button class="bk" onclick="exitVoiceDictation()"><i class="ti ti-arrow-left"></i></button>
+    <div style="flex:1">
+      <div class="ttl">🎤 음성 받아쓰기</div>
+      <div style="font-size:12px;color:var(--tx2)" id="voice-progress-label">1 / 10</div>
+    </div>
+    <span id="voice-score" style="font-size:13px;color:var(--grn);background:var(--grn-l);padding:3px 10px;border-radius:20px;font-weight:500">0 / 0</span>
+  </div>
+
+  <!-- 진행률 바 -->
+  <div style="padding:0 16px;background:var(--sf);flex-shrink:0">
+    <div class="pb-bg" style="margin-bottom:10px"><div class="pb-f" id="voice-prog" style="width:0%"></div></div>
+  </div>
+
+  <div class="scroll" style="padding:24px 16px">
+    <!-- 발음 듣기 영역 -->
+    <div style="background:var(--acc);border-radius:20px;padding:36px 24px;text-align:center;margin-bottom:20px;color:#fff">
+      <div style="font-size:14px;opacity:.8;margin-bottom:14px">발음을 듣고 한글 뜻을 말해주세요</div>
+      <div onclick="voiceSpeak()" style="width:80px;height:80px;border-radius:40px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;cursor:pointer;border:3px solid rgba(255,255,255,.4)">
+        <i class="ti ti-volume" style="font-size:38px;color:#fff"></i>
+      </div>
+      <div style="font-size:13px;opacity:.7" id="voice-play-count">탭해서 들어보세요</div>
+    </div>
+
+    <!-- 마이크 영역 -->
+    <div style="text-align:center;margin-bottom:20px">
+      <button id="voice-mic-btn" onclick="voiceListen()"
+        style="width:96px;height:96px;border-radius:48px;background:var(--red);border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 4px 16px rgba(231,111,81,.3)">
+        <i class="ti ti-microphone" style="font-size:44px;color:#fff"></i>
+      </button>
+      <div id="voice-mic-status" style="margin-top:12px;font-size:13px;color:var(--tx2);min-height:18px">마이크 버튼을 눌러 한글 뜻을 말해주세요</div>
+    </div>
+
+    <!-- 인식 결과 표시 -->
+    <div id="voice-result-area" style="display:none;margin-bottom:20px;padding:16px;border-radius:14px">
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:4px">인식된 답변</div>
+      <div id="voice-heard" style="font-size:17px;font-weight:500;margin-bottom:10px;color:var(--tx)">--</div>
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:4px">정답</div>
+      <div id="voice-answer" style="font-size:15px;color:var(--tx);margin-bottom:6px">--</div>
+      <div id="voice-verdict" style="font-size:14px;font-weight:500;margin-top:8px">--</div>
+    </div>
+
+    <!-- 컨트롤 버튼들 -->
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button onclick="voiceSkip()" style="flex:1;padding:12px;background:var(--amb-l);color:var(--amb);border:0.5px solid var(--amb);border-radius:10px;font-size:13px;font-weight:500;cursor:pointer">
+        <i class="ti ti-player-skip-forward" style="font-size:14px;vertical-align:-1px;margin-right:4px"></i>
+        건너뛰기
+      </button>
+      <button id="voice-next-btn" onclick="voiceNext()" style="flex:1;padding:12px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;display:none">
+        다음 문제 →
+      </button>
+    </div>
+
+    <!-- 안내 -->
+    <div style="background:var(--acc-l);border-radius:10px;padding:11px 14px">
+      <div style="display:flex;align-items:flex-start;gap:8px;color:var(--acc-d)">
+        <i class="ti ti-bulb" style="font-size:14px;margin-top:2px;flex-shrink:0"></i>
+        <div style="font-size:11px;line-height:1.6">발음을 먼저 듣고, 마이크를 눌러 한글 뜻을 말해주세요. 정답에 포함된 뜻 하나만 맞아도 정답으로 인정해요</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ══ 모의테스트 진행 화면 ══ -->
 <div class="scr" id="s-mock">
@@ -3928,7 +4000,7 @@ function qRestart(){qWrong=[];wrongWords=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-061915';
+  window.APP_BUILD = '20260525-063054';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -4646,6 +4718,324 @@ async function saveWordsToSheets(){
     console.error('saveWordsToSheets error:', e);
   }
 }
+
+// ── 음성 받아쓰기 시스템 ──────────────────────────────
+let VOICE = {
+  words: [],      // 출제 단어들
+  idx: 0,         // 현재 인덱스
+  correct: 0,     // 정답 수
+  total: 0,       // 답한 문제 수
+  wrongList: [],  // 틀린 단어
+  playCount: [],  // 문제별 발음 재생 횟수
+  recognition: null,  // SpeechRecognition 인스턴스
+  isListening: false,
+  graded: false,  // 현재 문제 채점 완료 여부
+};
+
+async function startVoiceDictation() {
+  // 단어 로딩 (다른 학습 모드와 동일 패턴)
+  const wsId = currentWordSet?.id || null;
+  if(!WORDS.length && wsId && getSheetsUrl()) {
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999';
+    toast.textContent = '⏳ 단어 불러오는 중...';
+    document.body.appendChild(toast);
+    try {
+      const res = await sheetsGet('getWords', {wordSetId: wsId});
+      if(!res.error && res.words?.length) {
+        WORDS = res.words.map(w => ({
+          id: w.id, en: w.word||w.en||'', ko: w.meaning||w.ko||'',
+          pos: w.pos||'', ph: w.phonetic||'', ex: w.example||'',
+          status: w.status||'new',
+        })).filter(w => w.en);
+      }
+    } catch(e) { console.warn('단어 로드 실패:', e); }
+    toast.remove();
+  }
+
+  if(!WORDS.length) {
+    alert('단어가 없어요. 단어를 먼저 추가해주세요.');
+    return;
+  }
+
+  // 음성 인식 지원 체크
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) {
+    alert('이 브라우저는 음성 인식을 지원하지 않아요.\n\n지원 환경:\n• Android Chrome ✅\n• iOS Safari (14.5+) ⚠️\n• PC Chrome/Edge ✅\n• Firefox ❌');
+    return;
+  }
+
+  // 세션 단어 수만큼 랜덤 추출
+  const sessionCount = Number(localStorage.getItem('vs-session-count') || 20);
+  const shuffled = [...WORDS].sort(() => Math.random() - 0.5);
+  VOICE.words     = shuffled.slice(0, Math.min(sessionCount, shuffled.length));
+  VOICE.idx       = 0;
+  VOICE.correct   = 0;
+  VOICE.total     = 0;
+  VOICE.wrongList = [];
+  VOICE.playCount = new Array(VOICE.words.length).fill(0);
+  VOICE.graded    = false;
+
+  // SpeechRecognition 초기화
+  VOICE.recognition = new SR();
+  VOICE.recognition.lang = 'ko-KR';
+  VOICE.recognition.continuous = false;
+  VOICE.recognition.interimResults = false;
+  VOICE.recognition.maxAlternatives = 3;
+
+  VOICE.recognition.onresult = (e) => {
+    const results = Array.from(e.results[0]).map(r => r.transcript);
+    voiceGrade(results);
+  };
+  VOICE.recognition.onerror = (e) => {
+    console.warn('음성 인식 에러:', e.error);
+    voiceStopListening();
+    if(e.error === 'not-allowed') {
+      alert('마이크 권한이 필요해요. 브라우저 설정에서 허용해주세요.');
+    } else if(e.error === 'no-speech') {
+      setText('voice-mic-status', '⚠️ 소리가 안 들렸어요. 다시 시도해주세요');
+    } else {
+      setText('voice-mic-status', '⚠️ 인식 실패: ' + e.error);
+    }
+  };
+  VOICE.recognition.onend = () => {
+    if(VOICE.isListening) voiceStopListening();
+  };
+
+  nav('s-voice');
+  voiceRender();
+  setTimeout(voiceSpeak, 400); // 첫 문제 자동 재생
+}
+
+function exitVoiceDictation() {
+  if(VOICE.recognition && VOICE.isListening) {
+    try { VOICE.recognition.stop(); } catch(e) {}
+  }
+  back();
+}
+
+function voiceRender() {
+  const total = VOICE.words.length;
+  const i     = VOICE.idx;
+
+  setText('voice-progress-label', (i+1) + ' / ' + total);
+  setText('voice-score',          VOICE.correct + ' / ' + VOICE.total);
+
+  const prog = document.getElementById('voice-prog');
+  if(prog) prog.style.width = Math.round(((i+1)/total) * 100) + '%';
+
+  const pc = VOICE.playCount[i] || 0;
+  setText('voice-play-count', pc > 0 ? `🔊 ${pc}회 들었어요` : '탭해서 들어보세요');
+
+  // 결과 영역 초기화
+  const resultArea = document.getElementById('voice-result-area');
+  if(resultArea) resultArea.style.display = 'none';
+  const nextBtn = document.getElementById('voice-next-btn');
+  if(nextBtn) nextBtn.style.display = 'none';
+
+  setText('voice-mic-status', '마이크 버튼을 눌러 한글 뜻을 말해주세요');
+  VOICE.graded = false;
+}
+
+function voiceSpeak() {
+  if(VOICE.idx >= VOICE.words.length) return;
+  const w = VOICE.words[VOICE.idx];
+  if(!w?.en) return;
+  speakWord(w.en);
+  VOICE.playCount[VOICE.idx] = (VOICE.playCount[VOICE.idx] || 0) + 1;
+  setText('voice-play-count', `🔊 ${VOICE.playCount[VOICE.idx]}회 들었어요`);
+}
+
+function voiceListen() {
+  if(!VOICE.recognition) return;
+  if(VOICE.graded) return; // 이미 채점된 문제는 재시도 안됨 (다음으로 이동)
+  if(VOICE.isListening) {
+    // 듣는 중이면 중지
+    try { VOICE.recognition.stop(); } catch(e) {}
+    return;
+  }
+  try {
+    VOICE.recognition.start();
+    VOICE.isListening = true;
+    const btn = document.getElementById('voice-mic-btn');
+    if(btn) {
+      btn.style.background = '#C13B1A';
+      btn.style.animation = 'voice-pulse 1.2s ease-in-out infinite';
+    }
+    setText('voice-mic-status', '🎙️ 듣고 있어요... 한글 뜻을 말해주세요');
+  } catch(e) {
+    console.warn('녹음 시작 실패:', e);
+    setText('voice-mic-status', '⚠️ 녹음 시작 실패');
+  }
+}
+
+function voiceStopListening() {
+  VOICE.isListening = false;
+  const btn = document.getElementById('voice-mic-btn');
+  if(btn) {
+    btn.style.background = 'var(--red)';
+    btn.style.animation = '';
+  }
+}
+
+// 채점 - 관대하게
+function voiceGrade(recognizedList) {
+  voiceStopListening();
+  if(VOICE.idx >= VOICE.words.length) return;
+
+  const w       = VOICE.words[VOICE.idx];
+  const correct = String(w.ko || '').trim();
+  if(!correct) {
+    setText('voice-mic-status', '⚠️ 이 단어는 한글 뜻이 없어요');
+    return;
+  }
+
+  // 정답을 콤마/세미콜론/슬래시로 분리
+  const correctParts = correct
+    .split(/[,;\/]/)
+    .map(s => normalizeKorean(s))
+    .filter(s => s.length > 0);
+
+  // 인식 결과들도 정규화
+  const recognized = recognizedList.map(s => normalizeKorean(s));
+
+  // 매칭 시도
+  let isCorrect = false;
+  let matchedHeard = recognized[0] || '';
+
+  for(const heard of recognized) {
+    if(!heard) continue;
+    for(const part of correctParts) {
+      // 완전 일치
+      if(heard === part) { isCorrect = true; matchedHeard = heard; break; }
+      // 인식 결과가 정답 일부를 포함
+      if(heard.includes(part)) { isCorrect = true; matchedHeard = heard; break; }
+      // 정답이 인식 결과를 포함
+      if(part.includes(heard) && heard.length >= 2) { isCorrect = true; matchedHeard = heard; break; }
+    }
+    if(isCorrect) break;
+  }
+
+  // 결과 UI 표시
+  VOICE.graded = true;
+  VOICE.total++;
+  if(isCorrect) VOICE.correct++;
+  else VOICE.wrongList.push({...w});
+
+  setText('voice-heard',   recognized.join(' / ') || '(인식 안 됨)');
+  setText('voice-answer',  w.en + ' → ' + correct);
+
+  const resultArea = document.getElementById('voice-result-area');
+  const verdict    = document.getElementById('voice-verdict');
+  if(resultArea) {
+    resultArea.style.display = 'block';
+    resultArea.style.background = isCorrect ? 'var(--grn-l)' : 'var(--red-l)';
+    resultArea.style.border     = '0.5px solid ' + (isCorrect ? 'var(--grn)' : 'var(--red)');
+  }
+  if(verdict) {
+    verdict.textContent = isCorrect ? '✅ 정답!' : '❌ 아쉬워요';
+    verdict.style.color = isCorrect ? 'var(--grn)' : 'var(--red)';
+  }
+  setText('voice-mic-status', isCorrect ? '정답이에요! 다음 문제로 진행하세요' : '아쉬워요. 다음 문제로 진행하세요');
+  setText('voice-score', VOICE.correct + ' / ' + VOICE.total);
+
+  // 다음 버튼 표시
+  const nextBtn = document.getElementById('voice-next-btn');
+  if(nextBtn) nextBtn.style.display = 'block';
+
+  // 단어 학습 기록
+  if(w.id) {
+    w.status = computeWordStatus(w, isCorrect);
+    if(getSheetsUrl()) {
+      const history   = getWordHistory(w.id);
+      const sm2Result = sm2({
+        easeFactor:  history.easeFactor || 2.5,
+        interval:    history.interval   || 1,
+        repetitions: history.knowCount  || 0
+      }, isCorrect ? 4 : 1);
+      sm2Result.status = w.status;
+      saveReviewToSheets(w.id, sm2Result).catch(()=>{});
+    }
+  }
+
+  trackLearning(isCorrect);
+}
+
+// 한글 정규화 (공백/조사/구두점 제거, 소문자화)
+function normalizeKorean(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[\s\.,;:!?\-\(\)'"~`@#$%^&*+={}\[\]<>|\\\/]/g, '')
+    .replace(/[은는이가을를의에도와과으로]$/g, '') // 끝 조사 제거 (간단)
+    .trim();
+}
+
+function voiceSkip() {
+  // 건너뛰기 - 오답 처리하지 않고 다음으로
+  VOICE.idx++;
+  if(VOICE.idx >= VOICE.words.length) {
+    showVoiceResult();
+  } else {
+    voiceRender();
+    setTimeout(voiceSpeak, 300);
+  }
+}
+
+function voiceNext() {
+  VOICE.idx++;
+  if(VOICE.idx >= VOICE.words.length) {
+    showVoiceResult();
+  } else {
+    voiceRender();
+    setTimeout(voiceSpeak, 300);
+  }
+}
+
+function showVoiceResult() {
+  // 결과 화면 재활용 (s-qresult)
+  const total = VOICE.total || 1;
+  const pct   = Math.round((VOICE.correct / total) * 100);
+
+  setText('res-emoji', pct>=80?'🏆':pct>=60?'🎉':'💪');
+  setText('res-title', pct>=80?'완벽해요!':pct>=60?'훌륭해요!':'더 연습해봐요!');
+  setText('res-score', VOICE.correct + ' / ' + VOICE.total);
+  setText('res-pct',   pct + '%');
+  setText('res-time',  '--');
+  setText('res-pts',   pct + '%');
+
+  // wrongWords와 모드 설정 (재사용)
+  wrongWords     = [...VOICE.wrongList];
+  lastResultMode = 'flashcard'; // 몰라요 라벨 사용 (받아쓰기 → 몰라요로 표시)
+
+  // 복습 버튼 업데이트
+  const wrongBtn = document.getElementById('res-wrong-btn');
+  if(wrongBtn) {
+    if(wrongWords.length > 0) {
+      wrongBtn.textContent = '틀린 단어 ' + wrongWords.length + '개 복습하기';
+      wrongBtn.style.display = 'block';
+      wrongBtn.style.opacity = '1';
+      wrongBtn.style.pointerEvents = 'auto';
+    } else {
+      wrongBtn.textContent = '틀린 단어 없음 🎉';
+      wrongBtn.style.opacity = '.5';
+      wrongBtn.style.pointerEvents = 'none';
+    }
+  }
+
+  // 캐시 무효화
+  localStorage.removeItem('vs-stats-cache');
+  localStorage.removeItem('vs-wslist-cache');
+
+  // 홈 즉시 업데이트
+  const done = Number(localStorage.getItem('vs-today-done')||0);
+  const acc  = Number(localStorage.getItem('vs-today-acc') ||0);
+  const mins = Number(localStorage.getItem('vs-today-time')||0);
+  updateHomeLiveStats(done, acc, mins);
+
+  nav('s-qresult');
+}
+// ─────────────────────────────────────────────────────
+
 async function saveReviewToSheets(wordId,sm2Result){
   if(!getSheetsUrl()) return;
   try{ await sheetsPost({action:'updateReview',wordId,sm2:sm2Result}); }catch(e){}
