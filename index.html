@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-132753">
+<meta name="app-build" content="20260525-140449">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1857,6 +1857,16 @@ body{
         <div onclick="openNotifModal()" style="display:flex;align-items:center;gap:10px;flex:1;cursor:pointer"><span style="font-size:18px">🔔</span><div><div style="font-size:14px;color:var(--tx)">복습 알림</div><div id="notif-desc" style="font-size:12px;color:var(--tx2)">사용 안 함</div></div></div>
         <div id="notif-toggle" onclick="toggleNotif()" style="width:44px;height:26px;border-radius:13px;background:var(--sf2);cursor:pointer;position:relative;transition:background .2s"><div id="notif-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:10px;background:#fff;transition:all .2s"></div></div>
       </div>
+      <div onclick="openRankingSettings()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">🏆</span>
+          <div>
+            <div style="font-size:14px;color:var(--tx)">닉네임 / 랭킹 설정</div>
+            <div id="profile-nickname-desc" style="font-size:12px;color:var(--tx2)">랭킹에 표시될 이름 설정</div>
+          </div>
+        </div>
+        <span style="color:var(--tx3)">›</span>
+      </div>
       <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
         <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔊</span><div><div style="font-size:14px;color:var(--tx)">자동 발음</div><div style="font-size:12px;color:var(--tx2)">플래시카드 넘길 때 자동 재생</div></div></div>
         <div id="speak-toggle" onclick="toggleAutoSpeak()" style="width:44px;height:26px;border-radius:13px;background:var(--acc);cursor:pointer;position:relative;transition:background .2s"><div id="speak-thumb" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:10px;background:#fff;transition:all .2s"></div></div>
@@ -3691,6 +3701,7 @@ function nav(id){
   if(id==='s-home') loadHomeData();
   if(id==='s-extract') { renderExtract(); loadExtractWsOptions(); }
   if(id==='s-fc') fcRender();
+  if(id==='s-profile') refreshProfileNickname();
 }
 
 // ── 모바일 뒤로가기 버튼 처리 ─────────────────────────
@@ -5281,7 +5292,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-132753';
+  window.APP_BUILD = '20260525-140449';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6694,6 +6705,24 @@ async function loadStats(forceRefresh){
 let _rankingLoaded = false;
 let _lastRankingFetch = 0;
 
+// 프로필 메뉴 닉네임 상태 표시
+function refreshProfileNickname() {
+  const descEl = document.getElementById('profile-nickname-desc');
+  if(!descEl) return;
+  const nick = localStorage.getItem('vs-nickname');
+  const optOut = localStorage.getItem('vs-ranking-opt-out') === '1';
+  if(optOut) {
+    descEl.textContent = '랭킹 참여 안 함';
+    descEl.style.color = 'var(--tx3)';
+  } else if(nick) {
+    descEl.textContent = `닉네임: ${nick}`;
+    descEl.style.color = 'var(--acc)';
+  } else {
+    descEl.textContent = '닉네임 미설정 (실명 일부 마스킹)';
+    descEl.style.color = 'var(--tx2)';
+  }
+}
+
 // 통계 화면 진입 시 호출
 async function loadRanking(force) {
   const listEl = document.getElementById('ranking-list');
@@ -6857,6 +6886,7 @@ async function saveNickname() {
     localStorage.setItem('vs-nickname', nickname);
     alert('✅ 닉네임이 변경되었어요');
     _rankingLoaded = false; // 캐시 무효화
+    refreshProfileNickname();
     loadRanking(true);
   } catch(e) {
     alert('닉네임 변경 실패: ' + e.message);
@@ -6884,6 +6914,7 @@ async function toggleRankingOptOut() {
     localStorage.setItem('vs-ranking-opt-out', optOut ? '1' : '0');
     updateOptToggleVisual(toggle.checked);
     _rankingLoaded = false;
+    refreshProfileNickname();
     loadRanking(true);
   } catch(e) {
     toggle.checked = !toggle.checked;
