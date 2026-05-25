@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-055314">
+<meta name="app-build" content="20260525-061314">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1868,9 +1868,7 @@ async function fsRecordLearning(word, isKnow) {
       const total     = knowCount + dontCount;
       const acc       = total > 0 ? knowCount/total : 0;
 
-      let status = 'learning';
-      if(knowCount >= 5 && acc >= 0.8)      status = 'mastered';
-      else if(knowCount >= 3 && acc >= 0.6) status = 'review';
+      let status = computeStatusFromCounts(knowCount, dontCount);
 
       t.update(wordRef, {
         knowCount, dontCount, status,
@@ -3158,9 +3156,7 @@ async function startReviewByStatus(filterType) {
       if(hist.knowCount > 0 || hist.dontCount > 0) {
         const tot = hist.knowCount + hist.dontCount;
         const acc = tot > 0 ? hist.knowCount/tot : 0;
-        if(hist.knowCount >= 5 && acc >= 0.8) status = 'mastered';
-        else if(hist.knowCount >= 3 && acc >= 0.6) status = 'review';
-        else status = 'learning';
+        status = computeStatusFromCounts(hist.knowCount, hist.dontCount);
       }
       return {
         id: w.id, en: w.word||w.en||'', ko: w.meaning||w.ko||'',
@@ -3899,7 +3895,7 @@ function qRestart(){qWrong=[];wrongWords=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-055314';
+  window.APP_BUILD = '20260525-061314';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -4663,9 +4659,7 @@ async function loadStats(forceRefresh){
       if(hist.knowCount > 0 || hist.dontCount > 0) {
         const tot = hist.knowCount + hist.dontCount;
         const acc = tot > 0 ? hist.knowCount/tot : 0;
-        if(hist.knowCount >= 5 && acc >= 0.8) status = 'mastered';
-        else if(hist.knowCount >= 3 && acc >= 0.6) status = 'review';
-        else status = 'learning';
+        status = computeStatusFromCounts(hist.knowCount, hist.dontCount);
       }
       return {...w, status};
     });
@@ -4929,9 +4923,7 @@ async function loadWordListForSet(wordSetId) {
       if(hist.knowCount > 0 || hist.dontCount > 0) {
         const total = hist.knowCount + hist.dontCount;
         const acc   = total > 0 ? hist.knowCount/total : 0;
-        if(hist.knowCount >= 5 && acc >= 0.8) status = 'mastered';
-        else if(hist.knowCount >= 3 && acc >= 0.6) status = 'review';
-        else status = 'learning';
+        status = computeStatusFromCounts(hist.knowCount, hist.dontCount);
       }
       return {
         id: w.id, en: w.word||w.en||'', ko: w.meaning||w.ko||'',
@@ -5156,10 +5148,8 @@ async function renderHomeWordSetsDynamic(wordSets) {
         if(hist.knowCount > 0 || hist.dontCount > 0) {
           const tot = hist.knowCount + hist.dontCount;
           const acc = tot > 0 ? hist.knowCount/tot : 0;
-          if(hist.knowCount >= 5 && acc >= 0.8) status = 'mastered';
-          else if(hist.knowCount >= 3 && acc >= 0.6) status = 'review';
-          else status = 'learning';
-        }
+          status = computeStatusFromCounts(hist.knowCount, hist.dontCount);
+          }
         return {...w, status};
       });
 
@@ -5306,34 +5296,33 @@ function saveWordHistory(wordId, history) {
   localStorage.setItem('vs-word-' + wordId, JSON.stringify(history));
 }
 
+// 공통 상태 계산 헬퍼 (옵션 B: 매우 친절 - 2회 알아요로 완료)
+function computeStatusFromCounts(knowCount, dontCount) {
+  const total = (knowCount || 0) + (dontCount || 0);
+  if(knowCount >= 2)  return 'mastered'; // 완료: 2번 이상 알아요
+  if(knowCount >= 1)  return 'review';   // 복습: 1번 알아요
+  if(total > 0)       return 'learning'; // 학습 중: 학습 시작했지만 아직 못 외움
+  return 'new';                          // 미학습
+}
+
 function computeWordStatus(word, isKnow) {
   const h = getWordHistory(word.id);
   if(isKnow) h.knowCount = (h.knowCount || 0) + 1;
   else       h.dontCount = (h.dontCount || 0) + 1;
   saveWordHistory(word.id, h);
-
-  const total      = h.knowCount + h.dontCount;
-  const accuracy   = total > 0 ? h.knowCount / total : 0;
-
-  // 상태 결정 로직
-  if(h.knowCount >= 5 && accuracy >= 0.8) {
-    return 'mastered'; // 완료
-  } else if(h.knowCount >= 3 && accuracy >= 0.6) {
-    return 'review';   // 복습 단계
-  } else {
-    return 'learning'; // 학습 중
-  }
+  return computeStatusFromCounts(h.knowCount, h.dontCount);
 }
 
-// 진행률 계산 (가중 평균)
+// 진행률 계산 (가중 평균) - 옵션 B: 친절한 가중치
 function calcWordSetProgress(words) {
   if(!words.length) return { mastered: 0, learning: 0, review: 0, newW: 0, pct: 0 };
   const mastered = words.filter(w => w.status === 'mastered').length;
   const review   = words.filter(w => w.status === 'review').length;
   const learning = words.filter(w => w.status === 'learning').length;
   const newW     = words.filter(w => !w.status || w.status === 'new').length;
-  // 가중치: mastered=1.0, review=0.5, learning=0.2, new=0
-  const score    = mastered * 1.0 + review * 0.5 + learning * 0.2;
+  // 가중치 완화: mastered=1.0, review=0.7, learning=0.5, new=0
+  // → 한 번 학습만 해도 50%, 알아요 1회면 70%, 2회면 100%
+  const score    = mastered * 1.0 + review * 0.7 + learning * 0.5;
   const pct      = Math.round((score / words.length) * 100);
   return { mastered, learning, review, newW, pct, total: words.length };
 }
