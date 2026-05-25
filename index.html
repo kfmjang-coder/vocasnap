@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-061314">
+<meta name="app-build" content="20260525-061915">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -384,6 +384,39 @@ body{
       <button onclick="copyDebugInfo()" style="flex:1;padding:10px;background:#7F77DD;color:#fff;border:none;border-radius:6px;font-size:13px">정보 복사</button>
       <button onclick="testSaveAPI()" style="flex:1;padding:10px;background:#10B981;color:#fff;border:none;border-radius:6px;font-size:13px">API 테스트</button>
     </div>
+  </div>
+</div>
+
+
+<!-- ══ 복습 알림 설정 모달 ══ -->
+<div id="notif-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-end;justify-content:center">
+  <div style="width:100%;max-width:500px;background:var(--sf);border-radius:18px 18px 0 0;padding:20px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:17px;font-weight:500;color:var(--tx)">🔔 복습 알림 설정</div>
+      <div onclick="closeNotifModal()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
+      </div>
+    </div>
+
+    <div style="background:var(--acc-l);border-radius:10px;padding:12px 14px;margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;gap:8px;color:var(--acc-d)">
+        <i class="ti ti-info-circle" style="font-size:16px;margin-top:1px;flex-shrink:0"></i>
+        <div style="font-size:12px;line-height:1.6">설정한 시간 이후 앱을 열면 복습할 단어가 있을 때 알림을 보내요</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+      <div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:6px">🌅 아침 알림</div>
+        <input type="time" id="notif-time1" value="09:00" style="width:100%;padding:12px;border:0.5px solid var(--bd);border-radius:10px;font-size:15px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:6px">🌙 저녁 알림</div>
+        <input type="time" id="notif-time2" value="20:00" style="width:100%;padding:12px;border:0.5px solid var(--bd);border-radius:10px;font-size:15px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+      </div>
+    </div>
+
+    <button onclick="saveNotifSettings()" style="width:100%;padding:14px;background:var(--acc);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer">저장하기</button>
   </div>
 </div>
 
@@ -1182,8 +1215,8 @@ body{
         <div style="display:flex;align-items:center;gap:8px" onclick="setSessionGoal()"><span style="font-size:14px;font-weight:500;color:var(--acc)" id="session-val">20개</span><span style="color:var(--tx3)">›</span></div>
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
-        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔔</span><div><div style="font-size:14px;color:var(--tx)">복습 알림</div><div style="font-size:12px;color:var(--tx2)">오전 9시, 오후 8시</div></div></div>
-        <div id="notif-toggle" onclick="toggleSwitch('notif-toggle')" style="width:44px;height:26px;border-radius:13px;background:var(--acc);cursor:pointer;position:relative;transition:background .2s"><div id="notif-thumb" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:10px;background:#fff;transition:all .2s"></div></div>
+        <div onclick="openNotifModal()" style="display:flex;align-items:center;gap:10px;flex:1;cursor:pointer"><span style="font-size:18px">🔔</span><div><div style="font-size:14px;color:var(--tx)">복습 알림</div><div id="notif-desc" style="font-size:12px;color:var(--tx2)">사용 안 함</div></div></div>
+        <div id="notif-toggle" onclick="toggleNotif()" style="width:44px;height:26px;border-radius:13px;background:var(--sf2);cursor:pointer;position:relative;transition:background .2s"><div id="notif-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:10px;background:#fff;transition:all .2s"></div></div>
       </div>
       <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--bd)">
         <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔊</span><div><div style="font-size:14px;color:var(--tx)">자동 발음</div><div style="font-size:12px;color:var(--tx2)">플래시카드 넘길 때 자동 재생</div></div></div>
@@ -3895,7 +3928,7 @@ function qRestart(){qWrong=[];wrongWords=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-061314';
+  window.APP_BUILD = '20260525-061915';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -5464,6 +5497,136 @@ function toggleAutoSpeak() {
   // 테스트 발음
   if(next) speakWord('hello');
 }
+
+
+// ── 복습 알림 시스템 ──────────────────────────────────
+function getNotifSettings() {
+  return {
+    enabled: localStorage.getItem('vs-notif-enabled') === '1',
+    time1:   localStorage.getItem('vs-notif-time1')   || '09:00',
+    time2:   localStorage.getItem('vs-notif-time2')   || '20:00',
+  };
+}
+
+function initNotifToggle() {
+  const s      = getNotifSettings();
+  const toggle = document.getElementById('notif-toggle');
+  const thumb  = document.getElementById('notif-thumb');
+  const desc   = document.getElementById('notif-desc');
+
+  if(toggle) toggle.style.background = s.enabled ? 'var(--acc)' : 'var(--sf2)';
+  if(thumb)  { thumb.style.right = s.enabled ? '3px' : 'auto'; thumb.style.left = s.enabled ? 'auto' : '3px'; }
+  if(desc)   desc.textContent = s.enabled ? `${s.time1}, ${s.time2}` : '사용 안 함';
+}
+
+async function toggleNotif() {
+  const s = getNotifSettings();
+  if(s.enabled) {
+    // OFF로 전환
+    localStorage.setItem('vs-notif-enabled', '0');
+    initNotifToggle();
+    return;
+  }
+  // ON 시도 - 브라우저 알림 권한 요청
+  if(!('Notification' in window)) {
+    alert('이 브라우저는 알림을 지원하지 않아요');
+    return;
+  }
+  let perm = Notification.permission;
+  if(perm === 'default') {
+    perm = await Notification.requestPermission();
+  }
+  if(perm !== 'granted') {
+    alert('알림 권한이 필요해요.\n브라우저 설정에서 알림을 허용해주세요.');
+    return;
+  }
+  // ON 저장
+  localStorage.setItem('vs-notif-enabled', '1');
+  initNotifToggle();
+  // 시간 설정 모달 자동 표시 (처음 켤 때 안내)
+  openNotifModal();
+}
+
+function openNotifModal() {
+  const s = getNotifSettings();
+  document.getElementById('notif-time1').value = s.time1;
+  document.getElementById('notif-time2').value = s.time2;
+  document.getElementById('notif-modal').style.display = 'flex';
+}
+
+function closeNotifModal() {
+  document.getElementById('notif-modal').style.display = 'none';
+}
+
+function saveNotifSettings() {
+  const time1 = document.getElementById('notif-time1').value || '09:00';
+  const time2 = document.getElementById('notif-time2').value || '20:00';
+  localStorage.setItem('vs-notif-time1', time1);
+  localStorage.setItem('vs-notif-time2', time2);
+  // 알림이 꺼져있어도 시간만 저장 가능 (다음에 켤 때 적용)
+  initNotifToggle();
+  closeNotifModal();
+  alert(`✅ 알림 시간 저장됨\n🌅 ${time1}\n🌙 ${time2}`);
+}
+
+// 알림 발송 체크 (앱 진입 시 호출)
+async function checkNotifications() {
+  const s = getNotifSettings();
+  if(!s.enabled) return;
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const now    = new Date();
+  const today  = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  const hhmm   = now.toTimeString().slice(0, 5);  // HH:MM
+  const last   = JSON.parse(localStorage.getItem('vs-notif-last') || '{}');
+
+  // 어느 알림 시간을 체크할지 결정
+  const slots = [
+    { id: 'morning', time: s.time1, emoji: '🌅', label: '아침' },
+    { id: 'evening', time: s.time2, emoji: '🌙', label: '저녁' },
+  ];
+
+  for(const slot of slots) {
+    // 현재 시간 >= 설정 시간 AND 오늘 같은 시간대 알림 안 보냈으면
+    if(hhmm < slot.time) continue;
+    const lastKey = `${today}-${slot.id}`;
+    if(last[lastKey]) continue;
+
+    // 복습할 단어 개수 확인
+    let dueCount = 0;
+    try {
+      const url = getSheetsUrl();
+      if(url) {
+        const res = await sheetsGet('getDueWords');
+        dueCount = res.count || (res.words?.length) || 0;
+      }
+    } catch(e) { console.warn('복습 단어 조회 실패:', e); }
+
+    if(dueCount > 0) {
+      // 브라우저 알림
+      try {
+        new Notification(`${slot.emoji} ${slot.label} 복습 시간!`, {
+          body: `오늘 복습할 단어가 ${dueCount}개 있어요. 학습 시작해볼까요?`,
+          icon: 'icon-192.png',
+          badge: 'icon-192.png',
+        });
+      } catch(e) { console.warn('알림 표시 실패:', e); }
+    }
+
+    // 보냈다고 기록 (단어 0개여도 같은 시간대 중복 호출 방지)
+    last[lastKey] = Date.now();
+    localStorage.setItem('vs-notif-last', JSON.stringify(last));
+  }
+
+  // 일주일 이상 된 기록 정리
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  let cleaned = false;
+  for(const k of Object.keys(last)) {
+    if(last[k] < weekAgo) { delete last[k]; cleaned = true; }
+  }
+  if(cleaned) localStorage.setItem('vs-notif-last', JSON.stringify(last));
+}
+// ─────────────────────────────────────────────────────
 
 function initAutoSpeakToggle() {
   const on     = localStorage.getItem('vs-auto-speak') !== '0';
@@ -7113,6 +7276,9 @@ initGoalDisplay();
 initSessionGoal();
 initAutoSpeakToggle();
 initDarkToggle();
+initNotifToggle();
+// 알림 체크는 로그인 후 약간 지연시켜 호출 (Sheets URL 확보 대기)
+setTimeout(() => { try { checkNotifications(); } catch(e){} }, 2000);
 applyProfile();
 
 
