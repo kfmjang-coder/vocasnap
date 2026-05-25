@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-125456">
+<meta name="app-build" content="20260525-130751">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1478,92 +1478,196 @@ body{
 
     <!-- 실제 통계 콘텐츠 -->
     <div id="stats-content">
-      <!-- 히어로 카드 -->
-      <div style="margin:0 16px 14px;background:var(--acc);border-radius:16px;padding:18px;color:#fff">
-        <div style="font-size:12px;opacity:.75;margin-bottom:6px">전체 단어 현황</div>
-        <div style="font-size:36px;font-weight:500;margin-bottom:4px" id="stat-total">--</div>
-        <div style="display:flex;gap:10px;margin-top:8px">
-          <div style="text-align:center;flex:1">
-            <div style="font-size:18px;font-weight:500" id="stat-mastered">--</div>
-            <div style="font-size:11px;opacity:.75;margin-top:2px">암기 완료</div>
+
+      <!-- ══ 🎮 트레이너 카드 (메인) ══ -->
+      <div onclick="showRpgInfo()" style="margin:0 16px 14px;background:linear-gradient(135deg, #7F77DD 0%, #5851BF 50%, #4338A3 100%);border-radius:18px;padding:20px;color:#fff;cursor:pointer;box-shadow:0 8px 24px rgba(127,119,221,.35);position:relative;overflow:hidden">
+        <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:radial-gradient(circle, rgba(255,255,255,.15), transparent 70%);pointer-events:none"></div>
+
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+          <div id="trainer-tier-emoji" style="font-size:50px;line-height:1;filter:drop-shadow(0 2px 8px rgba(0,0,0,.3))">🥉</div>
+          <div style="flex:1">
+            <div style="font-size:11px;opacity:.85;margin-bottom:2px">트레이너 카드</div>
+            <div id="trainer-level" style="font-size:28px;font-weight:700;line-height:1.1">Lv.1</div>
+            <div id="trainer-tier-name" style="font-size:13px;opacity:.9;margin-top:2px">Bronze</div>
           </div>
-          <div style="width:0.5px;background:rgba(255,255,255,.3)"></div>
-          <div style="text-align:center;flex:1">
-            <div style="font-size:18px;font-weight:500" id="stat-learning">--</div>
-            <div style="font-size:11px;opacity:.75;margin-top:2px">학습 중</div>
+          <div style="text-align:right">
+            <div id="trainer-xp-current" style="font-size:22px;font-weight:700">0</div>
+            <div style="font-size:11px;opacity:.8">총 XP</div>
           </div>
-          <div style="width:0.5px;background:rgba(255,255,255,.3)"></div>
-          <div style="text-align:center;flex:1">
-            <div style="font-size:18px;font-weight:500" id="stat-new">--</div>
-            <div style="font-size:11px;opacity:.75;margin-top:2px">미학습</div>
+        </div>
+
+        <!-- XP 바 -->
+        <div style="background:rgba(255,255,255,.18);height:10px;border-radius:5px;overflow:hidden;margin-bottom:6px">
+          <div id="trainer-xp-bar" style="background:linear-gradient(90deg, #FFD700, #FFA500);height:100%;width:0%;border-radius:5px;transition:width .8s;box-shadow:0 0 8px rgba(255,215,0,.5)"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.9;margin-bottom:16px">
+          <span id="trainer-xp-label">0 / 100 XP</span>
+          <span id="trainer-xp-next">다음 100 XP</span>
+        </div>
+
+        <!-- 5개 핵심 스탯 -->
+        <div style="display:flex;gap:6px">
+          <div style="flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 4px;text-align:center">
+            <div style="font-size:18px">🔥</div>
+            <div id="trainer-streak" style="font-size:14px;font-weight:600;margin-top:2px">0</div>
+            <div style="font-size:9px;opacity:.8">연속</div>
           </div>
-          <div style="width:0.5px;background:rgba(255,255,255,.3)"></div>
-          <div style="text-align:center;flex:1">
-            <div style="font-size:18px;font-weight:500;color:#FFD580" id="stat-due">--</div>
-            <div style="font-size:11px;opacity:.75;margin-top:2px">오늘 복습</div>
+          <div style="flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 4px;text-align:center">
+            <div style="font-size:18px">⚡</div>
+            <div id="trainer-combo" style="font-size:14px;font-weight:600;margin-top:2px">0</div>
+            <div style="font-size:9px;opacity:.8">최고콤보</div>
+          </div>
+          <div style="flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 4px;text-align:center">
+            <div style="font-size:18px">⭐</div>
+            <div id="trainer-weekdays" style="font-size:14px;font-weight:600;margin-top:2px">0/7</div>
+            <div style="font-size:9px;opacity:.8">이번주</div>
+          </div>
+          <div style="flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 4px;text-align:center">
+            <div style="font-size:18px">🏆</div>
+            <div id="trainer-mastered" style="font-size:14px;font-weight:600;margin-top:2px">0</div>
+            <div style="font-size:9px;opacity:.8">마스터</div>
+          </div>
+          <div style="flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 4px;text-align:center">
+            <div style="font-size:18px">💎</div>
+            <div id="trainer-pct" style="font-size:14px;font-weight:600;margin-top:2px">0%</div>
+            <div style="font-size:9px;opacity:.8">진행률</div>
           </div>
         </div>
       </div>
 
-      <!-- 진행률 바 -->
+      <!-- ══ 🤖 AI 코치 메시지 ══ -->
+      <div style="margin:0 16px 14px;background:linear-gradient(135deg, #10b981, #059669);border-radius:14px;padding:14px;color:#fff;display:flex;align-items:flex-start;gap:10px">
+        <div id="coach-emoji" style="font-size:30px;line-height:1">🌱</div>
+        <div style="flex:1">
+          <div style="font-size:11px;opacity:.9;margin-bottom:2px">🤖 AI 학습 코치</div>
+          <div id="coach-message" style="font-size:13px;line-height:1.5">분석 중...</div>
+        </div>
+      </div>
+
+      <!-- ══ 🏆 업적 시스템 ══ -->
+      <div class="sh">
+        <span class="st">🏆 업적</span>
+        <span id="achievements-progress" style="font-size:11px;color:var(--tx2);background:var(--sf2);padding:3px 10px;border-radius:12px">0/12 획득</span>
+      </div>
+      <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;padding:14px;border:0.5px solid var(--bd)">
+        <div id="achievements-grid">
+          <!-- 동적 생성 -->
+        </div>
+      </div>
+
+      <!-- ══ 📊 단어 컬렉션 ══ -->
+      <div class="sh"><span class="st">📊 단어 컬렉션</span></div>
       <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;padding:16px;border:0.5px solid var(--bd)">
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:8px">
-          <span>전체 암기 진행률</span><span id="stat-pct">--%</span>
+        <!-- 전체 단어 표시 -->
+        <div style="text-align:center;margin-bottom:14px">
+          <div style="font-size:32px;font-weight:600;color:var(--tx)" id="stat-total">--</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:2px">전체 보유 단어</div>
         </div>
-        <div style="height:10px;border-radius:99px;background:var(--sf2);overflow:hidden;margin-bottom:10px">
-          <div id="stat-pct-bar" style="height:100%;border-radius:99px;background:var(--acc);width:0%;transition:width 1s ease"></div>
+
+        <!-- 카테고리별 컬렉션 -->
+        <div onclick="startReviewByStatus('mastered')" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--grn-l);border-radius:10px;margin-bottom:8px;cursor:pointer">
+          <div style="font-size:24px">🟢</div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+              <span style="font-size:13px;font-weight:600;color:var(--grn)">마스터</span>
+              <span style="font-size:13px;font-weight:600;color:var(--grn)" id="stat-mastered">--</span>
+            </div>
+            <div style="height:6px;background:rgba(16,185,129,.15);border-radius:3px;overflow:hidden">
+              <div id="collection-mastered-bar" style="height:100%;background:var(--grn);width:0%;transition:width .8s"></div>
+            </div>
+          </div>
         </div>
-        <div style="display:flex;gap:12px">
-          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2)"><div style="width:8px;height:8px;border-radius:2px;background:var(--acc)"></div>암기 완료</div>
-          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2)"><div style="width:8px;height:8px;border-radius:2px;background:var(--amb)"></div>학습 중</div>
-          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2)"><div style="width:8px;height:8px;border-radius:2px;background:var(--sf2);border:0.5px solid var(--bd)"></div>미학습</div>
+
+        <div onclick="startReviewByStatus('due')" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--amb-l);border-radius:10px;margin-bottom:8px;cursor:pointer">
+          <div style="font-size:24px">🟡</div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+              <span style="font-size:13px;font-weight:600;color:var(--amb)">학습 중 (복습 필요 <span id="stat-due">--</span>개)</span>
+              <span style="font-size:13px;font-weight:600;color:var(--amb)" id="stat-learning">--</span>
+            </div>
+            <div style="height:6px;background:rgba(239,159,39,.15);border-radius:3px;overflow:hidden">
+              <div id="collection-learning-bar" style="height:100%;background:var(--amb);width:0%;transition:width .8s"></div>
+            </div>
+          </div>
         </div>
+
+        <div onclick="startReviewByStatus('new')" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--sf2);border-radius:10px;cursor:pointer">
+          <div style="font-size:24px">⚪</div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+              <span style="font-size:13px;font-weight:600;color:var(--tx2)">미학습</span>
+              <span style="font-size:13px;font-weight:600;color:var(--tx2)" id="stat-new">--</span>
+            </div>
+            <div style="height:6px;background:rgba(0,0,0,.06);border-radius:3px;overflow:hidden">
+              <div id="collection-new-bar" style="height:100%;background:var(--tx3);width:0%;transition:width .8s"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 전체 진행률 -->
+        <div style="margin-top:14px;padding-top:14px;border-top:0.5px solid var(--bd)">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:6px">
+            <span>🏆 정복률</span>
+            <span id="stat-pct" style="color:var(--acc);font-weight:600">--%</span>
+          </div>
+          <div style="height:10px;border-radius:99px;background:var(--sf2);overflow:hidden">
+            <div id="stat-pct-bar" style="height:100%;border-radius:99px;background:linear-gradient(90deg, #7F77DD, #5851BF);width:0%;transition:width 1s ease"></div>
+          </div>
+        </div>
+
+        <!-- 호환성 유지 (기존 진행률 ID들) -->
+        <span id="stat-pct-text-hidden" style="display:none"></span>
       </div>
 
-      <!-- 이번 주 차트 -->
-      <div class="sh"><span class="st">이번 주 학습 현황</span></div>
+      <!-- ══ 📈 주간 도전 ══ -->
+      <div class="sh">
+        <span class="st">📈 주간 도전</span>
+        <span id="week-summary" style="font-size:11px;color:var(--tx3)"></span>
+      </div>
       <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;padding:16px;border:0.5px solid var(--bd)">
         <div id="week-chart" style="display:flex;align-items:flex-end;gap:6px;height:90px;margin-bottom:8px"></div>
-        <div id="week-days" style="display:flex;justify-content:space-between"></div>
+        <div id="week-days" style="display:flex;justify-content:space-between;margin-bottom:12px"></div>
+
+        <!-- 주간 통계 -->
+        <div style="display:flex;gap:8px;padding-top:12px;border-top:0.5px solid var(--bd)">
+          <div style="flex:1;text-align:center">
+            <div id="week-avg" style="font-size:16px;font-weight:600;color:var(--tx)">--</div>
+            <div style="font-size:10px;color:var(--tx2);margin-top:2px">일일 평균</div>
+          </div>
+          <div style="flex:1;text-align:center">
+            <div id="week-best" style="font-size:16px;font-weight:600;color:var(--acc)">--</div>
+            <div style="font-size:10px;color:var(--tx2);margin-top:2px">최고 기록</div>
+          </div>
+          <div style="flex:1;text-align:center">
+            <div id="week-total" style="font-size:16px;font-weight:600;color:var(--grn)">--</div>
+            <div style="font-size:10px;color:var(--tx2);margin-top:2px">주간 합계</div>
+          </div>
+        </div>
       </div>
 
-      <!-- 복습 현황 -->
-      <div class="sh"><span class="st">복습 현황</span><span style="font-size:11px;color:var(--tx3)">탭해서 학습 시작</span></div>
-      <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;border:0.5px solid var(--bd);overflow:hidden">
-        <div onclick="startReviewByStatus('mastered')" style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:0.5px solid var(--bd);cursor:pointer">
-          <div style="width:36px;height:36px;border-radius:10px;background:var(--grn-l);display:flex;align-items:center;justify-content:center;font-size:18px">✅</div>
-          <div style="flex:1">
-            <div style="font-size:14px;font-weight:500;color:var(--tx)">암기 완료</div>
-            <div style="font-size:12px;color:var(--tx2)">장기 기억 전환됨 · 탭해서 다시 보기</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="font-size:18px;font-weight:500;color:var(--grn)" id="review-mastered">--</div>
-            <i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3)"></i>
-          </div>
+      <!-- ══ ⏰ 학습 패턴 ══ -->
+      <div class="sh"><span class="st">⏰ 학습 패턴 분석</span></div>
+      <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;padding:16px;border:0.5px solid var(--bd)">
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">시간대별 학습 횟수</div>
+        <div id="time-pattern-chart" style="display:flex;gap:6px;height:80px;align-items:flex-end;margin-bottom:8px">
+          <!-- 동적 생성 -->
         </div>
-        <div onclick="startReviewByStatus('due')" style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:0.5px solid var(--bd);cursor:pointer">
-          <div style="width:36px;height:36px;border-radius:10px;background:var(--amb-l);display:flex;align-items:center;justify-content:center;font-size:18px">🔄</div>
-          <div style="flex:1">
-            <div style="font-size:14px;font-weight:500;color:var(--tx)">오늘 복습 필요</div>
-            <div style="font-size:12px;color:var(--tx2)">망각 직전 단어 · 우선 학습 추천</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="font-size:18px;font-weight:500;color:var(--amb)" id="review-due">--</div>
-            <i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3)"></i>
-          </div>
+        <div id="time-pattern-labels" style="display:flex;gap:6px;font-size:10px;color:var(--tx2);margin-bottom:10px">
+          <div style="flex:1;text-align:center">🌙 새벽</div>
+          <div style="flex:1;text-align:center">☀️ 오전</div>
+          <div style="flex:1;text-align:center">🌤️ 오후</div>
+          <div style="flex:1;text-align:center">🌆 저녁</div>
+          <div style="flex:1;text-align:center">🌃 밤</div>
         </div>
-        <div onclick="startReviewByStatus('new')" style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer">
-          <div style="width:36px;height:36px;border-radius:10px;background:var(--sf2);display:flex;align-items:center;justify-content:center;font-size:18px">📖</div>
-          <div style="flex:1">
-            <div style="font-size:14px;font-weight:500;color:var(--tx)">미학습</div>
-            <div style="font-size:12px;color:var(--tx2)">아직 시작 안 함 · 탭해서 학습 시작</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="font-size:18px;font-weight:500;color:var(--tx2)" id="review-new">--</div>
-            <i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3)"></i>
-          </div>
+        <div id="time-pattern-best" style="padding:10px 12px;background:var(--acc-l);border-radius:10px;font-size:12px;color:var(--acc-d);text-align:center">
+          데이터 수집 중...
         </div>
       </div>
+
+      <!-- 호환성 유지용 숨김 요소 -->
+      <span id="review-mastered" style="display:none">--</span>
+      <span id="review-due" style="display:none">--</span>
+      <span id="review-new" style="display:none">--</span>
 
       <!-- 모의테스트 이력 -->
       <div class="sh">
@@ -4492,6 +4596,231 @@ function showQuestToast(text, color) {
 }
 // ─────────────────────────────────────────────────────
 
+
+// ── 🏆 업적 시스템 ──────────────────────────────────
+const ACHIEVEMENTS = [
+  // 기본 카테고리
+  { id: 'first_step',    icon: '🎯', name: '첫 발걸음',     desc: '단어 1개 학습',  category: '기본', check: () => Number(localStorage.getItem('vs-total-answered') || 0) >= 1 },
+  { id: 'collector_50',  icon: '📚', name: '단어 수집가',   desc: '단어 50개 학습', category: '기본', check: () => Number(localStorage.getItem('vs-total-answered') || 0) >= 50 },
+  { id: 'master_100',    icon: '🌟', name: '단어 마스터',   desc: '단어 100개 마스터', category: '기본', check: () => countMastered() >= 100 },
+
+  // 연속 학습
+  { id: 'streak_3',      icon: '🔥', name: '3일 연속',       desc: '3일 연속 학습', category: '연속', check: () => Number(localStorage.getItem('vs-best-streak') || 0) >= 3 },
+  { id: 'streak_7',      icon: '💥', name: '7일 연속',       desc: '7일 연속 학습', category: '연속', check: () => Number(localStorage.getItem('vs-best-streak') || 0) >= 7 },
+  { id: 'streak_30',     icon: '🌋', name: '30일 연속',      desc: '30일 연속 학습', category: '연속', check: () => Number(localStorage.getItem('vs-best-streak') || 0) >= 30 },
+
+  // 콤보
+  { id: 'combo_10',      icon: '⚡', name: '콤보 10',        desc: '연속 정답 10개', category: '콤보', check: () => Number(localStorage.getItem('vs-best-combo') || 0) >= 10 },
+  { id: 'combo_25',      icon: '🌪️', name: '콤보 25',        desc: '연속 정답 25개', category: '콤보', check: () => Number(localStorage.getItem('vs-best-combo') || 0) >= 25 },
+  { id: 'combo_50',      icon: '💫', name: '콤보 50',        desc: '연속 정답 50개', category: '콤보', check: () => Number(localStorage.getItem('vs-best-combo') || 0) >= 50 },
+
+  // 시험
+  { id: 'first_test',    icon: '🎓', name: '첫 시험',        desc: '모의테스트 1회', category: '시험', check: () => (JSON.parse(localStorage.getItem('vs-mock-history') || '[]')).length >= 1 },
+  { id: 'test_champion', icon: '🏆', name: '시험왕',         desc: '모의테스트 A+ (90%+)', category: '시험', check: () => (JSON.parse(localStorage.getItem('vs-mock-history') || '[]')).some(r => r.pct >= 90) },
+  { id: 'voice_master',  icon: '🎤', name: '음성 마스터',    desc: '음성받아쓰기 100%', category: '시험', check: () => (JSON.parse(localStorage.getItem('vs-mock-history') || '[]')).some(r => r.mode === 'voice' && r.pct === 100) },
+];
+
+function countMastered() {
+  let count = 0;
+  for(let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if(key && key.startsWith('vs-word-')) {
+      try {
+        const h = JSON.parse(localStorage.getItem(key) || 'null');
+        if(h) {
+          const status = computeStatusFromCounts(h.knowCount || 0, h.dontCount || 0);
+          if(status === 'mastered') count++;
+        }
+      } catch(e) {}
+    }
+  }
+  return count;
+}
+
+// 획득한 업적 목록
+function getEarnedAchievements() {
+  const key = 'vs-achievements';
+  let earned = [];
+  try { earned = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+  return earned;
+}
+
+// 업적 체크 (학습 시 자동 호출)
+function checkAchievements() {
+  const earned = getEarnedAchievements();
+  const newlyEarned = [];
+
+  ACHIEVEMENTS.forEach(ach => {
+    if(!earned.includes(ach.id) && ach.check()) {
+      earned.push(ach.id);
+      newlyEarned.push(ach);
+    }
+  });
+
+  if(newlyEarned.length > 0) {
+    localStorage.setItem('vs-achievements', JSON.stringify(earned));
+    // 토스트로 알림 (한 번에 하나만)
+    showAchievementToast(newlyEarned[0]);
+    // XP 보너스 (업적당 +30 XP)
+    addXP(newlyEarned.length * 30, '업적 획득');
+  }
+}
+
+function showAchievementToast(ach) {
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position:fixed;top:80px;left:50%;transform:translateX(-50%);
+    background:linear-gradient(135deg, #FFD700, #FFA500);
+    color:#fff;padding:14px 20px;border-radius:14px;
+    font-size:14px;font-weight:600;z-index:9999;
+    box-shadow:0 6px 20px rgba(255,165,0,.4);
+    display:flex;align-items:center;gap:12px;
+    animation:levelUpPop .5s ease-out;
+    max-width:90%;
+  `;
+  toast.innerHTML = `
+    <span style="font-size:32px">${ach.icon}</span>
+    <div>
+      <div style="font-size:11px;opacity:.9">🏆 업적 획득!</div>
+      <div style="font-weight:600">${ach.name}</div>
+      <div style="font-size:11px;opacity:.85;margin-top:2px">+30 XP</div>
+    </div>
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'opacity .4s, transform .4s';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(-20px)';
+    setTimeout(() => toast.remove(), 400);
+  }, 2800);
+}
+
+// 업적 진행률 표시 (통계 화면용)
+function renderAchievements() {
+  const container = document.getElementById('achievements-grid');
+  if(!container) return;
+
+  const earned = getEarnedAchievements();
+  const earnedCount = earned.length;
+  const totalCount  = ACHIEVEMENTS.length;
+
+  // 헤더 업데이트
+  const headerEl = document.getElementById('achievements-progress');
+  if(headerEl) headerEl.textContent = `${earnedCount} / ${totalCount} 획득`;
+
+  // 카테고리별 그룹화
+  const grouped = {};
+  ACHIEVEMENTS.forEach(ach => {
+    if(!grouped[ach.category]) grouped[ach.category] = [];
+    grouped[ach.category].push(ach);
+  });
+
+  container.innerHTML = Object.entries(grouped).map(([cat, achs]) => `
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:8px;font-weight:500">${cat}</div>
+      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px">
+        ${achs.map(ach => {
+          const isEarned = earned.includes(ach.id);
+          return `
+            <div onclick="showAchievementDetail('${ach.id}')" style="background:${isEarned ? 'linear-gradient(135deg, #FFF7E6, #FFE9B0)' : 'var(--sf2)'};border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;border:0.5px solid ${isEarned ? '#FFD700' : 'var(--bd)'};${isEarned ? '' : 'opacity:.55'}">
+              <div style="font-size:28px;line-height:1;margin-bottom:4px;${isEarned ? '' : 'filter:grayscale(80%)'}">${ach.icon}</div>
+              <div style="font-size:10px;font-weight:600;color:${isEarned ? '#B8860B' : 'var(--tx2)'};margin-bottom:2px">${ach.name}</div>
+              ${isEarned ? '<div style="font-size:9px;color:#B8860B">✓ 획득</div>' : '<div style="font-size:9px;color:var(--tx3)">미획득</div>'}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function showAchievementDetail(achId) {
+  const ach = ACHIEVEMENTS.find(a => a.id === achId);
+  if(!ach) return;
+  const earned = getEarnedAchievements().includes(achId);
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div style="background:var(--sf);border-radius:18px;max-width:320px;width:100%;padding:24px;text-align:center">
+      <div style="font-size:80px;margin-bottom:12px;${earned ? '' : 'filter:grayscale(80%);opacity:.5'}">${ach.icon}</div>
+      <div style="font-size:18px;font-weight:600;color:var(--tx);margin-bottom:6px">${ach.name}</div>
+      <div style="font-size:13px;color:var(--tx2);margin-bottom:6px">${ach.desc}</div>
+      <div style="display:inline-block;padding:3px 10px;background:${earned ? 'var(--grn-l)' : 'var(--sf2)'};color:${earned ? 'var(--grn)' : 'var(--tx2)'};border-radius:12px;font-size:11px;font-weight:500;margin-bottom:16px">
+        ${earned ? '✓ 획득 완료 (+30 XP)' : '🔒 미획득'}
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:16px">카테고리: ${ach.category}</div>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="padding:10px 24px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer">닫기</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+// ─────────────────────────────────────────────────────
+
+// ── 학습 패턴 분석 (시간대별) ────────────────────────
+function getTimePattern() {
+  try {
+    return JSON.parse(localStorage.getItem('vs-time-pattern') || '{}');
+  } catch(e) { return {}; }
+}
+
+function getBestStudyTime() {
+  const pattern = getTimePattern();
+  const slots = {
+    dawn:      { name: '새벽', emoji: '🌙', range: '00~06시' },
+    morning:   { name: '오전', emoji: '☀️', range: '06~12시' },
+    afternoon: { name: '오후', emoji: '🌤️', range: '12~18시' },
+    evening:   { name: '저녁', emoji: '🌆', range: '18~22시' },
+    night:     { name: '밤',   emoji: '🌃', range: '22~24시' },
+  };
+
+  let best = null;
+  let bestCount = 0;
+  Object.entries(slots).forEach(([key, info]) => {
+    const count = pattern[key] || 0;
+    if(count > bestCount) {
+      bestCount = count;
+      best = { ...info, key, count };
+    }
+  });
+
+  return { best, pattern, slots, total: Object.values(pattern).reduce((a, b) => typeof b === 'number' ? a + b : a, 0) };
+}
+
+// AI 코치 메시지 생성
+function getAiCoachMessage() {
+  const earned     = getEarnedAchievements().length;
+  const streak     = Number(localStorage.getItem('vs-streak') || 0);
+  const mastered   = countMastered();
+  const bestCombo  = Number(localStorage.getItem('vs-best-combo') || 0);
+  const xp         = getXP();
+  const level      = levelFromXP(xp);
+  const { best }   = getBestStudyTime();
+
+  // 우선순위 별 메시지
+  if(streak === 0 && earned < 1) {
+    return { emoji: '🌱', msg: '오늘부터 시작해볼까요? 첫 단어를 학습하면 첫 업적을 받을 수 있어요!' };
+  }
+  if(streak >= 7) {
+    return { emoji: '🔥', msg: `${streak}일 연속! 정말 대단해요. 이 페이스라면 30일 연속도 가능해요!` };
+  }
+  if(bestCombo >= 25) {
+    return { emoji: '⚡', msg: `최고 콤보 ${bestCombo}회! 집중력이 뛰어나요. 콤보 50 도전해볼까요?` };
+  }
+  if(mastered >= 50) {
+    return { emoji: '🏆', msg: `${mastered}개 마스터! 단어왕이 멀지 않았어요!` };
+  }
+  if(best && best.count >= 10) {
+    return { emoji: best.emoji, msg: `${best.name} 시간(${best.range})에 학습이 잘 되시네요. 이 시간을 고정 학습 시간으로!` };
+  }
+  if(level >= 5) {
+    return { emoji: '💪', msg: `Lv.${level} 달성! 꾸준한 노력이 보여요.` };
+  }
+  return { emoji: '✨', msg: '꾸준히 학습하고 있어요. 다음 업적도 곧 받을 수 있을 거예요!' };
+}
+// ─────────────────────────────────────────────────────
+
 function trackLearning(isCorrect) {
   // 오늘 학습 카운트
   const done = Number(localStorage.getItem('vs-today-done')||0) + 1;
@@ -4528,6 +4857,23 @@ function trackLearning(isCorrect) {
 
   // 퀘스트 진행률 실시간 업데이트 (홈에 돌아왔을 때 즉시 반영)
   try { renderQuests(); } catch(e) {}
+
+  // ⏰ 시간대별 학습 패턴 기록
+  try {
+    const hour = new Date().getHours();
+    const slot = hour < 6 ? 'dawn' :
+                 hour < 12 ? 'morning' :
+                 hour < 18 ? 'afternoon' :
+                 hour < 22 ? 'evening' : 'night';
+    const key = 'vs-time-pattern';
+    const pattern = JSON.parse(localStorage.getItem(key) || '{}');
+    pattern[slot] = (pattern[slot] || 0) + 1;
+    pattern.lastUpdate = Date.now();
+    localStorage.setItem(key, JSON.stringify(pattern));
+  } catch(e) {}
+
+  // 🏆 업적 자동 체크
+  try { checkAchievements(); } catch(e) {}
 }
 
 // 홈 화면 실시간 업데이트 (학습 중 즉시 반영)
@@ -4825,7 +5171,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-125456';
+  window.APP_BUILD = '20260525-130751';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6235,28 +6581,87 @@ async function loadStats(forceRefresh){
 
 function renderStats(data){
   const total    = data.total    || 0;
-  const mastered = data.mastered || 0;
   const learning = data.learning || 0;
   const newCount = data.newCount || 0;
   const dueToday = data.dueToday || 0;
-  // 가중 진행률이 있으면 사용, 없으면 기존 방식
-  const pct      = data.pct !== undefined ? data.pct : (total > 0 ? Math.round((mastered / total) * 100) : 0);
 
-  // 히어로
-  setText('stat-total',    total + '단어');
-  setText('stat-mastered', mastered);
-  setText('stat-learning', learning);
-  setText('stat-new',      newCount);
+  // 클라이언트 mastered 재계산 (홈과 동일 로직)
+  let masteredServer = data.mastered || 0;
+  let masteredClient = countMastered();
+  const mastered     = Math.max(masteredServer, masteredClient);
+  const pct          = data.pct !== undefined ? data.pct : (total > 0 ? Math.round((mastered / total) * 100) : 0);
+
+  // ═══ 🎮 트레이너 카드 ═══
+  const xp        = getXP();
+  const level     = levelFromXP(xp);
+  const tier      = getTier(level);
+  const curLvXP   = xpForLevel(level);
+  const nextLvXP  = xpForLevel(level + 1);
+  const xpInLevel = xp - curLvXP;
+  const xpNeeded  = nextLvXP - curLvXP;
+  const xpToNext  = nextLvXP - xp;
+  const xpPct     = Math.round((xpInLevel / xpNeeded) * 100);
+  const streak    = Number(localStorage.getItem('vs-streak') || 0);
+  const bestCombo = Number(localStorage.getItem('vs-best-combo') || 0);
+  const weekDays  = typeof getWeekStudyDays === 'function' ? getWeekStudyDays() : 0;
+
+  setText('trainer-level',      'Lv.' + level);
+  setText('trainer-tier-name',  tier.name);
+  setText('trainer-tier-emoji', tier.emoji);
+  setText('trainer-xp-current', xp.toLocaleString());
+  setText('trainer-xp-label',   `${xpInLevel} / ${xpNeeded} XP`);
+  setText('trainer-xp-next',    `다음 ${xpToNext} XP`);
+  setText('trainer-streak',     streak);
+  setText('trainer-combo',      bestCombo);
+  setText('trainer-weekdays',   weekDays + '/7');
+  setText('trainer-mastered',   mastered);
+  setText('trainer-pct',        pct + '%');
+  const trainerBar = document.getElementById('trainer-xp-bar');
+  if(trainerBar) setTimeout(() => trainerBar.style.width = xpPct + '%', 100);
+
+  // ═══ 🤖 AI 코치 메시지 ═══
+  try {
+    const coach = getAiCoachMessage();
+    setText('coach-emoji',   coach.emoji);
+    setText('coach-message', coach.msg);
+  } catch(e) { console.warn('coach failed:', e); }
+
+  // ═══ 🏆 업적 시스템 ═══
+  try { renderAchievements(); } catch(e) { console.warn('achievements failed:', e); }
+
+  // ═══ 📊 단어 컬렉션 ═══
+  setText('stat-total',    total + '개');
+  setText('stat-mastered', mastered + '개');
+  setText('stat-learning', learning + '개');
+  setText('stat-new',      newCount + '개');
   setText('stat-due',      dueToday);
 
-  // 진행률
+  // 카테고리별 진행률 바
+  setTimeout(() => {
+    const masteredBar = document.getElementById('collection-mastered-bar');
+    const learningBar = document.getElementById('collection-learning-bar');
+    const newBar      = document.getElementById('collection-new-bar');
+    if(total > 0) {
+      if(masteredBar) masteredBar.style.width = (mastered / total * 100) + '%';
+      if(learningBar) learningBar.style.width = (learning / total * 100) + '%';
+      if(newBar)      newBar.style.width      = (newCount / total * 100) + '%';
+    }
+  }, 100);
+
+  // 전체 진행률
   setText('stat-pct', pct + '%');
-  setTimeout(()=>{
+  setTimeout(() => {
     const bar = document.getElementById('stat-pct-bar');
     if(bar) bar.style.width = pct + '%';
   }, 100);
 
-  // 복습 현황
+  // ═══ 📈 주간 도전 통계 ═══
+  try { renderWeeklyStats(); } catch(e) { console.warn('weekly stats failed:', e); }
+
+  // ═══ ⏰ 학습 패턴 ═══
+  try { renderTimePattern(); } catch(e) { console.warn('time pattern failed:', e); }
+
+  // 복습 현황 (호환성 유지 - 숨김)
   setText('review-mastered', mastered);
   setText('review-due',      dueToday);
   setText('review-new',      newCount);
@@ -6267,11 +6672,69 @@ function renderStats(data){
   // 업데이트 시각
   const now = new Date();
   setText('stats-updated', `마지막 업데이트: ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`);
+}
 
-  // 홈 화면 복습 배너도 업데이트
-  if(dueToday > 0){
-    const reviewTitle = document.querySelector('#s-home .rev-card div div:first-child');
-    if(reviewTitle) reviewTitle.textContent = `망각 직전 단어 ${dueToday}개`;
+// 주간 통계 (일일 평균, 최고, 합계)
+function renderWeeklyStats() {
+  // 이번 주 일별 학습 데이터 수집
+  const today  = new Date();
+  const dayOfWeek = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+  let daily = [];
+  let studyDays = 0;
+  for(let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dateKey = d.toISOString().split('T')[0];
+    const count = Number(localStorage.getItem('vs-daily-' + dateKey) || 0);
+    daily.push(count);
+    if(count > 0) studyDays++;
+  }
+
+  const total = daily.reduce((a, b) => a + b, 0);
+  const best  = Math.max(...daily, 0);
+  const avg   = studyDays > 0 ? Math.round(total / studyDays) : 0;
+
+  setText('week-avg',     avg + '개');
+  setText('week-best',    best + '개');
+  setText('week-total',   total + '개');
+  setText('week-summary', total > 0 ? `${studyDays}일 학습 · 총 ${total}개` : '아직 데이터 없음');
+}
+
+// 시간대별 학습 패턴
+function renderTimePattern() {
+  const { pattern, slots, best, total } = getBestStudyTime();
+  const chart = document.getElementById('time-pattern-chart');
+  if(!chart) return;
+
+  const slotOrder = ['dawn', 'morning', 'afternoon', 'evening', 'night'];
+  const colors    = ['#5851BF', '#FFA500', '#FFD700', '#E76F51', '#7F77DD'];
+
+  // 최대값 (정규화용)
+  const maxCount = Math.max(...slotOrder.map(k => pattern[k] || 0), 1);
+
+  chart.innerHTML = slotOrder.map((key, i) => {
+    const count = pattern[key] || 0;
+    const height = (count / maxCount) * 100;
+    const isBest = best && best.key === key && count > 0;
+    return `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px">
+        <div style="font-size:10px;color:var(--tx2);${isBest ? 'font-weight:600;color:var(--acc)' : ''}">${count > 0 ? count : ''}</div>
+        <div style="width:100%;height:${height}%;min-height:${count > 0 ? '4px' : '0'};background:${isBest ? colors[i] : 'var(--sf2)'};border-radius:4px 4px 0 0;transition:height .8s"></div>
+      </div>
+    `;
+  }).join('');
+
+  // 최적 시간 메시지
+  const bestEl = document.getElementById('time-pattern-best');
+  if(bestEl) {
+    if(total < 5) {
+      bestEl.innerHTML = `📊 학습 ${total}회 · ${5 - total}회 더 하면 패턴이 분석돼요`;
+    } else if(best) {
+      bestEl.innerHTML = `${best.emoji} 가장 집중 잘 되는 시간: <b>${best.name}(${best.range})</b> · ${best.count}회 학습`;
+    }
   }
 }
 
