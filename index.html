@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-214011">
+<meta name="app-build" content="20260525-214319">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -5292,7 +5292,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-214011';
+  window.APP_BUILD = '20260525-214319';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -9713,17 +9713,41 @@ async function impSave(){
   btn.style.opacity = '0.7';
   impShowStatus('⏳ Sheets에 저장하는 중...', 'ok');
 
-  // 배치 저장 (50개씩)
-  const batchSize = 50;
+  // 배치 저장 (POST 우선, GET fallback)
+  const batchSize = 30; // POST에서도 안전한 크기
   let saved = 0;
+  const userParam = getUserIdParam();
+  const session = JSON.parse(localStorage.getItem('vs-session') || 'null');
+  const userId = session?.userId || '';
+
   try {
     for(let i=0; i<impWords.length; i+=batchSize){
       const batch = impWords.slice(i, i+batchSize);
-      const url = getSheetsUrl() + '?action=saveWords&wordSetId=' + wsId +
-                  '&wordsData=' + encodeURIComponent(JSON.stringify(batch)) +
-                  getUserIdParam();
-      const res = await fetch(url);
-      const data = await res.json();
+
+      // POST 방식 (URL 길이 제한 없음)
+      let data;
+      try {
+        data = await sheetsPost({
+          action:    'saveWords',
+          wordSetId: wsId,
+          words:     batch,
+          userId:    userId,
+        });
+      } catch(postErr) {
+        // POST 실패 시 GET fallback
+        console.warn('임포트 POST 실패, GET 재시도:', postErr.message);
+        const url = getSheetsUrl() + '?action=saveWords&wordSetId=' + wsId +
+                    '&wordsData=' + encodeURIComponent(JSON.stringify(batch)) +
+                    userParam;
+        if(url.length > 8000) {
+          throw new Error('단어가 너무 많아요. Apps Script v6.3+ 재배포가 필요해요.');
+        }
+        const res = await fetch(url);
+        const text = await res.text();
+        if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
+        data = JSON.parse(text);
+      }
+
       if(data.error) throw new Error(data.error);
       saved += data.saved || batch.length;
       btn.textContent = `저장 중... (${saved}/${impWords.length})`;
@@ -9749,7 +9773,15 @@ async function impSave(){
 
   } catch(e){
     _isSaving = false;
-    impShowStatus('❌ 저장 실패: '+e.message, 'error');
+    // failed to fetch 친절한 안내
+    let errMsg = e.message;
+    if(errMsg.includes('Failed to fetch') || errMsg.includes('failed to fetch') || errMsg.includes('NetworkError')) {
+      errMsg = '통신은 끊겼지만 단어가 저장됐을 수 있어요. 단어장 메뉴 새로고침 후 확인해주세요.';
+      // 캐시 무효화
+      localStorage.removeItem('vs-wslist-cache');
+      localStorage.removeItem('vs-stats-cache');
+    }
+    impShowStatus('❌ 저장 실패: '+errMsg, 'error');
     btn.textContent = '단어 저장하기';
     btn.style.background = 'var(--acc)';
     btn.style.opacity = '1';
