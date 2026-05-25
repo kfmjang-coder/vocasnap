@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260524-153335">
+<meta name="app-build" content="20260525-052242">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -3868,7 +3868,7 @@ function qRestart(){qWrong=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260524-153335';
+  window.APP_BUILD = '20260525-052242';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6724,51 +6724,88 @@ async function loadExtractWsOptions() {
   const nameEl = document.getElementById('extract-ws-name');
   if(!sel) return;
 
-  // 기본 옵션
-  sel.innerHTML = '<option value="new">+ 새 단어장 만들기</option>';
+  // 이름 입력란 초기화
+  if(nameEl) {
+    nameEl.value = '';
+    nameEl.style.display = 'none';
+  }
 
-  // select 변경 시 이름 입력창 표시
+  // select 변경 시 이름 입력창 표시 (새 단어장 선택할 때만)
   sel.onchange = () => {
     if(nameEl) nameEl.style.display = sel.value === 'new' ? 'block' : 'none';
   };
 
   const url = getSheetsUrl();
-  if(!url) return;
+  if(!url) {
+    // Sheets 미연결 - 새 단어장만 가능
+    sel.innerHTML = '<option value="new">+ 새 단어장 만들기</option>';
+    if(nameEl) nameEl.style.display = 'block';
+    return;
+  }
 
   try {
-    // 캐시 활용
+    // 단어장 목록 가져오기 (캐시 우선)
     const cached = localStorage.getItem('vs-wslist-cache');
     let wordSets = [];
     if(cached) {
-      const {data} = JSON.parse(cached);
-      wordSets = data?.wordSets || [];
+      try {
+        const {data} = JSON.parse(cached);
+        wordSets = data?.wordSets || [];
+      } catch(e) {}
     }
     if(!wordSets.length) {
       const res = await sheetsGet('getWordSets');
       wordSets  = res.wordSets || [];
     }
 
-    wordSets.forEach(ws => {
+    // 단어장 개수에 따라 분기
+    if(wordSets.length === 0) {
+      // ① 단어장이 하나도 없음 → 새 단어장 만들기만 가능
+      sel.innerHTML = '<option value="new">+ 새 단어장 만들기</option>';
+      sel.value = 'new';
+      if(nameEl) nameEl.style.display = 'block';
+
+    } else if(wordSets.length === 1) {
+      // ② 단어장이 1개 → 자동 선택, 이름 입력 숨김
+      sel.innerHTML = '';
+      const ws  = wordSets[0];
       const opt = document.createElement('option');
       opt.value       = ws.id;
       opt.textContent = ws.name + (ws.totalWords ? ` (${ws.totalWords}개)` : '');
       sel.appendChild(opt);
-    });
 
-    // currentWordSet 있으면 자동 선택, 없으면 새 단어장 선택
-    if(currentWordSet?.id) {
-      sel.value = currentWordSet.id;
+      // "+ 새 단어장 만들기" 옵션도 추가 (사용자가 원하면 새로 만들 수 있게)
+      const newOpt = document.createElement('option');
+      newOpt.value       = 'new';
+      newOpt.textContent = '+ 새 단어장 만들기';
+      sel.appendChild(newOpt);
+
+      sel.value = ws.id;
       if(nameEl) nameEl.style.display = 'none';
+
     } else {
-      sel.value = 'new';
-      if(nameEl) {
-        nameEl.style.display = 'block';
-        // 기본 이름 추천 (오늘 날짜)
-        if(!nameEl.value) {
-          const d = new Date();
-          nameEl.value = `${d.getMonth()+1}월${d.getDate()}일 단어`;
-        }
+      // ③ 단어장이 2개 이상 → 셀렉트로 선택
+      sel.innerHTML = '';
+      wordSets.forEach(ws => {
+        const opt = document.createElement('option');
+        opt.value       = ws.id;
+        opt.textContent = ws.name + (ws.totalWords ? ` (${ws.totalWords}개)` : '');
+        sel.appendChild(opt);
+      });
+
+      // "+ 새 단어장 만들기" 옵션도 추가
+      const newOpt = document.createElement('option');
+      newOpt.value       = 'new';
+      newOpt.textContent = '+ 새 단어장 만들기';
+      sel.appendChild(newOpt);
+
+      // currentWordSet 있으면 그것 선택, 없으면 첫 번째 단어장 선택
+      if(currentWordSet?.id && wordSets.find(w => w.id === currentWordSet.id)) {
+        sel.value = currentWordSet.id;
+      } else {
+        sel.value = wordSets[0].id;
       }
+      if(nameEl) nameEl.style.display = 'none';
     }
 
   } catch(e) { console.warn('단어장 목록 로드 실패:', e); }
