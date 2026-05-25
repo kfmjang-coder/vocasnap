@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-213220">
+<meta name="app-build" content="20260525-214011">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -5292,7 +5292,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-213220';
+  window.APP_BUILD = '20260525-214011';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6001,7 +6001,7 @@ async function saveWordsToSheets(){
   showSaveOverlay('Google Sheets에 저장 중', 0, selected.length);
 
   try {
-    // URL 길이 제한 회피를 위해 배치 단위로 저장 (최대 30개씩)
+    // POST 방식으로 저장 (URL 길이 제한 회피, failed to fetch 방지)
     const batchSize = 30;
     let totalSaved = 0;
 
@@ -6012,22 +6012,41 @@ async function saveWordsToSheets(){
       // userId가 없으면 명확한 에러 표시
       throw new Error('로그인 정보가 없어요. 로그아웃 후 다시 로그인해주세요.\n\n세션: ' + JSON.stringify(session));
     }
-    console.log('💾 저장 시작 - userId:', session?.userId, 'wsId:', wsId, 'batches:', Math.ceil(selected.length/batchSize));
+    const userId = session?.userId || '';
+    console.log('💾 저장 시작 - userId:', userId, 'wsId:', wsId, 'batches:', Math.ceil(selected.length/batchSize));
 
     for(let i = 0; i < selected.length; i += batchSize) {
       const batch = selected.slice(i, i + batchSize);
-      const wordsParam = encodeURIComponent(JSON.stringify(batch));
-      const url = sheetsUrl + '?action=saveWords' +
-                  '&wordSetId=' + encodeURIComponent(wsId) +
-                  '&wordsData=' + wordsParam +
-                  userParam;
 
-      const res = await fetch(url);
-      const text = await res.text();
-      if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
-      const data = JSON.parse(text);
+      // POST 방식 (URL 길이 제한 없음)
+      let data;
+      try {
+        data = await sheetsPost({
+          action:    'saveWords',
+          wordSetId: wsId,
+          words:     batch,
+          userId:    userId,
+        });
+      } catch(postErr) {
+        // POST 실패 시 GET으로 fallback (작은 배치만)
+        console.warn('POST 실패, GET 재시도:', postErr.message);
+        const wordsParam = encodeURIComponent(JSON.stringify(batch));
+        const url = sheetsUrl + '?action=saveWords' +
+                    '&wordSetId=' + encodeURIComponent(wsId) +
+                    '&wordsData=' + wordsParam +
+                    userParam;
+        // URL이 너무 길면 에러
+        if(url.length > 8000) {
+          throw new Error('단어가 너무 많아요. 배치 크기를 줄이거나 Apps Script를 재배포해주세요.');
+        }
+        const res = await fetch(url);
+        const text = await res.text();
+        if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
+        data = JSON.parse(text);
+      }
+
       if(data.error) throw new Error(data.error);
-      totalSaved += data.saved;
+      totalSaved += (Number(data.saved) || batch.length);
 
       // 진행률 표시 (오버레이 + 버튼)
       updateSaveOverlay(totalSaved, selected.length);
@@ -6073,7 +6092,19 @@ async function saveWordsToSheets(){
       btn.style.background = 'var(--acc)';
       btn.disabled = false;
     }, 2500);
-    alert('저장 실패: ' + e.message);
+
+    // failed to fetch는 네트워크 오류지만 실제 저장됐을 가능성이 큼
+    let errMsg = e.message;
+    if(errMsg.includes('Failed to fetch') || errMsg.includes('failed to fetch') || errMsg.includes('NetworkError')) {
+      errMsg = '⚠️ 통신은 끊겼지만 단어가 저장됐을 수 있어요.\n\n' +
+               '단어장 메뉴에서 새로고침 후 확인해주세요.\n' +
+               '저장이 됐으면 추가 작업 불필요, 안 됐으면 다시 시도해주세요.\n\n' +
+               '원본 에러: ' + e.message;
+      // 캐시 무효화 (실제 저장됐을 수 있으니)
+      localStorage.removeItem('vs-wslist-cache');
+      localStorage.removeItem('vs-stats-cache');
+    }
+    alert('저장 실패: ' + errMsg);
     console.error('saveWordsToSheets error:', e);
   }
 }
