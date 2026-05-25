@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-064120">
+<meta name="app-build" content="20260525-070105">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -510,23 +510,14 @@ body{
     </div>
     <div class="sh"><span class="st">내 단어장</span><span class="sl2" onclick="nav('s-wslist')">전체 보기 →</span></div>
     <div id="home-wslist">
-      <div class="ws" onclick="nav('s-wslist')">
-        <div class="wsic" style="background:var(--acc-l)"><i class="ti ti-books" style="color:var(--acc);font-size:20px"></i></div>
+      <!-- 로딩 스켈레톤 (실제 데이터 도착 시 교체됨) -->
+      <div class="ws" style="opacity:.5">
+        <div class="wsic" style="background:var(--sf2)"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:2px">내 단어장 보기</div>
-          <div style="font-size:12px;color:var(--tx2);margin-bottom:4px">Sheets 연동 후 자동 표시</div>
-          <div class="wbar"><div class="wbf" style="width:0%;background:var(--acc)"></div></div>
+          <div style="height:14px;background:var(--sf2);border-radius:4px;margin-bottom:6px;width:60%"></div>
+          <div style="height:11px;background:var(--sf2);border-radius:4px;margin-bottom:6px;width:40%"></div>
+          <div class="wbar"><div class="wbf" style="width:0%;background:var(--sf2)"></div></div>
         </div>
-        <div><i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3)"></i></div>
-      </div>
-      <div class="ws" onclick="nav('s-cam')">
-        <div class="wsic" style="background:var(--amb-l)"><i class="ti ti-camera-plus" style="color:var(--amb);font-size:20px"></i></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:2px">단어 촬영하기</div>
-          <div style="font-size:12px;color:var(--tx2);margin-bottom:4px">사진 찍어 단어 추가</div>
-          <div class="wbar"><div class="wbf" style="width:0%;background:var(--amb)"></div></div>
-        </div>
-        <div><i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3)"></i></div>
       </div>
     </div>
     <div class="sh" style="margin-top:4px"><span class="st">복습 알림</span></div>
@@ -535,31 +526,35 @@ body{
       <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--acc-d);margin-bottom:3px">망각 직전 단어 <span id="home-due-num">--</span>개</div><div style="font-size:12px;color:var(--acc)">지금 복습하면 장기 기억 전환 가능!</div></div>
       <i class="ti ti-chevron-right" style="font-size:18px;color:var(--acc)"></i>
     </div>
-    <div class="sh"><span class="st">이번 주 통계</span></div>
+    <div class="sh"><span class="st">🎮 학습 현황</span></div>
     <div class="sg">
+      <!-- 오늘 목표 -->
       <div class="sc">
-        <div style="font-size:16px;margin-bottom:6px"><i class="ti ti-check" style="color:var(--grn)"></i></div>
-        <div id="home-total" style="font-size:20px;font-weight:500;color:var(--tx)">--</div>
-        <div style="font-size:11px;color:var(--tx2)">총 암기 단어</div>
-        <div id="home-total-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">로딩 중...</div>
+        <div style="font-size:18px;margin-bottom:6px">🎯</div>
+        <div id="home-goal-pct" style="font-size:20px;font-weight:500;color:var(--tx)">--%</div>
+        <div style="font-size:11px;color:var(--tx2)">오늘 목표</div>
+        <div id="home-goal-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
       </div>
+      <!-- 연속 학습 -->
       <div class="sc">
-        <div style="font-size:16px;margin-bottom:6px"><i class="ti ti-flame" style="color:var(--amb)"></i></div>
+        <div style="font-size:18px;margin-bottom:6px">🔥</div>
         <div id="home-streak" style="font-size:20px;font-weight:500;color:var(--tx)">--</div>
         <div style="font-size:11px;color:var(--tx2)">연속 학습</div>
         <div id="home-streak-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
       </div>
+      <!-- 이번 주 학습일 -->
       <div class="sc">
-        <div style="font-size:16px;margin-bottom:6px"><i class="ti ti-clock" style="color:var(--acc)"></i></div>
-        <div id="home-study-time" style="font-size:20px;font-weight:500;color:var(--tx)">0분</div>
-        <div style="font-size:11px;color:var(--tx2)">오늘 학습</div>
-        <div id="home-time-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
+        <div style="font-size:18px;margin-bottom:6px">⭐</div>
+        <div id="home-weekdays" style="font-size:20px;font-weight:500;color:var(--tx)">--</div>
+        <div style="font-size:11px;color:var(--tx2)">이번 주 학습</div>
+        <div id="home-weekdays-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
       </div>
+      <!-- 암기 마스터 -->
       <div class="sc">
-        <div style="font-size:16px;margin-bottom:6px"><i class="ti ti-target" style="color:var(--red)"></i></div>
-        <div id="home-rate" style="font-size:20px;font-weight:500;color:var(--tx)">--%</div>
-        <div style="font-size:11px;color:var(--tx2)">전체 진행률</div>
-        <div id="home-rate-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
+        <div style="font-size:18px;margin-bottom:6px">🏆</div>
+        <div id="home-total" style="font-size:20px;font-weight:500;color:var(--tx)">--</div>
+        <div style="font-size:11px;color:var(--tx2)">암기 완료</div>
+        <div id="home-total-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
       </div>
     </div>
     <div style="height:20px"></div>
@@ -975,6 +970,7 @@ body{
       <div onclick="voiceSpeak()" style="width:80px;height:80px;border-radius:40px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;cursor:pointer;border:3px solid rgba(255,255,255,.4)">
         <i class="ti ti-volume" style="font-size:38px;color:#fff"></i>
       </div>
+      <div id="voice-pos-badge" style="display:none;font-size:12px;font-weight:500;background:rgba(255,255,255,.25);color:#fff;padding:3px 12px;border-radius:20px;margin:0 auto 8px;letter-spacing:.3px;width:fit-content"></div>
       <div style="font-size:13px;opacity:.7" id="voice-play-count">탭해서 들어보세요</div>
     </div>
 
@@ -1046,6 +1042,7 @@ body{
       <div onclick="mockSpeak()" style="width:80px;height:80px;border-radius:40px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;cursor:pointer;border:3px solid rgba(255,255,255,.4)">
         <i class="ti ti-volume" style="font-size:38px;color:#fff"></i>
       </div>
+      <div id="mock-pos-badge" style="display:none;font-size:12px;font-weight:500;background:rgba(255,255,255,.25);color:#fff;padding:3px 12px;border-radius:20px;margin:0 auto 8px;letter-spacing:.3px;width:fit-content"></div>
       <div style="font-size:13px;opacity:.7" id="mock-play-count">탭해서 들어보세요</div>
     </div>
 
@@ -4051,7 +4048,7 @@ function qRestart(){qWrong=[];wrongWords=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-064120';
+  window.APP_BUILD = '20260525-070105';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -4947,6 +4944,19 @@ function voiceRender() {
   const pc = VOICE.playCount[i] || 0;
   setText('voice-play-count', pc > 0 ? `🔊 ${pc}회 들었어요` : '탭해서 들어보세요');
 
+  // 품사 뱃지 표시
+  const w        = VOICE.words[i];
+  const posBadge = document.getElementById('voice-pos-badge');
+  if(posBadge) {
+    const pos = normalizePos(w?.pos);
+    if(pos) {
+      posBadge.textContent = pos;
+      posBadge.style.display = 'inline-block';
+    } else {
+      posBadge.style.display = 'none';
+    }
+  }
+
   // 결과 영역 초기화
   const resultArea = document.getElementById('voice-result-area');
   if(resultArea) resultArea.style.display = 'none';
@@ -5596,14 +5606,45 @@ async function loadHomeData() {
 
     // 스트릭 배너 - 통합 함수 사용
     refreshStreakBanner(streak);
-    setText('home-streak-delta', streak > 0 ? '🔥 연속 학습' : '오늘 시작!');
+    // 🎯 오늘 목표 카드
+    const goalPct = dailyGoal > 0 ? Math.min(100, Math.round((todayDone/dailyGoal)*100)) : 0;
+    setText('home-goal-pct',   goalPct + '%');
+    setText('home-goal-delta', `${todayDone} / ${dailyGoal}개`);
+
+    // 🔥 연속 학습 카드 (refreshStreakBanner는 별도지만 여기서도 채움)
+    const bestStreak = Number(localStorage.getItem('vs-best-streak') || 0);
+    setText('home-streak',       streak > 0 ? streak + '일' : '0');
+    if(streak > 0 && streak >= bestStreak) {
+      setText('home-streak-delta', '🏆 최고 기록!');
+    } else if(bestStreak > 0) {
+      setText('home-streak-delta', `최고 ${bestStreak}일`);
+    } else {
+      setText('home-streak-delta', '오늘 시작!');
+    }
+
+    // ⭐ 이번 주 학습일 카드
+    const weekDays = getWeekStudyDays();
+    setText('home-weekdays',       weekDays + '/7일');
+    setText('home-weekdays-delta', weekDays >= 5 ? '🔥 꾸준해요!' : weekDays >= 3 ? '잘하고 있어요' : '시작해볼까요?');
 
     // ③ Sheets 비동기 로드 (미연결이어도 위 로컬 데이터는 표시됨)
     const url = getSheetsUrl();
     if(!url) {
-      // 미연결 - 기본 단어장 카드 유지
+      // 미연결 - 빈 상태 표시
+      renderHomeWordSetsDynamic([]);
       return;
     }
+
+    // ③-1 캐시 활용 - 즉시 표시 (스켈레톤 → 캐시 → 실제 데이터)
+    try {
+      const cached = localStorage.getItem('vs-wslist-cache');
+      if(cached) {
+        const {data} = JSON.parse(cached);
+        if(data?.wordSets?.length) {
+          renderHomeWordSetsDynamic(data.wordSets);
+        }
+      }
+    } catch(e) {}
 
     // Sheets에서 통계 + 단어장 병렬 로드
     const [stats, wsRes] = await Promise.all([
@@ -5617,10 +5658,10 @@ async function loadHomeData() {
       const due      = stats.dueToday || 0;
       const ratePct  = total > 0 ? Math.round((mastered/total)*100) : 0;
 
+      // 🏆 암기 완료 카드
       setText('home-total',       mastered);
-      setText('home-total-delta', '전체 ' + total + '개 중');
-      setText('home-rate',        ratePct + '%');
-      setText('home-rate-delta',  '암기 진행률');
+      setText('home-total-delta', total > 0 ? `전체 ${total}개 중 ${ratePct}%` : '단어를 추가하세요');
+
       setText('home-due-num', due);
       setText('profile-mastered', mastered);
       setText('profile-rate',     ratePct + '%');
@@ -5838,6 +5879,40 @@ function saveWordHistory(wordId, history) {
   if(!wordId) return;
   localStorage.setItem('vs-word-' + wordId, JSON.stringify(history));
 }
+
+
+// ── 품사 정규화 (영어 약어로 통일) ──────────────────
+function normalizePos(pos) {
+  if(!pos) return '';
+  const p = String(pos).toLowerCase().trim();
+
+  // 영어 풀네임 → 약어
+  if(p === 'noun'         || p === 'n.'    || p === '명사')     return 'n.';
+  if(p === 'verb'         || p === 'v.'    || p === '동사')     return 'v.';
+  if(p === 'adjective'    || p === 'adj'   || p === 'adj.'  || p === '형용사') return 'adj.';
+  if(p === 'adverb'       || p === 'adv'   || p === 'adv.'  || p === '부사')   return 'adv.';
+  if(p === 'pronoun'      || p === 'pron'  || p === 'pron.' || p === '대명사') return 'pron.';
+  if(p === 'preposition'  || p === 'prep'  || p === 'prep.' || p === '전치사') return 'prep.';
+  if(p === 'conjunction'  || p === 'conj'  || p === 'conj.' || p === '접속사') return 'conj.';
+  if(p === 'interjection' || p === 'int'   || p === 'int.'  || p === '감탄사') return 'int.';
+  if(p === 'article'      || p === 'art'   || p === 'art.'  || p === '관사')   return 'art.';
+  if(p === 'phrase'       || p === 'phr'   || p === 'phr.'  || p === '구')     return 'phr.';
+  if(p === 'idiom'        || p === '관용구')                                     return 'idiom';
+
+  // 이미 약어면 그대로 (점 추가)
+  const known = ['n', 'v', 'adj', 'adv', 'pron', 'prep', 'conj', 'int', 'art'];
+  if(known.includes(p)) return p + '.';
+
+  // 이미 점 있으면 그대로
+  if(/^[a-z]+\.$/.test(p)) return p;
+
+  // 짧으면 그대로 (예: aux, det)
+  if(p.length <= 5) return p;
+
+  // 그 외는 빈값
+  return '';
+}
+// ─────────────────────────────────────────────────────
 
 // 공통 상태 계산 헬퍼 (옵션 B: 매우 친절 - 2회 알아요로 완료)
 function computeStatusFromCounts(knowCount, dontCount) {
@@ -6331,6 +6406,18 @@ function renderMockQuestion() {
   // 재생 횟수 표시
   const pc = MOCK.playCount[MOCK.idx] || 0;
   setText('mock-play-count', pc > 0 ? `🔊 ${pc}회 들었어요` : '탭해서 들어보세요');
+
+  // 품사 뱃지 표시
+  const posBadge = document.getElementById('mock-pos-badge');
+  if(posBadge) {
+    const pos = normalizePos(w?.pos);
+    if(pos) {
+      posBadge.textContent = pos;
+      posBadge.style.display = 'inline-block';
+    } else {
+      posBadge.style.display = 'none';
+    }
+  }
 
   // 답안 작성 현황
   updateMockAnsweredCount();
@@ -7768,6 +7855,29 @@ function renderWeekChart(){
     <span style="flex:1;text-align:center;font-size:11px;color:${i===todayIdx?'var(--acc)':'var(--tx2)'};font-weight:${i===todayIdx?'500':'400'}">${l}</span>
   `).join('');
 }
+
+
+// ── 이번 주 학습일 수 계산 (월요일 ~ 일요일 기준) ──
+function getWeekStudyDays() {
+  const now = new Date();
+  // 월요일을 주의 시작으로 (일요일이면 -6, 월요일이면 0, ...)
+  const day    = now.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + offset);
+  monday.setHours(0, 0, 0, 0);
+
+  let studyDays = 0;
+  for(let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    const count   = Number(localStorage.getItem('vs-daily-' + dateStr) || 0);
+    if(count > 0) studyDays++;
+  }
+  return studyDays;
+}
+// ─────────────────────────────────────────────────
 
 // 오늘 학습량 저장 (trackLearning 호출 시)
 function saveDailyCount(){
