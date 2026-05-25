@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-071446">
+<meta name="app-build" content="20260525-072159">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -609,6 +609,17 @@ body{
       <div style="display:flex;align-items:flex-start;gap:8px;color:var(--acc-d)">
         <i class="ti ti-bulb" style="font-size:16px;margin-top:1px;flex-shrink:0"></i>
         <div style="font-size:12px;line-height:1.6">밝은 곳에서 한 페이지씩 또렷하게 찍으면 인식률이 높아져요</div>
+      </div>
+    </div>
+
+    <!-- API 사용 안내 -->
+    <div style="background:var(--amb-l);border-radius:12px;padding:12px 14px;margin-top:8px">
+      <div style="display:flex;align-items:flex-start;gap:8px;color:var(--amb)">
+        <i class="ti ti-info-circle" style="font-size:16px;margin-top:1px;flex-shrink:0"></i>
+        <div style="font-size:12px;line-height:1.6">
+          <strong>Gemini API 무료 버전 사용 중</strong>이에요.<br>
+          여러 장을 추출할 땐 <strong>1~2분 간격</strong>을 두고 시도해주세요.
+        </div>
       </div>
     </div>
 
@@ -1780,10 +1791,20 @@ body{
 
     <!-- 촬영 탭 -->
     <div id="imp-panel-csv" style="padding:16px 20px">
-      <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:16px">
+      <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:10px">
         <div style="font-size:12px;color:var(--acc-d);line-height:1.8">
           교재나 단어장을 촬영하면<br>
           <b>Gemini AI</b>가 영어 단어와 뜻을 자동으로 추출해요
+        </div>
+      </div>
+      <!-- API 사용 안내 -->
+      <div style="background:var(--amb-l);border-radius:10px;padding:10px 12px;margin-bottom:16px">
+        <div style="display:flex;align-items:flex-start;gap:6px;color:var(--amb)">
+          <i class="ti ti-info-circle" style="font-size:14px;margin-top:1px;flex-shrink:0"></i>
+          <div style="font-size:11px;line-height:1.6">
+            <strong>Gemini API 무료 버전 사용 중</strong>이에요.<br>
+            여러 장을 추출할 땐 <strong>1~2분 간격</strong>을 두고 시도해주세요.
+          </div>
         </div>
       </div>
       <!-- 촬영 버튼 -->
@@ -3278,6 +3299,7 @@ function renderExtract(){
   const total    = EW.length;
   const selected = EW.filter(w=>w.checked).length;
   setText('extract-wordcnt', total + '개 단어 인식됨');
+  setText('sel-cnt',         selected + '개 선택됨');
   // 저장 버튼 업데이트
   const btn = document.getElementById('savbtn');
   if(btn) btn.textContent = selected > 0 ? selected + '개 단어 저장하기' : '단어를 선택해주세요';
@@ -4061,7 +4083,7 @@ function qRestart(){qWrong=[];wrongWords=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-071446';
+  window.APP_BUILD = '20260525-072159';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
