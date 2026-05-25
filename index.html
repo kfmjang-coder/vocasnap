@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-073914">
+<meta name="app-build" content="20260525-074848">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -4035,22 +4035,25 @@ function reviewWrongWords(){
   const label   = (isQuiz || isVoice) ? '틀린 단어' : '몰라요 단어';
 
   if(!list.length){
-    alert('틀린 단어가 없어요! 🎉');
+    alert((isQuiz || isVoice ? '틀린' : '몰라요') + ' 단어가 없어요! 🎉');
     return;
   }
-  // WORDS를 틀린 단어들로 교체 후 플래시카드로
-  WORDS = [...qWrong];
+  // list를 복사해 두고 사용 (wrongWords를 초기화해도 안전)
+  const reviewList = [...list];
+
+  // WORDS를 복습 단어들로 교체 후 플래시카드로
+  WORDS = reviewList;
   DIST.length = 0;
   WORDS.forEach(w => { if(w.ko||w.meaning) DIST.push(w.ko||w.meaning); });
-  // 플래시카드 상태 초기화
+  // 플래시카드 상태 초기화 (wrongWords는 새 학습 위해 비움 - 이미 reviewList에 복사됨)
   fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[];
   const inner=document.getElementById('fc-inner');
   if(inner) inner.classList.remove('flipped');
   // 단어장 제목 변경
   const titleEl=document.querySelector('#s-fc .ttl');
-  if(titleEl) titleEl.textContent=label + ' 복습 ('+list.length+'개)';
+  if(titleEl) titleEl.textContent=label + ' 복습 ('+reviewList.length+'개)';
   nav('s-fc');
-  fcRender(); // loadFcWords 호출 없이 바로 렌더 (틀린 단어만)
+  fcRender(); // loadFcWords 호출 없이 바로 렌더 (복습 단어만)
 }
 // ─────────────────────────────────────────────────────
 
@@ -4087,7 +4090,7 @@ function qRestart(){qWrong=[];wrongWords=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-073914';
+  window.APP_BUILD = '20260525-074848';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
