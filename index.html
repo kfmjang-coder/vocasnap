@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-131829">
+<meta name="app-build" content="20260525-132753">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -549,6 +549,58 @@ body{
       <div style="font-size:32px;margin-bottom:10px">⚠️</div>
       <div id="receive-error-msg" style="font-size:14px;color:var(--red);margin-bottom:14px;line-height:1.6">오류가 발생했어요</div>
       <button onclick="receiveBackToInput()" style="padding:10px 24px;background:var(--sf2);color:var(--tx);border:0.5px solid var(--bd);border-radius:10px;font-size:13px;cursor:pointer">다시 시도</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 🏆 랭킹 설정 모달 ══ -->
+<div id="ranking-settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:16px">
+  <div style="width:100%;max-width:380px;background:var(--sf);border-radius:18px;padding:24px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:18px;font-weight:500;color:var(--tx)">⚙️ 랭킹 설정</div>
+      <div onclick="closeRankingSettings()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
+      </div>
+    </div>
+
+    <!-- 닉네임 설정 -->
+    <div style="margin-bottom:18px">
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:6px">🎮 표시 닉네임</div>
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:8px;line-height:1.5">랭킹에 표시될 이름이에요. 비워두면 실명 일부가 마스킹되어 표시돼요 (예: "김OO")</div>
+      <input id="ranking-nickname-input" type="text" maxlength="12" placeholder="닉네임 (1~12자)"
+        style="width:100%;padding:11px;border:1px solid var(--bd);border-radius:8px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+      <button onclick="saveNickname()" style="width:100%;margin-top:10px;padding:11px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">
+        닉네임 저장
+      </button>
+    </div>
+
+    <!-- 랭킹 참여 토글 -->
+    <div style="padding:14px;background:var(--sf2);border-radius:10px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">📊</span>
+          <span style="font-size:13px;font-weight:500;color:var(--tx)">랭킹 참여</span>
+        </div>
+        <label style="position:relative;display:inline-block;width:42px;height:24px;cursor:pointer">
+          <input type="checkbox" id="ranking-opt-toggle" style="opacity:0;width:0;height:0" onchange="toggleRankingOptOut()">
+          <span id="ranking-opt-slider" style="position:absolute;inset:0;background:var(--acc);border-radius:12px;transition:.3s">
+            <span id="ranking-opt-knob" style="position:absolute;left:20px;top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
+          </span>
+        </label>
+      </div>
+      <div style="font-size:11px;color:var(--tx2);line-height:1.5">
+        끄면 본인 정보가 랭킹에 표시되지 않고, 본인도 다른 사람의 랭킹을 볼 수 없어요
+      </div>
+    </div>
+
+    <!-- 안내 -->
+    <div style="padding:12px;background:var(--acc-l);border-radius:10px">
+      <div style="display:flex;align-items:flex-start;gap:6px;color:var(--acc-d)">
+        <i class="ti ti-info-circle" style="font-size:14px;margin-top:1px;flex-shrink:0"></i>
+        <div style="font-size:11px;line-height:1.6">
+          개인정보 보호를 위해 본명은 절대 다른 사용자에게 노출되지 않아요. 닉네임을 설정하지 않으면 "김OO" 형식으로 마스킹됩니다.
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1567,6 +1619,24 @@ body{
         <div style="flex:1">
           <div style="font-size:11px;opacity:.9;margin-bottom:2px">🤖 AI 학습 코치</div>
           <div id="coach-message" style="font-size:13px;line-height:1.5">분석 중...</div>
+        </div>
+      </div>
+
+      <!-- ══ 🏆 랭킹 ══ -->
+      <div class="sh">
+        <span class="st">🏆 랭킹</span>
+        <span id="ranking-total" style="font-size:11px;color:var(--tx2);background:var(--sf2);padding:3px 10px;border-radius:12px">로딩 중...</span>
+      </div>
+      <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;padding:14px;border:0.5px solid var(--bd)">
+        <div id="ranking-list">
+          <!-- 동적 생성 -->
+          <div style="padding:20px;text-align:center;color:var(--tx3);font-size:12px">
+            <div style="font-size:24px;margin-bottom:8px">⏳</div>
+            랭킹 불러오는 중...
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:8px;padding-top:8px;border-top:0.5px solid var(--bd)">
+          <span onclick="openRankingSettings()" style="font-size:11px;color:var(--acc);cursor:pointer">⚙️ 닉네임 / 랭킹 설정</span>
         </div>
       </div>
 
@@ -4900,6 +4970,20 @@ function trackLearning(isCorrect) {
 
   // 🏆 업적 자동 체크
   try { checkAchievements(); } catch(e) {}
+
+  // ⭐ XP 서버 동기화 (10개마다)
+  try {
+    const todayDone = Number(localStorage.getItem('vs-today-done') || 0);
+    if(todayDone % 10 === 0 && todayDone > 0) {
+      const url = getSheetsUrl();
+      const user = getCurrentUser();
+      if(url && user && !user.isGuest) {
+        const xp = getXP();
+        const level = levelFromXP(xp);
+        fetch(url + '?action=updateUserXP&xp=' + xp + '&level=' + level + getUserIdParam()).catch(()=>{});
+      }
+    }
+  } catch(e) {}
 }
 
 // 홈 화면 실시간 업데이트 (학습 중 즉시 반영)
@@ -5197,7 +5281,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-131829';
+  window.APP_BUILD = '20260525-132753';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6605,6 +6689,216 @@ async function loadStats(forceRefresh){
   }
 }
 
+
+// ── 🏆 랭킹 시스템 ──────────────────────────────────
+let _rankingLoaded = false;
+let _lastRankingFetch = 0;
+
+// 통계 화면 진입 시 호출
+async function loadRanking(force) {
+  const listEl = document.getElementById('ranking-list');
+  const totalEl = document.getElementById('ranking-total');
+  if(!listEl) return;
+
+  // 캐시 (1분)
+  const now = Date.now();
+  if(!force && _rankingLoaded && (now - _lastRankingFetch) < 60000) return;
+
+  const url = getSheetsUrl();
+  const user = getCurrentUser();
+  if(!url || !user || user.isGuest) {
+    listEl.innerHTML = `
+      <div style="padding:20px;text-align:center;color:var(--tx3);font-size:12px">
+        <div style="font-size:24px;margin-bottom:8px">🔒</div>
+        ${user?.isGuest ? '회원가입 후 랭킹에 참여할 수 있어요' : 'Google Sheets 연결이 필요해요'}
+      </div>
+    `;
+    if(totalEl) totalEl.textContent = '비공개';
+    return;
+  }
+
+  // 본인 XP를 먼저 서버에 동기화
+  try {
+    const xp = getXP();
+    const level = levelFromXP(xp);
+    await fetch(url + '?action=updateUserXP&xp=' + xp + '&level=' + level + getUserIdParam()).catch(()=>{});
+  } catch(e) {}
+
+  // 랭킹 조회
+  try {
+    const res = await fetch(url + '?action=getRanking&limit=10' + getUserIdParam());
+    const data = await res.json();
+
+    if(data.error || !data.success) {
+      listEl.innerHTML = `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:12px">랭킹을 불러올 수 없어요</div>`;
+      if(totalEl) totalEl.textContent = '오류';
+      return;
+    }
+
+    _rankingLoaded = true;
+    _lastRankingFetch = now;
+
+    if(totalEl) totalEl.textContent = '총 ' + data.total + '명';
+
+    // TOP 10 렌더링
+    let html = '';
+    data.top.forEach((entry, idx) => {
+      html += renderRankItem(entry);
+    });
+
+    // 본인이 TOP 10 밖에 있으면 추가 표시
+    if(data.myEntry && data.myRank > 10) {
+      html += `
+        <div style="text-align:center;padding:8px 0;color:var(--tx3);font-size:11px">⋮</div>
+      `;
+      html += renderRankItem(data.myEntry);
+    } else if(data.myEntry && data.myRank === -1) {
+      // 아직 학습 안 한 경우
+      html += `
+        <div style="text-align:center;padding:8px 0;color:var(--tx3);font-size:11px">⋮</div>
+      `;
+      html += `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--acc-l);border-radius:10px;border:1px solid var(--acc)">
+          <div style="width:32px;text-align:center;font-size:11px;color:var(--acc);font-weight:600">-</div>
+          <div style="font-size:16px">🎮</div>
+          <div style="flex:1;font-size:13px;color:var(--acc-d);font-weight:500">나 (학습하면 랭킹 등록!)</div>
+          <div style="font-size:11px;color:var(--acc)">Lv.${data.myEntry.level}</div>
+        </div>
+      `;
+    }
+
+    if(html === '') {
+      html = `<div style="padding:20px;text-align:center;color:var(--tx3);font-size:12px">아직 랭킹 데이터가 없어요<br><span style="font-size:11px">학습하고 첫 번째로 등록되세요!</span></div>`;
+    }
+
+    listEl.innerHTML = html;
+  } catch(e) {
+    console.warn('랭킹 로드 실패:', e);
+    listEl.innerHTML = `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:12px">서버 응답 없음</div>`;
+  }
+}
+
+function renderRankItem(entry) {
+  const rank = entry.rank;
+  let rankBadge = `<span style="font-weight:600">${rank}</span>`;
+  if(rank === 1) rankBadge = '🥇';
+  else if(rank === 2) rankBadge = '🥈';
+  else if(rank === 3) rankBadge = '🥉';
+
+  const tier = getTier(entry.level || 1);
+  const isMe = entry.isMe;
+  const bgColor = isMe ? 'var(--acc-l)' : (rank <= 3 ? '#FFF7E6' : 'var(--sf2)');
+  const borderColor = isMe ? 'var(--acc)' : 'transparent';
+
+  return `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:${bgColor};border-radius:10px;margin-bottom:6px;border:1px solid ${borderColor}">
+      <div style="width:28px;text-align:center;font-size:${rank <= 3 ? '18px' : '14px'};font-weight:600;color:${rank <= 3 ? '#FFD700' : 'var(--tx2)'}">${rankBadge}</div>
+      <div style="font-size:20px;line-height:1">${tier.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:${isMe ? '600' : '500'};color:${isMe ? 'var(--acc-d)' : 'var(--tx)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          ${entry.displayName}${isMe ? ' (나)' : ''}
+        </div>
+        <div style="font-size:10px;color:var(--tx2)">Lv.${entry.level} · ${tier.name}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:13px;font-weight:600;color:${isMe ? 'var(--acc)' : 'var(--tx)'}">${entry.xp.toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--tx2)">XP</div>
+      </div>
+    </div>
+  `;
+}
+
+// 랭킹 설정 모달
+function openRankingSettings() {
+  const user = getCurrentUser();
+  if(!user || user.isGuest) {
+    alert('회원가입 후 이용 가능해요');
+    return;
+  }
+  document.getElementById('ranking-settings-modal').style.display = 'flex';
+
+  // 현재 닉네임/옵션 로드 (서버에서)
+  const url = getSheetsUrl();
+  if(!url) return;
+
+  // localStorage에 캐시된 값 우선 표시
+  const cachedNick = localStorage.getItem('vs-nickname') || '';
+  const cachedOpt  = localStorage.getItem('vs-ranking-opt-out') === '1';
+  document.getElementById('ranking-nickname-input').value = cachedNick;
+  document.getElementById('ranking-opt-toggle').checked = !cachedOpt;
+  updateOptToggleVisual(!cachedOpt);
+}
+
+function closeRankingSettings() {
+  document.getElementById('ranking-settings-modal').style.display = 'none';
+}
+
+async function saveNickname() {
+  const input = document.getElementById('ranking-nickname-input');
+  const nickname = input.value.trim();
+  if(nickname.length > 12) {
+    alert('닉네임은 12자 이내로 입력해주세요');
+    return;
+  }
+
+  const url = getSheetsUrl();
+  if(!url) {
+    alert('Google Sheets 연결이 필요해요');
+    return;
+  }
+
+  try {
+    const res = await fetch(url + '?action=updateNickname&nickname=' + encodeURIComponent(nickname) + getUserIdParam());
+    const data = await res.json();
+    if(data.error) {
+      alert(data.error);
+      return;
+    }
+    localStorage.setItem('vs-nickname', nickname);
+    alert('✅ 닉네임이 변경되었어요');
+    _rankingLoaded = false; // 캐시 무효화
+    loadRanking(true);
+  } catch(e) {
+    alert('닉네임 변경 실패: ' + e.message);
+  }
+}
+
+async function toggleRankingOptOut() {
+  const toggle = document.getElementById('ranking-opt-toggle');
+  const optOut = !toggle.checked; // checked=참여, optOut=비참여
+
+  const url = getSheetsUrl();
+  if(!url) {
+    toggle.checked = !toggle.checked; // 되돌리기
+    return;
+  }
+
+  try {
+    const res = await fetch(url + '?action=toggleRankingOpt&optOut=' + optOut + getUserIdParam());
+    const data = await res.json();
+    if(data.error) {
+      alert(data.error);
+      toggle.checked = !toggle.checked;
+      return;
+    }
+    localStorage.setItem('vs-ranking-opt-out', optOut ? '1' : '0');
+    updateOptToggleVisual(toggle.checked);
+    _rankingLoaded = false;
+    loadRanking(true);
+  } catch(e) {
+    toggle.checked = !toggle.checked;
+    alert('설정 변경 실패: ' + e.message);
+  }
+}
+
+function updateOptToggleVisual(checked) {
+  const slider = document.getElementById('ranking-opt-slider');
+  const knob   = document.getElementById('ranking-opt-knob');
+  if(slider) slider.style.background = checked ? 'var(--acc)' : 'var(--bd)';
+  if(knob)   knob.style.left = checked ? '20px' : '2px';
+}
+// ─────────────────────────────────────────────────────
+
 function renderStats(data){
   const total    = data.total    || 0;
   const learning = data.learning || 0;
@@ -6691,6 +6985,9 @@ function renderStats(data){
   setText('review-mastered', mastered);
   setText('review-due',      dueToday);
   setText('review-new',      newCount);
+
+  // 🏆 랭킹 로딩 (비동기)
+  try { loadRanking(); } catch(e) { console.warn('랭킹 로드 실패:', e); }
 
   // 모의테스트 이력 렌더링
   renderMockHistory();
