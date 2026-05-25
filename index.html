@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-081056">
+<meta name="app-build" content="20260525-105720">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -425,6 +425,134 @@ body{
   </div>
 </div>
 
+
+<!-- ══ 단어장 공유 모달 (코드 발급) ══ -->
+<div id="share-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:16px">
+  <div style="width:100%;max-width:380px;background:var(--sf);border-radius:18px;padding:24px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:18px;font-weight:500;color:var(--tx)">📤 단어장 공유</div>
+      <div onclick="closeShareModal()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
+      </div>
+    </div>
+
+    <!-- 로딩 -->
+    <div id="share-loading" style="text-align:center;padding:32px 0">
+      <div style="font-size:32px;margin-bottom:10px">⏳</div>
+      <div style="font-size:13px;color:var(--tx2)">공유 코드 생성 중...</div>
+    </div>
+
+    <!-- 결과 -->
+    <div id="share-result" style="display:none">
+      <div style="text-align:center;padding:8px 0 16px">
+        <div style="font-size:13px;color:var(--tx2);margin-bottom:6px">공유 코드</div>
+        <div id="share-code" style="font-size:32px;font-weight:600;letter-spacing:6px;color:var(--acc);font-family:monospace;background:var(--acc-l);padding:14px 8px;border-radius:12px">------</div>
+      </div>
+
+      <div id="share-info" style="background:var(--sf2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--tx2);line-height:1.7">
+        <div>📚 <span id="share-ws-name" style="color:var(--tx);font-weight:500">--</span></div>
+        <div>📅 유효 기간: <span id="share-expires">7일</span></div>
+        <div>👥 사용 횟수: <span id="share-uses">0 / 10</span></div>
+      </div>
+
+      <button onclick="copyShareCode()" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:8px">
+        <i class="ti ti-copy" style="font-size:14px;vertical-align:-1px;margin-right:4px"></i>
+        코드 복사
+      </button>
+
+      <button onclick="shareViaSystem()" style="width:100%;padding:13px;background:var(--sf2);color:var(--tx);border:0.5px solid var(--bd);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:14px">
+        <i class="ti ti-send" style="font-size:14px;vertical-align:-1px;margin-right:4px"></i>
+        카톡/메시지로 공유
+      </button>
+
+      <div style="background:var(--acc-l);border-radius:10px;padding:11px 14px">
+        <div style="display:flex;align-items:flex-start;gap:6px;color:var(--acc-d)">
+          <i class="ti ti-info-circle" style="font-size:14px;margin-top:1px;flex-shrink:0"></i>
+          <div style="font-size:11px;line-height:1.6">
+            받는 사람은 단어장 메뉴에서 <strong>🎁 공유받기</strong> 버튼을 누르고 코드를 입력하면 돼요
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 에러 -->
+    <div id="share-error" style="display:none;text-align:center;padding:24px 0">
+      <div style="font-size:32px;margin-bottom:10px">⚠️</div>
+      <div id="share-error-msg" style="font-size:14px;color:var(--red);margin-bottom:14px">오류가 발생했어요</div>
+      <button onclick="closeShareModal()" style="padding:10px 24px;background:var(--sf2);color:var(--tx);border:0.5px solid var(--bd);border-radius:10px;font-size:13px;cursor:pointer">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 단어장 공유받기 모달 ══ -->
+<div id="receive-share-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:16px">
+  <div style="width:100%;max-width:380px;background:var(--sf);border-radius:18px;padding:24px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:18px;font-weight:500;color:var(--tx)">🎁 공유받기</div>
+      <div onclick="closeReceiveShareModal()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
+      </div>
+    </div>
+
+    <!-- 코드 입력 -->
+    <div id="receive-input-area">
+      <div style="font-size:13px;color:var(--tx2);margin-bottom:10px">친구에게 받은 6자리 코드를 입력해주세요</div>
+      <input id="receive-code-input" type="text" maxlength="6" placeholder="ABCDEF" autocomplete="off"
+        oninput="this.value = this.value.toUpperCase()"
+        style="width:100%;padding:16px;border:1px solid var(--bd);border-radius:10px;font-size:24px;font-weight:600;letter-spacing:6px;text-align:center;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box;font-family:monospace;margin-bottom:14px">
+      <button onclick="lookupShareCode()" style="width:100%;padding:14px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer">
+        단어장 확인하기 →
+      </button>
+    </div>
+
+    <!-- 로딩 -->
+    <div id="receive-loading" style="display:none;text-align:center;padding:32px 0">
+      <div style="font-size:32px;margin-bottom:10px">⏳</div>
+      <div style="font-size:13px;color:var(--tx2)" id="receive-loading-msg">코드 확인 중...</div>
+    </div>
+
+    <!-- 미리보기 -->
+    <div id="receive-preview" style="display:none">
+      <div style="background:var(--acc-l);border-radius:12px;padding:18px;margin-bottom:14px;text-align:center">
+        <div style="font-size:32px;margin-bottom:8px">📚</div>
+        <div id="receive-ws-name" style="font-size:17px;font-weight:500;color:var(--tx);margin-bottom:4px">--</div>
+        <div style="font-size:12px;color:var(--tx2)">
+          <span id="receive-owner">--</span>님이 공유한 단어장
+        </div>
+      </div>
+
+      <div style="background:var(--sf2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--tx2);line-height:1.7">
+        <div>📝 단어 수: <span id="receive-word-count" style="color:var(--tx);font-weight:500">--</span>개</div>
+        <div>👥 사용 횟수: <span id="receive-uses">--</span></div>
+      </div>
+
+      <button onclick="confirmReceiveShare()" style="width:100%;padding:14px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;margin-bottom:8px">
+        ✅ 내 단어장으로 받기
+      </button>
+      <button onclick="cancelReceiveShare()" style="width:100%;padding:12px;background:var(--sf2);color:var(--tx);border:0.5px solid var(--bd);border-radius:10px;font-size:13px;cursor:pointer">
+        취소
+      </button>
+    </div>
+
+    <!-- 결과 -->
+    <div id="receive-success" style="display:none;text-align:center;padding:16px 0">
+      <div style="font-size:48px;margin-bottom:12px">🎉</div>
+      <div style="font-size:17px;font-weight:500;color:var(--tx);margin-bottom:8px">단어장을 받았어요!</div>
+      <div id="receive-success-msg" style="font-size:13px;color:var(--tx2);margin-bottom:18px;line-height:1.6">--</div>
+      <button onclick="closeReceiveShareModal()" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">
+        확인
+      </button>
+    </div>
+
+    <!-- 에러 -->
+    <div id="receive-error" style="display:none;text-align:center;padding:16px 0">
+      <div style="font-size:32px;margin-bottom:10px">⚠️</div>
+      <div id="receive-error-msg" style="font-size:14px;color:var(--red);margin-bottom:14px;line-height:1.6">오류가 발생했어요</div>
+      <button onclick="receiveBackToInput()" style="padding:10px 24px;background:var(--sf2);color:var(--tx);border:0.5px solid var(--bd);border-radius:10px;font-size:13px;cursor:pointer">다시 시도</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ ONBOARDING ══ -->
 <div class="scr" id="s-ob">
   <div class="ob" style="padding-top:calc(env(safe-area-inset-top,0px) + 32px)">
@@ -696,6 +824,7 @@ body{
     <button class="bk" onclick="back()"><i class="ti ti-arrow-left"></i></button>
     <span class="ttl">내 단어장</span>
     <div style="display:flex;gap:8px">
+      <div onclick="openReceiveShareModal()" title="공유받기" style="width:36px;height:36px;border-radius:18px;background:var(--acc-l);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-gift" style="color:var(--acc);font-size:18px"></i></div>
       <div onclick="loadWordSets(true)" style="width:36px;height:36px;border-radius:18px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-refresh" style="color:var(--tx2);font-size:18px"></i></div>
       <div onclick="showCreateWordSet()" style="width:36px;height:36px;border-radius:18px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-plus" style="color:var(--tx2);font-size:18px"></i></div>
     </div>
@@ -771,6 +900,7 @@ body{
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
       <button class="bk" style="background:rgba(255,255,255,.2);border:none" onclick="back()"><i class="ti ti-arrow-left" style="color:#fff"></i></button>
       <span id="wsd-title" style="font-size:16px;font-weight:500;color:#fff;flex:1">단어장</span>
+      <div onclick="openShareModal()" title="공유하기" style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;margin-right:6px"><i class="ti ti-share" style="color:#fff;font-size:18px"></i></div>
       <div onclick="showProgressInfo()" style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-info-circle" style="color:#fff;font-size:18px"></i></div>
     </div>
     <div class="wdstats">
@@ -4114,7 +4244,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-081056';
+  window.APP_BUILD = '20260525-105720';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6045,6 +6175,244 @@ function normalizePos(pos) {
 
   // 그 외는 빈값
   return '';
+}
+// ─────────────────────────────────────────────────────
+
+
+// ── 단어장 공유 시스템 ──────────────────────────────
+let _shareData = null; // 현재 받기 모달의 임시 데이터
+
+// 공유 모달 열기 (단어장 상세에서)
+async function openShareModal() {
+  if(!currentWordSet?.id) {
+    alert('공유할 단어장 정보를 찾을 수 없어요');
+    return;
+  }
+  const url = getSheetsUrl();
+  if(!url) {
+    alert('Google Sheets 연결이 필요해요');
+    return;
+  }
+
+  // 모달 표시 + 로딩 상태
+  document.getElementById('share-modal').style.display = 'flex';
+  document.getElementById('share-loading').style.display = 'block';
+  document.getElementById('share-result').style.display  = 'none';
+  document.getElementById('share-error').style.display   = 'none';
+
+  try {
+    const apiUrl = url + '?action=createShareCode'
+                  + '&wsId='  + encodeURIComponent(currentWordSet.id)
+                  + getUserIdParam();
+    const res  = await fetch(apiUrl);
+    const data = await res.json();
+
+    document.getElementById('share-loading').style.display = 'none';
+
+    if(data.error) {
+      document.getElementById('share-error').style.display = 'block';
+      document.getElementById('share-error-msg').textContent = data.error;
+      return;
+    }
+
+    // 결과 표시
+    document.getElementById('share-result').style.display = 'block';
+    document.getElementById('share-code').textContent     = data.code;
+    document.getElementById('share-ws-name').textContent  = data.wsName;
+    document.getElementById('share-uses').textContent     = `${data.uses} / ${data.maxUses}`;
+
+    // 만료일 표시
+    const expiresAt = new Date(data.expiresAt);
+    const daysLeft  = Math.ceil((expiresAt - new Date()) / (24*60*60*1000));
+    document.getElementById('share-expires').textContent  = `${daysLeft}일 (${expiresAt.getMonth()+1}/${expiresAt.getDate()}까지)`;
+
+    // 재사용 안내
+    if(data.reused) {
+      console.log('기존 코드 재사용');
+    }
+  } catch(e) {
+    document.getElementById('share-loading').style.display = 'none';
+    document.getElementById('share-error').style.display   = 'block';
+    document.getElementById('share-error-msg').textContent = '공유 코드 생성 실패: ' + e.message;
+  }
+}
+
+function closeShareModal() {
+  document.getElementById('share-modal').style.display = 'none';
+}
+
+// 코드 복사
+function copyShareCode() {
+  const code = document.getElementById('share-code').textContent;
+  const wsName = document.getElementById('share-ws-name').textContent;
+  const text = `📚 VocaSnap 단어장 공유\n\n"${wsName}"\n\n공유 코드: ${code}\n\n받으려면 VocaSnap 앱 → 단어장 → 🎁 공유받기 → 코드 입력`;
+
+  if(navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('✅ 코드가 복사됐어요\n친구에게 붙여넣기로 전달해주세요');
+    }).catch(() => {
+      fallbackCopy(text);
+    });
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity  = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    alert('✅ 코드가 복사됐어요');
+  } catch(e) {
+    alert('복사 실패. 수동으로 복사해주세요');
+  }
+  document.body.removeChild(ta);
+}
+
+// 시스템 공유 (Web Share API)
+async function shareViaSystem() {
+  const code   = document.getElementById('share-code').textContent;
+  const wsName = document.getElementById('share-ws-name').textContent;
+  const text   = `📚 VocaSnap 단어장 "${wsName}"을 공유해요!\n\n공유 코드: ${code}\n\nVocaSnap 앱에서 코드를 입력하면 받을 수 있어요.`;
+
+  if(navigator.share) {
+    try {
+      await navigator.share({ title: 'VocaSnap 단어장 공유', text: text });
+    } catch(e) {
+      // 사용자가 취소한 경우는 에러 표시 안 함
+      if(e.name !== 'AbortError') console.warn('공유 실패:', e);
+    }
+  } else {
+    // Web Share API 미지원 → 복사로 대체
+    copyShareCode();
+  }
+}
+
+// 받기 모달 열기
+function openReceiveShareModal() {
+  if(!getSheetsUrl()) {
+    alert('Google Sheets 연결이 필요해요');
+    return;
+  }
+  document.getElementById('receive-share-modal').style.display = 'flex';
+  receiveBackToInput();
+  document.getElementById('receive-code-input').value = '';
+  setTimeout(() => document.getElementById('receive-code-input').focus(), 100);
+}
+
+function closeReceiveShareModal() {
+  document.getElementById('receive-share-modal').style.display = 'none';
+  _shareData = null;
+}
+
+function receiveBackToInput() {
+  document.getElementById('receive-input-area').style.display = 'block';
+  document.getElementById('receive-loading').style.display    = 'none';
+  document.getElementById('receive-preview').style.display    = 'none';
+  document.getElementById('receive-success').style.display    = 'none';
+  document.getElementById('receive-error').style.display      = 'none';
+}
+
+function cancelReceiveShare() {
+  _shareData = null;
+  receiveBackToInput();
+}
+
+// 코드로 단어장 미리보기 조회
+async function lookupShareCode() {
+  const code = document.getElementById('receive-code-input').value.trim().toUpperCase();
+  if(code.length !== 6) {
+    alert('6자리 코드를 입력해주세요');
+    return;
+  }
+
+  document.getElementById('receive-input-area').style.display = 'none';
+  document.getElementById('receive-loading').style.display    = 'block';
+  document.getElementById('receive-loading-msg').textContent  = '코드 확인 중...';
+
+  try {
+    const apiUrl = getSheetsUrl() + '?action=getSharedWordSet&code=' + encodeURIComponent(code);
+    const res  = await fetch(apiUrl);
+    const data = await res.json();
+
+    document.getElementById('receive-loading').style.display = 'none';
+
+    if(data.error) {
+      document.getElementById('receive-error').style.display = 'block';
+      document.getElementById('receive-error-msg').textContent = data.error;
+      return;
+    }
+
+    // 본인 코드 체크 (받기 시도 차단)
+    const user = getCurrentUser();
+    if(user && user.id && data.ownerName) {
+      // ownerName으로는 정확히 못 거르지만 사용 시 백엔드가 한 번 더 체크함
+    }
+
+    _shareData = data;
+    document.getElementById('receive-preview').style.display = 'block';
+    document.getElementById('receive-ws-name').textContent   = data.wsName;
+    document.getElementById('receive-owner').textContent     = data.ownerName;
+    document.getElementById('receive-word-count').textContent = data.wordCount;
+    document.getElementById('receive-uses').textContent      = `${data.uses} / ${data.maxUses}`;
+
+  } catch(e) {
+    document.getElementById('receive-loading').style.display = 'none';
+    document.getElementById('receive-error').style.display   = 'block';
+    document.getElementById('receive-error-msg').textContent = '서버 통신 실패: ' + e.message;
+  }
+}
+
+// 받기 확정 - 단어장 + 단어 복제
+async function confirmReceiveShare() {
+  if(!_shareData) return;
+  const user = getCurrentUser();
+  if(!user || user.isGuest) {
+    alert('단어장을 받으려면 회원가입/로그인이 필요해요');
+    return;
+  }
+
+  document.getElementById('receive-preview').style.display = 'none';
+  document.getElementById('receive-loading').style.display = 'block';
+  document.getElementById('receive-loading-msg').textContent = '단어장 복사 중...';
+
+  try {
+    const apiUrl = getSheetsUrl() + '?action=useShareCode'
+                  + '&code=' + encodeURIComponent(_shareData.code)
+                  + getUserIdParam();
+    const res  = await fetch(apiUrl);
+    const data = await res.json();
+
+    document.getElementById('receive-loading').style.display = 'none';
+
+    if(data.error) {
+      document.getElementById('receive-error').style.display = 'block';
+      document.getElementById('receive-error-msg').textContent = data.error;
+      return;
+    }
+
+    // 성공
+    document.getElementById('receive-success').style.display = 'block';
+    document.getElementById('receive-success-msg').innerHTML =
+      `<strong>${data.wsName}</strong><br>${data.copiedCount}개의 단어가 추가됐어요`;
+
+    // 캐시 무효화 + 단어장 목록 새로고침
+    localStorage.removeItem('vs-wslist-cache');
+    localStorage.removeItem('vs-stats-cache');
+    setTimeout(() => {
+      if(typeof loadWordSets === 'function') loadWordSets(true);
+    }, 800);
+
+  } catch(e) {
+    document.getElementById('receive-loading').style.display = 'none';
+    document.getElementById('receive-error').style.display   = 'block';
+    document.getElementById('receive-error-msg').textContent = '서버 통신 실패: ' + e.message;
+  }
 }
 // ─────────────────────────────────────────────────────
 
