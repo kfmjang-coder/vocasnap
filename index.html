@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-063054">
+<meta name="app-build" content="20260525-064120">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -774,7 +774,7 @@ body{
       <div class="mcard" onclick="startWordSetLearning('quiz')"><i class="ti ti-list-check" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">퀴즈 모드</div><div style="font-size:11px;color:var(--tx2)">객관식</div></div>
       <div class="mcard" onclick="startWordSetLearning('review')"><i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">복습 모드</div><div style="font-size:11px;color:var(--tx2)">학습한 단어만</div></div>
       <div class="mcard" onclick="openMockTestModal()"><i class="ti ti-pencil" style="font-size:22px;color:var(--red);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">모의테스트</div><div style="font-size:11px;color:var(--tx2)">발음 듣고 받아쓰기</div></div>
-      <div class="mcard" onclick="startVoiceDictation()"><i class="ti ti-microphone" style="font-size:22px;color:#E76F51;margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">🎤 음성 받아쓰기</div><div style="font-size:11px;color:var(--tx2)">발음 듣고 말로 답하기</div></div>
+      <div class="mcard" onclick="openVoiceSetupModal()"><i class="ti ti-microphone" style="font-size:22px;color:#E76F51;margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">🎤 음성 받아쓰기</div><div style="font-size:11px;color:var(--tx2)">발음 듣고 말로 답하기</div></div>
       <div class="mcard" onclick="openImportModal()"><i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">단어 임포트</div><div style="font-size:11px;color:var(--tx2)">촬영 / 직접 입력</div></div>
     </div>
     <div style="height:20px"></div>
@@ -900,6 +900,57 @@ body{
 
 
 
+
+
+<!-- ══ 음성 받아쓰기 설정 모달 ══ -->
+<div id="voice-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-end;justify-content:center">
+  <div style="width:100%;max-width:500px;background:var(--sf);border-radius:18px 18px 0 0;padding:20px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:17px;font-weight:500;color:var(--tx)">🎤 음성 받아쓰기</div>
+      <div onclick="closeVoiceSetupModal()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
+      </div>
+    </div>
+
+    <!-- 테스트 단어 수 -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:8px">테스트 단어 수</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <div onclick="setVoiceCount(10)" id="vc-10" class="voice-count-btn" style="flex:1;padding:10px;background:var(--acc);color:#fff;border-radius:8px;font-size:13px;text-align:center;cursor:pointer;font-weight:500">10개</div>
+        <div onclick="setVoiceCount(20)" id="vc-20" class="voice-count-btn" style="flex:1;padding:10px;background:var(--sf2);color:var(--tx);border-radius:8px;font-size:13px;text-align:center;cursor:pointer">20개</div>
+        <div onclick="setVoiceCount(30)" id="vc-30" class="voice-count-btn" style="flex:1;padding:10px;background:var(--sf2);color:var(--tx);border-radius:8px;font-size:13px;text-align:center;cursor:pointer">30개</div>
+        <div onclick="setVoiceCount(50)" id="vc-50" class="voice-count-btn" style="flex:1;padding:10px;background:var(--sf2);color:var(--tx);border-radius:8px;font-size:13px;text-align:center;cursor:pointer">50개</div>
+      </div>
+      <input type="number" id="voice-count-input" placeholder="직접 입력 (1~200)" min="1" max="200" oninput="setVoiceCountInput(this.value)"
+        style="width:100%;padding:10px;border:0.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
+    </div>
+
+    <!-- 테스트 범위 -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:8px">테스트 범위</div>
+      <div style="display:flex;gap:8px">
+        <div onclick="setVoiceScope('current')" id="vs-current" class="voice-scope-btn" style="flex:1;padding:12px 8px;background:var(--acc);color:#fff;border-radius:8px;font-size:12px;text-align:center;cursor:pointer">
+          <div style="font-size:18px;margin-bottom:2px">📚</div>
+          <div style="font-weight:500">현재 단어장</div>
+        </div>
+        <div onclick="setVoiceScope('all')" id="vs-all" class="voice-scope-btn" style="flex:1;padding:12px 8px;background:var(--sf2);color:var(--tx);border-radius:8px;font-size:12px;text-align:center;cursor:pointer">
+          <div style="font-size:18px;margin-bottom:2px">🌐</div>
+          <div style="font-weight:500">전체 단어</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 안내 -->
+    <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;gap:8px;color:var(--acc-d)">
+        <i class="ti ti-info-circle" style="font-size:14px;margin-top:1px;flex-shrink:0"></i>
+        <div style="font-size:11px;line-height:1.6">발음을 듣고 마이크로 한글 뜻을 말하면 자동 채점돼요. 정답의 일부만 맞아도 정답으로 인정해요</div>
+      </div>
+    </div>
+
+    <button onclick="startVoiceTestActual()" style="width:100%;padding:14px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer">테스트 시작 →</button>
+  </div>
+</div>
 
 <!-- ══ 음성 받아쓰기 화면 ══ -->
 <div class="scr" id="s-voice">
@@ -4000,7 +4051,7 @@ function qRestart(){qWrong=[];wrongWords=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-063054';
+  window.APP_BUILD = '20260525-064120';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -4730,18 +4781,88 @@ let VOICE = {
   recognition: null,  // SpeechRecognition 인스턴스
   isListening: false,
   graded: false,  // 현재 문제 채점 완료 여부
+  count: 10,      // 테스트 단어 수
+  scope: 'current', // 'all' | 'current'
 };
 
+// ── 설정 모달 함수들 ──
+function openVoiceSetupModal() {
+  document.getElementById('voice-setup-modal').style.display = 'flex';
+  // 기본값 적용
+  setVoiceCount(VOICE.count || 10);
+  setVoiceScope(currentWordSet?.id ? 'current' : 'all');
+}
+
+function closeVoiceSetupModal() {
+  document.getElementById('voice-setup-modal').style.display = 'none';
+}
+
+function setVoiceCount(n) {
+  VOICE.count = n;
+  ['10', '20', '30', '50'].forEach(num => {
+    const el = document.getElementById('vc-' + num);
+    if(el) {
+      el.style.background = String(n) === num ? 'var(--acc)' : 'var(--sf2)';
+      el.style.color      = String(n) === num ? '#fff' : 'var(--tx)';
+      el.style.fontWeight = String(n) === num ? '500' : '400';
+    }
+  });
+  // 직접 입력 값 초기화
+  const input = document.getElementById('voice-count-input');
+  if(input && ![10,20,30,50].includes(n)) input.value = n;
+  else if(input) input.value = '';
+}
+
+function setVoiceCountInput(val) {
+  const n = parseInt(val);
+  if(!isNaN(n) && n >= 1 && n <= 200) {
+    VOICE.count = n;
+    // 프리셋 버튼 모두 비활성화
+    ['10', '20', '30', '50'].forEach(num => {
+      const el = document.getElementById('vc-' + num);
+      if(el) {
+        el.style.background = 'var(--sf2)';
+        el.style.color      = 'var(--tx)';
+        el.style.fontWeight = '400';
+      }
+    });
+  }
+}
+
+function setVoiceScope(scope) {
+  VOICE.scope = scope;
+  ['all','current'].forEach(s => {
+    const el = document.getElementById('vs-' + s);
+    if(el) {
+      el.style.background = s === scope ? 'var(--acc)' : 'var(--sf2)';
+      el.style.color      = s === scope ? '#fff' : 'var(--tx)';
+    }
+  });
+}
+
+// 테스트 실제 시작 (모달의 '시작' 버튼)
+async function startVoiceTestActual() {
+  // 단어 수 검증
+  if(VOICE.count < 1)   { alert('테스트할 단어 수를 입력해주세요'); return; }
+  if(VOICE.count > 200) { alert('최대 200개까지 가능해요'); return; }
+
+  closeVoiceSetupModal();
+  await startVoiceDictation();
+}
+
 async function startVoiceDictation() {
-  // 단어 로딩 (다른 학습 모드와 동일 패턴)
-  const wsId = currentWordSet?.id || null;
-  if(!WORDS.length && wsId && getSheetsUrl()) {
+  // 범위에 따른 단어 로딩
+  const wsId   = (VOICE.scope === 'current' && currentWordSet?.id) ? currentWordSet.id : null;
+  const params = wsId ? {wordSetId: wsId} : null;
+
+  // Sheets에서 단어 가져오기
+  if(getSheetsUrl()) {
     const toast = document.createElement('div');
     toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999';
     toast.textContent = '⏳ 단어 불러오는 중...';
     document.body.appendChild(toast);
     try {
-      const res = await sheetsGet('getWords', {wordSetId: wsId});
+      const res = await sheetsGet('getWords', params);
       if(!res.error && res.words?.length) {
         WORDS = res.words.map(w => ({
           id: w.id, en: w.word||w.en||'', ko: w.meaning||w.ko||'',
@@ -4765,10 +4886,9 @@ async function startVoiceDictation() {
     return;
   }
 
-  // 세션 단어 수만큼 랜덤 추출
-  const sessionCount = Number(localStorage.getItem('vs-session-count') || 20);
+  // 설정한 단어 수만큼 랜덤 추출
   const shuffled = [...WORDS].sort(() => Math.random() - 0.5);
-  VOICE.words     = shuffled.slice(0, Math.min(sessionCount, shuffled.length));
+  VOICE.words     = shuffled.slice(0, Math.min(VOICE.count, shuffled.length));
   VOICE.idx       = 0;
   VOICE.correct   = 0;
   VOICE.total     = 0;
