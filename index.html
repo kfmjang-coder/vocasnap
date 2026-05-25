@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-075756">
+<meta name="app-build" content="20260525-081056">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -910,7 +910,8 @@ body{
       <div class="sc"><div style="font-size:24px;font-weight:500;color:#EF9F27;margin-bottom:2px" id="res-pts">--%</div><div style="font-size:11px;color:var(--tx2)">정확도</div></div>
     </div>
     <button class="savbtn" style="margin-bottom:10px" onclick="qRestart()">다시 풀기</button>
-    <button id="res-wrong-btn" class="savbtn" style="background:var(--sf2);color:var(--tx2);margin-bottom:10px;border:0.5px solid var(--bd)" onclick="reviewWrongWords()">몰라요 단어 복습하기</button>
+    <button id="res-wrong-btn" class="savbtn" style="display:none;background:var(--red-l);color:var(--red);margin-bottom:10px;border:0.5px solid var(--red)" onclick="reviewWrongWords('wrong')">틀린 단어 복습하기</button>
+    <button id="res-dont-btn" class="savbtn" style="display:none;background:var(--amb-l);color:var(--amb);margin-bottom:10px;border:0.5px solid var(--amb)" onclick="reviewWrongWords('dont')">몰라요 단어 복습하기</button>
     <button class="savbtn" style="background:var(--sf2);color:var(--tx2);margin-bottom:10px;border:0.5px solid var(--bd)" onclick="goBackToWordSet()">단어장으로 돌아가기</button>
     <button class="savbtn" style="background:var(--sf2);color:var(--tx2);border:0.5px solid var(--bd)" onclick="nav('s-home')">홈으로 돌아가기</button>
     <div style="height:20px"></div>
@@ -3426,7 +3427,7 @@ async function startReviewByStatus(filterType) {
     fcReverse = false;
 
     // 플래시카드 상태 초기화
-    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[];
+    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[]; resetReviewButtons();
     const inner = document.getElementById('fc-inner');
     if(inner) inner.classList.remove('flipped');
 
@@ -3511,7 +3512,7 @@ async function startWordSetLearning(mode) {
   WORDS = targetWords.slice(0, sessionCount);
 
   // 상태 초기화
-  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[];
+  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[]; resetReviewButtons();
   const inner = document.getElementById('fc-inner');
   if(inner) inner.classList.remove('flipped');
 
@@ -3555,7 +3556,7 @@ async function startLearning(){
 
   setText('fc-ws-title',  '전체 단어장');
   setText('fc-mode-label','플래시카드 모드');
-  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[];
+  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[]; resetReviewButtons();
   const inner = document.getElementById('fc-inner');
   if(inner) inner.classList.remove('flipped');
   nav('s-fc');
@@ -3684,7 +3685,7 @@ async function loadFcWords(){
     WORDS.forEach(w => { if(w.ko) DIST.push(w.ko); });
 
     // 상태 초기화 후 재렌더
-    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[];
+    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[]; resetReviewButtons();
     document.getElementById('fc-inner').classList.remove('flipped');
     fcRender();
     // 첫 단어 자동 발음 (loadFcWords는 사용자 탭 이후 호출됨)
@@ -3780,20 +3781,8 @@ function showFcResult(){
   // 결과 모드 = 플래시카드
   lastResultMode = 'flashcard';
 
-  // 복습 버튼 업데이트
-  const wrongBtn = document.getElementById('res-wrong-btn');
-  if(wrongBtn) {
-    if(wrongWords.length > 0) {
-      wrongBtn.textContent = '몰라요 단어 ' + wrongWords.length + '개 복습하기';
-      wrongBtn.style.display = 'block';
-      wrongBtn.style.opacity = '1';
-      wrongBtn.style.pointerEvents = 'auto';
-    } else {
-      wrongBtn.textContent = '몰라요 단어 없음 🎉';
-      wrongBtn.style.opacity = '.5';
-      wrongBtn.style.pointerEvents = 'none';
-    }
-  }
+  // 몰라요 단어 복습 버튼만 갱신 (틀린 단어 버튼은 그대로 유지)
+  updateReviewButton('dont', wrongWords.length);
 
   nav('s-qresult');
 }
@@ -4017,20 +4006,8 @@ function qNext(){
     // 결과 모드 = 퀴즈
     lastResultMode = 'quiz';
 
-    // 틀린 단어 복습 버튼 업데이트
-    const wrongBtn=document.getElementById('res-wrong-btn');
-    if(wrongBtn){
-      if(qWrong.length>0){
-        wrongBtn.textContent='틀린 단어 '+qWrong.length+'개 복습하기';
-        wrongBtn.style.display='block';
-        wrongBtn.style.opacity='1';
-        wrongBtn.style.pointerEvents='auto';
-      } else {
-        wrongBtn.textContent='틀린 단어 없음 🎉';
-        wrongBtn.style.opacity='.5';
-        wrongBtn.style.pointerEvents='none';
-      }
-    }
+    // 틀린 단어 복습 버튼만 갱신 (몰라요 단어 버튼은 그대로 유지)
+    updateReviewButton('wrong', qWrong.length);
 
     // 학습 완료 - 캐시 무효화 + 홈 즉시 업데이트
     localStorage.removeItem('vs-stats-cache');
@@ -4046,18 +4023,43 @@ function qNext(){
 }
 
 // ── 틀린 단어 복습 ──────────────────────────────────
-function reviewWrongWords(){
-  // 모드에 따라 사용할 배열 결정
-  // - quiz: qWrong 배열 사용, '틀린 단어'
-  // - voice: wrongWords (showVoiceResult가 채워둠), '틀린 단어'
-  // - flashcard: wrongWords, '몰라요 단어'
-  const isQuiz  = lastResultMode === 'quiz';
-  const isVoice = lastResultMode === 'voice';
-  const list    = isQuiz ? qWrong : wrongWords;
-  const label   = (isQuiz || isVoice) ? '틀린 단어' : '몰라요 단어';
+
+// ── 결과 화면 복습 버튼 표시 헬퍼 ──────────────────
+// type: 'wrong' (틀린 단어 - 퀴즈/음성), 'dont' (몰라요 단어 - 플래시카드)
+function updateReviewButton(type, count) {
+  const btnId = type === 'wrong' ? 'res-wrong-btn' : 'res-dont-btn';
+  const label = type === 'wrong' ? '틀린 단어' : '몰라요 단어';
+  const btn = document.getElementById(btnId);
+  if(!btn) return;
+  if(count > 0) {
+    btn.textContent = `${label} ${count}개 복습하기`;
+    btn.style.display = 'block';
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function resetReviewButtons() {
+  ['res-wrong-btn', 'res-dont-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if(btn) btn.style.display = 'none';
+  });
+}
+// ─────────────────────────────────────────────────────
+
+function reviewWrongWords(type){
+  // type: 'wrong' (틀린 단어 - qWrong 사용), 'dont' (몰라요 단어 - wrongWords 사용)
+  // 호환성: 인자 없으면 lastResultMode로 추론
+  if(!type) {
+    type = (lastResultMode === 'quiz' || lastResultMode === 'voice') ? 'wrong' : 'dont';
+  }
+  const list  = type === 'wrong' ? qWrong : wrongWords;
+  const label = type === 'wrong' ? '틀린 단어' : '몰라요 단어';
 
   if(!list.length){
-    alert((isQuiz || isVoice ? '틀린' : '몰라요') + ' 단어가 없어요! 🎉');
+    alert(label + '가 없어요! 🎉');
     return;
   }
   // list를 복사해 두고 사용 (wrongWords를 초기화해도 안전)
@@ -4068,7 +4070,7 @@ function reviewWrongWords(){
   DIST.length = 0;
   WORDS.forEach(w => { if(w.ko||w.meaning) DIST.push(w.ko||w.meaning); });
   // 플래시카드 상태 초기화 (wrongWords는 새 학습 위해 비움 - 이미 reviewList에 복사됨)
-  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[];
+  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[]; resetReviewButtons();
   const inner=document.getElementById('fc-inner');
   if(inner) inner.classList.remove('flipped');
   // 단어장 제목 변경
@@ -4105,14 +4107,14 @@ function goBackToWordSet() {
 }
 // ─────────────────────────────────────────────────────
 
-function qRestart(){qWrong=[];wrongWords=[];nav('s-quiz');}
+function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── CLOCK ──
 // 상태바 제거됨 (safe-area-inset으로 대체)
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-075756';
+  window.APP_BUILD = '20260525-081056';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -5251,24 +5253,12 @@ function showVoiceResult() {
   setText('res-time',  mm + '분 ' + ss + '초');
   setText('res-pts',   pct + '%');
 
-  // wrongWords와 모드 설정 (재사용) - 'voice' 모드로 설정해서 '틀린 단어' 라벨 사용
-  wrongWords     = [...VOICE.wrongList];
-  lastResultMode = 'voice'; // voice 전용 모드 (틀린 단어 라벨)
+  // 음성 받아쓰기는 '틀린 단어'로 분류 - qWrong에 누적해서 wrong 버튼으로 표시
+  qWrong = [...VOICE.wrongList];
+  lastResultMode = 'voice';
 
-  // 복습 버튼 업데이트
-  const wrongBtn = document.getElementById('res-wrong-btn');
-  if(wrongBtn) {
-    if(wrongWords.length > 0) {
-      wrongBtn.textContent = '틀린 단어 ' + wrongWords.length + '개 복습하기';
-      wrongBtn.style.display = 'block';
-      wrongBtn.style.opacity = '1';
-      wrongBtn.style.pointerEvents = 'auto';
-    } else {
-      wrongBtn.textContent = '틀린 단어 없음 🎉';
-      wrongBtn.style.opacity = '.5';
-      wrongBtn.style.pointerEvents = 'none';
-    }
-  }
+  // 틀린 단어 복습 버튼만 갱신 (몰라요 단어 버튼은 그대로 유지)
+  updateReviewButton('wrong', qWrong.length);
 
   // 모의테스트 이력에 저장 (음성 받아쓰기 결과도 함께 기록)
   let grade;
