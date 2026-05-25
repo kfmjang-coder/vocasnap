@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-074848">
+<meta name="app-build" content="20260525-075756">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2819,7 +2819,7 @@ async function doSignup() {
       localStorage.setItem('vs-profile-email', email);
       if(!localStorage.getItem('vs-profile-avatar')) localStorage.setItem('vs-profile-avatar', '😊');
       alert(`🎉 ${name}님, 환영해요!\n클라우드에 계정이 저장됐어요.`);
-      goToOnboarding();
+      goToOnboarding(true); // 신규 가입자는 온보딩 표시
       return;
     } catch(e) {
       // Firebase 에러 코드 처리
@@ -2863,7 +2863,7 @@ async function doSignup() {
       if(!localStorage.getItem('vs-profile-avatar')) localStorage.setItem('vs-profile-avatar', '😊');
 
       alert(`🎉 ${name}님, 환영해요!\nGoogle Sheets에 계정이 저장됐어요.`);
-      goToOnboarding();
+      goToOnboarding(true); // 신규 가입자는 온보딩 표시
       return;
     } catch(e) {
       console.warn('Sheets 가입 실패, 로컬로 fallback:', e);
@@ -2889,7 +2889,7 @@ async function doSignup() {
     localStorage.setItem('vs-profile-avatar', '😊');
   }
   alert(`🎉 ${name}님, 환영해요!\n로컬에 저장됐어요. (Sheets 미연결)`);
-  goToOnboarding();
+  goToOnboarding(true); // 신규 가입자는 온보딩 표시
 }
 
 async function doLogin() {
@@ -3107,10 +3107,17 @@ async function forgotPassword() {
   }
 }
 
-function goToOnboarding() {
+function goToOnboarding(forceShow) {
   document.querySelectorAll('.scr').forEach(s => s.classList.remove('on'));
-  // 온보딩 본 적 있으면 홈으로 바로
-  if(localStorage.getItem('vs-onboarding-done')) {
+  // forceShow=true: 회원가입 직후 등 명시적으로 온보딩 보여줄 때만
+  // 로그인 사용자(게스트 아님)는 온보딩 건너뛰기
+  const user = getCurrentUser();
+  const isLoggedInUser = user && !user.isGuest;
+  const done = localStorage.getItem('vs-onboarding-done');
+
+  if(done || (isLoggedInUser && !forceShow)) {
+    // 로그인 사용자는 자동으로 done 마킹 (다음에도 안 보이게)
+    if(isLoggedInUser) localStorage.setItem('vs-onboarding-done', '1');
     document.getElementById('s-home').classList.add('on');
     stack = ['s-home'];
     setTimeout(() => { try { loadHomeData(); applyProfile(); } catch(e){} }, 100);
@@ -3124,9 +3131,14 @@ function goToOnboarding() {
 function checkAuthOnStart() {
   const user = getCurrentUser();
   if(user) {
-    // 로그인된 상태 - 온보딩 건너뛰거나 홈으로
+    // 로그인된 상태 - 게스트 외에는 온보딩 건너뛰기
     document.querySelectorAll('.scr').forEach(s => s.classList.remove('on'));
-    if(localStorage.getItem('vs-onboarding-done')) {
+    const done = localStorage.getItem('vs-onboarding-done');
+    const isLoggedInUser = !user.isGuest;
+
+    if(done || isLoggedInUser) {
+      // 로그인 사용자는 자동으로 done 마킹
+      if(isLoggedInUser) localStorage.setItem('vs-onboarding-done', '1');
       document.getElementById('s-home').classList.add('on');
       stack = ['s-home'];
       setTimeout(() => { try { loadHomeData(); applyProfile(); } catch(e){} }, 100);
@@ -3208,7 +3220,17 @@ function handleBackButton() {
     return false;
   }
 
-  // 3) 그 외 화면 → 이전 페이지
+  // 3) 시험 진행 중인 화면은 종료 확인
+  if(current === 's-mock') {
+    exitMockTest();
+    return false;
+  }
+  if(current === 's-voice') {
+    exitVoiceDictation();
+    return false;
+  }
+
+  // 4) 그 외 화면 → 이전 페이지
   back();
   return false;
 }
@@ -4090,7 +4112,7 @@ function qRestart(){qWrong=[];wrongWords=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-074848';
+  window.APP_BUILD = '20260525-075756';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -5010,6 +5032,12 @@ async function startVoiceDictation() {
 }
 
 function exitVoiceDictation() {
+  // 시험 진행 중일 때만 confirm 표시
+  // (idx > 0 이고 아직 답하지 않은 문제가 남아있으면 진행 중)
+  const inProgress = VOICE.idx > 0 && VOICE.total < VOICE.words.length;
+  if(inProgress) {
+    if(!confirm('진행 중인 시험을 종료할까요?\n진행 상황이 사라져요.')) return;
+  }
   if(VOICE.recognition && VOICE.isListening) {
     try { VOICE.recognition.stop(); } catch(e) {}
   }
@@ -6862,8 +6890,11 @@ function reviewMockWrong() {
 }
 
 function exitMockTest() {
-  if(MOCK.idx > 0 && MOCK.correct + MOCK.wrong < MOCK.words.length) {
-    if(!confirm('진행 중인 시험을 종료할까요? 진행 상황이 사라져요.')) return;
+  // 시험 진행 중일 때만 confirm 표시
+  // 첫 문제 이상 진행했고 아직 채점 전이면 진행 중
+  const inProgress = MOCK.idx > 0 && (MOCK.correct + MOCK.wrong) < MOCK.words.length;
+  if(inProgress) {
+    if(!confirm('진행 중인 시험을 종료할까요?\n진행 상황이 사라져요.')) return;
   }
   if(MOCK.timer) { clearInterval(MOCK.timer); MOCK.timer = null; }
   back();
