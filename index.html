@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-054336">
+<meta name="app-build" content="20260525-055314">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1724,6 +1724,8 @@ const EW = []; // Gemini API 추출 결과가 채워짐
 // ── STATE ──
 let stack=['s-auth'],obStep=0,isDark=false,allChecked=false;
 let fcIdx=0,fcFlipped=false,fcKnow=0,fcDont=0,fcReverse=false;
+let wrongWords = []; // 플래시카드에서 '몰라요' 누른 단어들
+let lastResultMode = 'quiz'; // 'quiz' or 'flashcard' - 결과 화면 어느 흐름에서 왔는지
 let qIdx=0,qCorrect=0,qTotal=0,qSec=0,qTimer=null,qAnswered=false,qWrong=[];
 
 // ── NAVIGATION ──
@@ -3218,7 +3220,7 @@ async function startReviewByStatus(filterType) {
     fcReverse = false;
 
     // 플래시카드 상태 초기화
-    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
+    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[];
     const inner = document.getElementById('fc-inner');
     if(inner) inner.classList.remove('flipped');
 
@@ -3303,7 +3305,7 @@ async function startWordSetLearning(mode) {
   WORDS = targetWords.slice(0, sessionCount);
 
   // 상태 초기화
-  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
+  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[];
   const inner = document.getElementById('fc-inner');
   if(inner) inner.classList.remove('flipped');
 
@@ -3347,7 +3349,7 @@ async function startLearning(){
 
   setText('fc-ws-title',  '전체 단어장');
   setText('fc-mode-label','플래시카드 모드');
-  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
+  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[];
   const inner = document.getElementById('fc-inner');
   if(inner) inner.classList.remove('flipped');
   nav('s-fc');
@@ -3476,7 +3478,7 @@ async function loadFcWords(){
     WORDS.forEach(w => { if(w.ko) DIST.push(w.ko); });
 
     // 상태 초기화 후 재렌더
-    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
+    fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[];
     document.getElementById('fc-inner').classList.remove('flipped');
     fcRender();
     // 첫 단어 자동 발음 (loadFcWords는 사용자 탭 이후 호출됨)
@@ -3508,6 +3510,11 @@ function fcAns(type){
 
   // 현재 단어 상태 업데이트 (학습 횟수 누적)
   const w = WORDS[fcIdx];
+
+  // '몰라요' 누른 단어를 wrongWords에 추가 (중복 방지)
+  if(!know && w && !wrongWords.find(x => x.en === w.en)) {
+    wrongWords.push({...w});
+  }
   if(w) {
     // 단어별 학습 이력 (localStorage)
     w.status = computeWordStatus(w, know);
@@ -3564,8 +3571,24 @@ function showFcResult(){
   const mins = Number(localStorage.getItem('vs-today-time')||0);
   updateHomeLiveStats(done, acc, mins);
 
-  // Sheets에서 최신 status로 갱신 (백그라운드)
-  // nav('s-wsd') 시 loadWordListForSet이 자동으로 갱신하므로 별도 처리 불필요
+  // 결과 모드 = 플래시카드
+  lastResultMode = 'flashcard';
+
+  // 복습 버튼 업데이트
+  const wrongBtn = document.getElementById('res-wrong-btn');
+  if(wrongBtn) {
+    if(wrongWords.length > 0) {
+      wrongBtn.textContent = '몰라요 단어 ' + wrongWords.length + '개 복습하기';
+      wrongBtn.style.display = 'block';
+      wrongBtn.style.opacity = '1';
+      wrongBtn.style.pointerEvents = 'auto';
+    } else {
+      wrongBtn.textContent = '몰라요 단어 없음 🎉';
+      wrongBtn.style.opacity = '.5';
+      wrongBtn.style.pointerEvents = 'none';
+    }
+  }
+
   nav('s-qresult');
 }
 
@@ -3785,16 +3808,19 @@ function qNext(){
     const ss=qSec%60;
     document.getElementById('res-time').textContent=mm+'분 '+ss+'초';
     document.getElementById('res-pts').textContent=pct+'%';
-    // 몰라요 단어 복습 버튼 업데이트
+    // 결과 모드 = 퀴즈
+    lastResultMode = 'quiz';
+
+    // 틀린 단어 복습 버튼 업데이트
     const wrongBtn=document.getElementById('res-wrong-btn');
     if(wrongBtn){
       if(qWrong.length>0){
-        wrongBtn.textContent='몰라요 단어 '+qWrong.length+'개 복습하기';
+        wrongBtn.textContent='틀린 단어 '+qWrong.length+'개 복습하기';
         wrongBtn.style.display='block';
         wrongBtn.style.opacity='1';
         wrongBtn.style.pointerEvents='auto';
       } else {
-        wrongBtn.textContent='몰라요 단어 없음 🎉';
+        wrongBtn.textContent='틀린 단어 없음 🎉';
         wrongBtn.style.opacity='.5';
         wrongBtn.style.pointerEvents='none';
       }
@@ -3815,7 +3841,12 @@ function qNext(){
 
 // ── 틀린 단어 복습 ──────────────────────────────────
 function reviewWrongWords(){
-  if(!qWrong.length){
+  // 모드에 따라 사용할 배열 결정
+  const isQuiz = lastResultMode === 'quiz';
+  const list   = isQuiz ? qWrong : wrongWords;
+  const label  = isQuiz ? '틀린 단어' : '몰라요 단어';
+
+  if(!list.length){
     alert('틀린 단어가 없어요! 🎉');
     return;
   }
@@ -3824,12 +3855,12 @@ function reviewWrongWords(){
   DIST.length = 0;
   WORDS.forEach(w => { if(w.ko||w.meaning) DIST.push(w.ko||w.meaning); });
   // 플래시카드 상태 초기화
-  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false;
+  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[];
   const inner=document.getElementById('fc-inner');
   if(inner) inner.classList.remove('flipped');
   // 단어장 제목 변경
   const titleEl=document.querySelector('#s-fc .ttl');
-  if(titleEl) titleEl.textContent='몰라요 단어 복습 ('+qWrong.length+'개)';
+  if(titleEl) titleEl.textContent=label + ' 복습 ('+list.length+'개)';
   nav('s-fc');
   fcRender(); // loadFcWords 호출 없이 바로 렌더 (틀린 단어만)
 }
@@ -3861,14 +3892,14 @@ function goBackToWordSet() {
 }
 // ─────────────────────────────────────────────────────
 
-function qRestart(){qWrong=[];nav('s-quiz');}
+function qRestart(){qWrong=[];wrongWords=[];nav('s-quiz');}
 
 // ── CLOCK ──
 // 상태바 제거됨 (safe-area-inset으로 대체)
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-054336';
+  window.APP_BUILD = '20260525-055314';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
