@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-123516">
+<meta name="app-build" content="20260525-125456">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -714,12 +714,9 @@ body{
       <span id="home-pct-txt" style="display:none">0%</span>
     </div>
 
-    <!-- ══ 망각 직전 단어 (있을 때만 표시) ══ -->
-    <div class="rev-card" id="home-due-card" onclick="startLearning()" style="display:none">
-      <i class="ti ti-brain" style="font-size:26px;color:var(--acc)"></i>
-      <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--acc-d);margin-bottom:3px">망각 직전 단어 <span id="home-due-num">--</span>개</div><div style="font-size:12px;color:var(--acc)">지금 복습하면 장기 기억 전환 가능!</div></div>
-      <i class="ti ti-chevron-right" style="font-size:18px;color:var(--acc)"></i>
-    </div>
+    <!-- 호환성 유지용 숨김 요소 (망각 카드 제거됨, 통계 화면으로 이동) -->
+    <span id="home-due-num" style="display:none">0</span>
+    <span id="home-due-card" style="display:none"></span>
 
     <!-- 호환성 유지용 숨김 요소 -->
     <div id="home-streak-banner" style="display:none">
@@ -743,10 +740,13 @@ body{
     </div>
 
     <!-- ══ 🏆 누적 성과 ══ -->
-    <div style="margin:8px 16px 12px;background:var(--sf);border-radius:14px;padding:14px;border:1px solid var(--bd)">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:16px">🏆</span>
-        <span style="font-size:13px;font-weight:600;color:var(--tx)">누적 성과</span>
+    <div onclick="nav('s-stats')" style="margin:8px 16px 12px;background:var(--sf);border-radius:14px;padding:14px;border:1px solid var(--bd);cursor:pointer">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">🏆</span>
+          <span style="font-size:13px;font-weight:600;color:var(--tx)">누적 성과</span>
+        </div>
+        <span style="font-size:11px;color:var(--acc)">자세히 →</span>
       </div>
       <div style="display:flex;gap:8px">
         <div style="flex:1;text-align:center">
@@ -762,6 +762,17 @@ body{
           <div style="font-size:11px;color:var(--tx2)">전체 단어</div>
         </div>
       </div>
+
+      <!-- 망각 직전 단어 알림 (있을 때만) -->
+      <div id="home-due-alert" style="display:none;margin-top:10px;padding:8px 12px;background:var(--amb-l);border-radius:8px;border:1px solid var(--amb)">
+        <div style="display:flex;align-items:center;gap:8px;color:var(--amb)">
+          <i class="ti ti-alert-circle" style="font-size:14px;flex-shrink:0"></i>
+          <div style="font-size:11px;line-height:1.5;flex:1">
+            <strong>망각 직전 단어 <span id="home-due-num-real">0</span>개</strong> · 통계 화면에서 우선 학습하세요
+          </div>
+        </div>
+      </div>
+
       <!-- 호환성 유지용 숨김 요소 -->
       <span id="home-total-delta" style="display:none">--</span>
       <span id="home-rate-delta" style="display:none">--</span>
@@ -998,15 +1009,86 @@ body{
   </div>
   <div class="pb-bg"><div class="pb-f" id="wsd-pct-bar" style="width:0%"></div></div>
 </div>
-    <div class="sh"><span class="st">학습 모드 선택</span></div>
+    <!-- ══ 🗡️ 학습 모드 (던전 스타일) ══ -->
+    <div class="sh"><span class="st">🗡️ 도전 모드 선택</span></div>
+
+    <!-- ⚔️ 기본 훈련 -->
+    <div style="padding:8px 16px 4px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <div style="width:3px;height:14px;background:var(--acc);border-radius:2px"></div>
+        <span style="font-size:11px;font-weight:600;color:var(--acc);letter-spacing:.5px">⚔️ 기본 훈련</span>
+      </div>
+    </div>
     <div class="mgrid">
-      <div class="mcard" onclick="startWordSetLearning('fc')"><i class="ti ti-cards" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">플래시카드</div><div style="font-size:11px;color:var(--tx2)">영어 → 한국어</div></div>
-      <div class="mcard" onclick="startWordSetLearning('fc-reverse')"><i class="ti ti-arrows-shuffle" style="font-size:22px;color:#EF9F27;margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">역방향 카드</div><div style="font-size:11px;color:var(--tx2)">한국어 → 영어</div></div>
-      <div class="mcard" onclick="startWordSetLearning('quiz')"><i class="ti ti-list-check" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">퀴즈 모드</div><div style="font-size:11px;color:var(--tx2)">객관식</div></div>
-      <div class="mcard" onclick="startWordSetLearning('review')"><i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">복습 모드</div><div style="font-size:11px;color:var(--tx2)">학습한 단어만</div></div>
-      <div class="mcard" onclick="openMockTestModal()"><i class="ti ti-pencil" style="font-size:22px;color:var(--red);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">모의테스트</div><div style="font-size:11px;color:var(--tx2)">발음 듣고 받아쓰기</div></div>
-      <div class="mcard" onclick="openVoiceSetupModal()"><i class="ti ti-microphone" style="font-size:22px;color:#E76F51;margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">🎤 음성 받아쓰기</div><div style="font-size:11px;color:var(--tx2)">발음 듣고 말로 답하기</div></div>
-      <div class="mcard" onclick="openImportModal()"><i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i><div style="font-size:13px;font-weight:500;color:var(--tx)">단어 임포트</div><div style="font-size:11px;color:var(--tx2)">촬영 / 직접 입력</div></div>
+      <div class="mcard" onclick="startWordSetLearning('fc')" style="position:relative">
+        <div style="position:absolute;top:8px;right:8px;background:var(--acc-l);color:var(--acc);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">+5 XP</div>
+        <i class="ti ti-cards" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i>
+        <div style="font-size:13px;font-weight:500;color:var(--tx)">🎴 플래시카드</div>
+        <div style="font-size:11px;color:var(--tx2)">영어 → 한국어</div>
+        <div style="font-size:10px;color:#FFD700;margin-top:2px">⭐</div>
+      </div>
+      <div class="mcard" onclick="startWordSetLearning('fc-reverse')" style="position:relative">
+        <div style="position:absolute;top:8px;right:8px;background:rgba(239,159,39,.15);color:#EF9F27;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">+5 XP</div>
+        <i class="ti ti-arrows-shuffle" style="font-size:22px;color:#EF9F27;margin-bottom:6px"></i>
+        <div style="font-size:13px;font-weight:500;color:var(--tx)">🔄 역방향 카드</div>
+        <div style="font-size:11px;color:var(--tx2)">한국어 → 영어</div>
+        <div style="font-size:10px;color:#FFD700;margin-top:2px">⭐⭐</div>
+      </div>
+    </div>
+
+    <!-- 🛡️ 시험 도전 -->
+    <div style="padding:14px 16px 4px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <div style="width:3px;height:14px;background:var(--red);border-radius:2px"></div>
+        <span style="font-size:11px;font-weight:600;color:var(--red);letter-spacing:.5px">🛡️ 시험 도전</span>
+      </div>
+    </div>
+    <div class="mgrid">
+      <div class="mcard" onclick="startWordSetLearning('quiz')" style="position:relative">
+        <div style="position:absolute;top:8px;right:8px;background:var(--acc-l);color:var(--acc);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">+8 XP</div>
+        <i class="ti ti-list-check" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i>
+        <div style="font-size:13px;font-weight:500;color:var(--tx)">📝 객관식 퀴즈</div>
+        <div style="font-size:11px;color:var(--tx2)">4지선다 정답 맞히기</div>
+        <div style="font-size:10px;color:#FFD700;margin-top:2px">⭐⭐</div>
+      </div>
+      <div class="mcard" onclick="openMockTestModal()" style="position:relative">
+        <div style="position:absolute;top:8px;right:8px;background:var(--red-l);color:var(--red);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">+12 XP</div>
+        <i class="ti ti-pencil" style="font-size:22px;color:var(--red);margin-bottom:6px"></i>
+        <div style="font-size:13px;font-weight:500;color:var(--tx)">✏️ 모의테스트</div>
+        <div style="font-size:11px;color:var(--tx2)">발음 듣고 받아쓰기</div>
+        <div style="font-size:10px;color:#FFD700;margin-top:2px">⭐⭐⭐</div>
+      </div>
+      <div class="mcard" onclick="openVoiceSetupModal()" style="position:relative;background:linear-gradient(135deg, rgba(231,111,81,.08), rgba(231,111,81,.02));border:0.5px solid rgba(231,111,81,.3)">
+        <div style="position:absolute;top:8px;right:8px;background:rgba(231,111,81,.15);color:#E76F51;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">+15 XP</div>
+        <div style="position:absolute;top:8px;left:8px;background:linear-gradient(135deg, #E76F51, #C13B1A);color:#fff;font-size:9px;font-weight:600;padding:2px 6px;border-radius:8px">🏆 BOSS</div>
+        <i class="ti ti-microphone" style="font-size:22px;color:#E76F51;margin-bottom:6px;margin-top:10px"></i>
+        <div style="font-size:13px;font-weight:500;color:var(--tx)">🎤 음성 받아쓰기</div>
+        <div style="font-size:11px;color:var(--tx2)">발음 듣고 말로 답하기</div>
+        <div style="font-size:10px;color:#FFD700;margin-top:2px">⭐⭐⭐⭐</div>
+      </div>
+    </div>
+
+    <!-- 🔧 도구 -->
+    <div style="padding:14px 16px 4px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <div style="width:3px;height:14px;background:var(--grn);border-radius:2px"></div>
+        <span style="font-size:11px;font-weight:600;color:var(--grn);letter-spacing:.5px">🔧 도구</span>
+      </div>
+    </div>
+    <div class="mgrid">
+      <div class="mcard" onclick="startWordSetLearning('review')" style="position:relative">
+        <div style="position:absolute;top:8px;right:8px;background:var(--grn-l);color:var(--grn);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">+5 XP</div>
+        <i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i>
+        <div style="font-size:13px;font-weight:500;color:var(--tx)">🧠 복습 모드</div>
+        <div style="font-size:11px;color:var(--tx2)">학습한 단어만</div>
+        <div style="font-size:10px;color:var(--grn);margin-top:2px">기억 복원</div>
+      </div>
+      <div class="mcard" onclick="openImportModal()" style="position:relative">
+        <i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i>
+        <div style="font-size:13px;font-weight:500;color:var(--tx)">📥 단어 임포트</div>
+        <div style="font-size:11px;color:var(--tx2)">촬영 / 직접 입력</div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:2px">단어 추가</div>
+      </div>
     </div>
     <div style="height:20px"></div>
   </div>
@@ -3697,6 +3779,9 @@ async function startWordSetLearning(mode) {
   const sessionCount = Number(localStorage.getItem('vs-session-count') || 20);
   FC_WORDSET_ID = wsId;
 
+  // 현재 학습 모드 저장 (XP 보너스 계산용)
+  localStorage.setItem('vs-current-mode', mode || 'fc');
+
   // ① WORDS가 비어있으면 먼저 로드 (단어장 진입 직후 바로 눌렀을 때)
   if(!WORDS.length && wsId && getSheetsUrl()) {
     // 로딩 안내
@@ -4142,6 +4227,18 @@ function updateRpgCard() {
 function awardLearningXP(isCorrect) {
   let xp = 5; // 학습 기본 보상
   if(isCorrect) xp += 10; // 정답 보너스
+
+  // 모드별 추가 XP (학습 모드에 따라 차등)
+  const mode = localStorage.getItem('vs-current-mode') || 'fc';
+  const modeBonus = {
+    'fc':         0,  // 플래시카드 - 기본
+    'fc-reverse': 0,  // 역방향 - 기본
+    'quiz':       3,  // 객관식 - +3
+    'review':     0,  // 복습 - 기본
+    'mock':       7,  // 모의테스트 - +7
+    'voice':      10, // 음성받아쓰기 - +10 (보스)
+  };
+  if(isCorrect && modeBonus[mode]) xp += modeBonus[mode];
 
   // 콤보 보너스
   const combo = Number(localStorage.getItem('vs-combo') || 0);
@@ -4728,7 +4825,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-123516';
+  window.APP_BUILD = '20260525-125456';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -5596,6 +5693,9 @@ async function startVoiceTestActual() {
 }
 
 async function startVoiceDictation() {
+  // 현재 학습 모드 저장 (XP 보너스 계산용)
+  localStorage.setItem('vs-current-mode', 'voice');
+
   // 범위에 따른 단어 로딩
   const wsId   = (VOICE.scope === 'current' && currentWordSet?.id) ? currentWordSet.id : null;
   const params = wsId ? {wordSetId: wsId} : null;
@@ -6582,14 +6682,15 @@ try { renderQuests(); } catch(e) {}
       setText('home-total-delta', deltaText);
 
       setText('home-due-num', due);
+      setText('home-due-num-real', due);
       setText('home-rate',        ratePct + '%');
       setText('home-rate-total',  total);
       setText('profile-mastered', mastered);
       setText('profile-rate',     ratePct + '%');
 
-      // 망각 직전 단어 카드 조건부 표시
-      const dueCard = document.getElementById('home-due-card');
-      if(dueCard) dueCard.style.display = due > 0 ? 'flex' : 'none';
+      // 망각 직전 단어 알림 (누적 성과 카드 안에 표시)
+      const dueAlert = document.getElementById('home-due-alert');
+      if(dueAlert) dueAlert.style.display = due > 0 ? 'block' : 'none';
 
       // 통계 캐시
       localStorage.setItem('vs-stats-cache', JSON.stringify({
@@ -7503,6 +7604,9 @@ function setMockScope(scope) {
 async function startMockTest() {
   if(MOCK.count < 1) { alert('테스트할 단어 수를 입력해주세요'); return; }
   if(MOCK.count > 200) { alert('최대 200개까지 가능해요'); return; }
+
+  // 현재 학습 모드 저장 (XP 보너스 계산용)
+  localStorage.setItem('vs-current-mode', 'mock');
 
   const url = getSheetsUrl();
   if(!url) { alert('Google Sheets를 먼저 연결해주세요'); return; }
