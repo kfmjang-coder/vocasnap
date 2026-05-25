@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-111856">
+<meta name="app-build" content="20260525-123516">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -610,33 +610,126 @@ body{
       </div>
     </div>
     <div style="height:10px"></div>
-    <div class="streak" id="home-streak-banner">
-      <span style="font-size:22px">🔥</span>
-      <div style="flex:1">
-        <div style="font-size:12px;color:var(--acc-d);margin-bottom:2px" id="home-streak-label">연속 학습 중</div>
-        <div style="font-size:15px;font-weight:500;color:var(--acc-d)" id="home-streak-txt">오늘 첫 학습을 시작해요!</div>
+    <!-- ══ 🎮 RPG 메인 카드 ══ -->
+    <div id="rpg-level-card" onclick="showRpgInfo()" style="margin:0 16px 14px;background:linear-gradient(135deg, #7F77DD 0%, #5851BF 50%, #4338A3 100%);border-radius:18px;padding:20px;color:#fff;cursor:pointer;box-shadow:0 8px 24px rgba(127,119,221,.35);position:relative;overflow:hidden">
+      <!-- 반짝이 효과 -->
+      <div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;background:radial-gradient(circle, rgba(255,255,255,.15), transparent 70%);pointer-events:none"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div id="rpg-tier-emoji" style="font-size:42px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))">🥉</div>
+          <div>
+            <div id="rpg-level" style="font-size:26px;font-weight:700;line-height:1.1">Lv.1</div>
+            <div id="rpg-tier-name" style="font-size:13px;opacity:.9;margin-top:2px">Bronze</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div id="rpg-xp-current" style="font-size:22px;font-weight:700">0</div>
+          <div style="font-size:11px;opacity:.8">총 XP</div>
+        </div>
       </div>
-      <div class="badge" id="home-streak-badge" style="display:none">🏆 신기록</div>
+
+      <!-- XP 바 -->
+      <div style="background:rgba(255,255,255,.18);height:10px;border-radius:5px;overflow:hidden;margin-bottom:6px;box-shadow:inset 0 1px 2px rgba(0,0,0,.2)">
+        <div id="rpg-xp-bar" style="background:linear-gradient(90deg, #FFD700, #FFA500);height:100%;width:0%;border-radius:5px;transition:width .5s;box-shadow:0 0 8px rgba(255,215,0,.5)"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.9;margin-bottom:14px">
+        <span id="rpg-xp-label">0 / 100 XP</span>
+        <span id="rpg-xp-next">다음까지 100 XP</span>
+      </div>
+
+      <!-- 미니 스탯 3개 -->
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 4px;text-align:center;backdrop-filter:blur(4px)">
+          <div style="font-size:16px">🔥</div>
+          <div id="rpg-streak" style="font-size:14px;font-weight:600;margin-top:2px">0</div>
+          <div style="font-size:10px;opacity:.8">연속</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 4px;text-align:center;backdrop-filter:blur(4px)">
+          <div style="font-size:16px">⚡</div>
+          <div id="rpg-best-combo" style="font-size:14px;font-weight:600;margin-top:2px">0</div>
+          <div style="font-size:10px;opacity:.8">최고콤보</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 4px;text-align:center;backdrop-filter:blur(4px)">
+          <div style="font-size:16px">⭐</div>
+          <div id="rpg-weekdays" style="font-size:14px;font-weight:600;margin-top:2px">0/7</div>
+          <div style="font-size:10px;opacity:.8">이번주</div>
+        </div>
+      </div>
     </div>
-    <div class="sh"><span class="st">오늘의 학습</span><span class="sl2" onclick="nav('s-stats')" style="cursor:pointer">자세히 →</span></div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;margin-bottom:12px">
-        <div style="flex:1;text-align:center"><div id="home-done" style="font-size:20px;font-weight:500;color:var(--tx)">0</div><div style="font-size:11px;color:var(--tx2);margin-top:2px">완료</div></div>
-        <div style="width:0.5px;background:var(--bd)"></div>
-        <div style="flex:1;text-align:center"><div id="home-goal" style="font-size:20px;font-weight:500;color:var(--acc)">30</div><div style="font-size:11px;color:var(--tx2);margin-top:2px">목표</div></div>
-        <div style="width:0.5px;background:var(--bd)"></div>
-        <div style="flex:1;text-align:center"><div id="home-acc" style="font-size:20px;font-weight:500;color:var(--grn)">--%</div><div style="font-size:11px;color:var(--tx2);margin-top:2px">정답률</div></div>
-        <div style="width:0.5px;background:var(--bd)"></div>
-        <div style="flex:1;text-align:center"><div id="home-time" style="font-size:20px;font-weight:500;color:var(--tx)">0분</div><div style="font-size:11px;color:var(--tx2);margin-top:2px">학습 시간</div></div>
+
+    <!-- ══ 📜 일일 퀘스트 ══ -->
+    <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;padding:16px;border:1px solid var(--bd)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">📜</span>
+          <span style="font-size:14px;font-weight:600;color:var(--tx)">오늘의 퀘스트</span>
+        </div>
+        <div id="quest-progress" style="font-size:11px;color:var(--tx2);background:var(--sf2);padding:3px 10px;border-radius:12px">0/3 완료</div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:6px"><span>진행률</span><span id="home-pct-txt">0%</span></div>
-      <div class="pb-bg" style="margin-bottom:12px"><div class="pb-f" id="home-pct-bar" style="width:0%"></div></div>
-      <button class="cta" id="home-cta" onclick="startLearning()">
+
+      <div id="quest-list">
+        <!-- 동적 생성 -->
+      </div>
+
+      <!-- 완료 시 보너스 안내 -->
+      <div id="quest-bonus-banner" style="display:none;margin-top:10px;background:linear-gradient(135deg, #10b981, #059669);color:#fff;padding:10px 12px;border-radius:10px;text-align:center;font-size:12px;font-weight:500">
+        🎉 모든 퀘스트 완료! +100 XP 보너스 받기
+      </div>
+    </div>
+
+    <!-- ══ ⚡ 오늘의 도전 (학습 시작) ══ -->
+    <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;padding:18px;border:1px solid var(--bd)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:18px">⚡</span>
+        <span style="font-size:14px;font-weight:600;color:var(--tx)">오늘의 도전</span>
+      </div>
+
+      <!-- 진행률 바 -->
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <span style="font-size:13px;color:var(--tx2)">목표 진행률</span>
+        <span style="font-size:13px;font-weight:500;color:var(--tx)"><span id="home-done">0</span> / <span id="home-goal">30</span></span>
+      </div>
+      <div class="pb-bg" style="margin-bottom:14px"><div class="pb-f" id="home-pct-bar" style="width:0%"></div></div>
+
+      <!-- 미니 스탯 2개 -->
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <div style="flex:1;background:var(--sf2);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:18px;font-weight:500;color:var(--grn)" id="home-acc">--%</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:2px">정답률</div>
+        </div>
+        <div style="flex:1;background:var(--sf2);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:18px;font-weight:500;color:var(--tx)" id="home-time">0분</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:2px">학습 시간</div>
+        </div>
+      </div>
+
+      <!-- CTA 버튼 -->
+      <button class="cta" id="home-cta" onclick="startLearning()" style="width:100%">
         <i class="ti ti-player-play" id="home-cta-icon" style="font-size:16px"></i>
-        <span id="home-cta-txt"> 이어서 학습하기</span>
+        <span id="home-cta-txt"> 학습 시작하기</span>
       </button>
+
+      <!-- 숨겨진 텍스트 (호환성 유지) -->
+      <span id="home-pct-txt" style="display:none">0%</span>
     </div>
-    <div class="sh"><span class="st">내 단어장</span><span class="sl2" onclick="nav('s-wslist')">전체 보기 →</span></div>
+
+    <!-- ══ 망각 직전 단어 (있을 때만 표시) ══ -->
+    <div class="rev-card" id="home-due-card" onclick="startLearning()" style="display:none">
+      <i class="ti ti-brain" style="font-size:26px;color:var(--acc)"></i>
+      <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--acc-d);margin-bottom:3px">망각 직전 단어 <span id="home-due-num">--</span>개</div><div style="font-size:12px;color:var(--acc)">지금 복습하면 장기 기억 전환 가능!</div></div>
+      <i class="ti ti-chevron-right" style="font-size:18px;color:var(--acc)"></i>
+    </div>
+
+    <!-- 호환성 유지용 숨김 요소 -->
+    <div id="home-streak-banner" style="display:none">
+      <span id="home-streak-label"></span>
+      <span id="home-streak-txt"></span>
+      <span id="home-streak-badge"></span>
+    </div>
+
+    <!-- ══ 📚 내 단어장 ══ -->
+    <div class="sh"><span class="st">📚 내 단어장</span><span class="sl2" onclick="nav('s-wslist')">전체 보기 →</span></div>
     <div id="home-wslist">
       <!-- 로딩 스켈레톤 (실제 데이터 도착 시 교체됨) -->
       <div class="ws" style="opacity:.5">
@@ -648,71 +741,32 @@ body{
         </div>
       </div>
     </div>
-    <div class="sh" style="margin-top:4px"><span class="st">복습 알림</span></div>
-    <div class="rev-card" onclick="startLearning()">
-      <i class="ti ti-brain" style="font-size:26px;color:var(--acc)"></i>
-      <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--acc-d);margin-bottom:3px">망각 직전 단어 <span id="home-due-num">--</span>개</div><div style="font-size:12px;color:var(--acc)">지금 복습하면 장기 기억 전환 가능!</div></div>
-      <i class="ti ti-chevron-right" style="font-size:18px;color:var(--acc)"></i>
-    </div>
-    <div class="sh">
-      <span class="st">🎮 학습 현황</span>
-      <span class="sl2" onclick="showRpgInfo()">규칙 보기 ⓘ</span>
-    </div>
 
-    <!-- 레벨 카드 (메인) -->
-    <div id="rpg-level-card" onclick="showRpgInfo()" style="margin:0 16px 12px;background:linear-gradient(135deg, #7F77DD, #5851BF);border-radius:14px;padding:16px;color:#fff;cursor:pointer;box-shadow:0 4px 12px rgba(127,119,221,.25)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div id="rpg-tier-emoji" style="font-size:30px;line-height:1">🥉</div>
-          <div>
-            <div id="rpg-level" style="font-size:20px;font-weight:600;line-height:1.1">Lv.1</div>
-            <div id="rpg-tier-name" style="font-size:11px;opacity:.85">Bronze</div>
-          </div>
+    <!-- ══ 🏆 누적 성과 ══ -->
+    <div style="margin:8px 16px 12px;background:var(--sf);border-radius:14px;padding:14px;border:1px solid var(--bd)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:16px">🏆</span>
+        <span style="font-size:13px;font-weight:600;color:var(--tx)">누적 성과</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;text-align:center">
+          <div id="home-total" style="font-size:18px;font-weight:600;color:var(--grn)">--</div>
+          <div style="font-size:11px;color:var(--tx2)">암기 완료</div>
         </div>
-        <div style="text-align:right">
-          <div id="rpg-xp-current" style="font-size:18px;font-weight:600">0</div>
-          <div style="font-size:10px;opacity:.75">총 XP</div>
+        <div style="flex:1;text-align:center">
+          <div id="home-rate" style="font-size:18px;font-weight:600;color:var(--acc)">--%</div>
+          <div style="font-size:11px;color:var(--tx2)">전체 진행률</div>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div id="home-rate-total" style="font-size:18px;font-weight:600;color:var(--tx)">--</div>
+          <div style="font-size:11px;color:var(--tx2)">전체 단어</div>
         </div>
       </div>
-      <div style="background:rgba(255,255,255,.2);height:8px;border-radius:4px;overflow:hidden;margin-bottom:4px">
-        <div id="rpg-xp-bar" style="background:#fff;height:100%;width:0%;border-radius:4px;transition:width .5s"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.85">
-        <span id="rpg-xp-label">0 / 100 XP</span>
-        <span id="rpg-xp-next">다음 레벨까지 100 XP</span>
-      </div>
+      <!-- 호환성 유지용 숨김 요소 -->
+      <span id="home-total-delta" style="display:none">--</span>
+      <span id="home-rate-delta" style="display:none">--</span>
     </div>
 
-    <div class="sg">
-      <!-- 오늘 목표 -->
-      <div class="sc">
-        <div style="font-size:18px;margin-bottom:6px">🎯</div>
-        <div id="home-goal-pct" style="font-size:20px;font-weight:500;color:var(--tx)">--%</div>
-        <div style="font-size:11px;color:var(--tx2)">오늘 목표</div>
-        <div id="home-goal-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
-      </div>
-      <!-- 연속 학습 -->
-      <div class="sc">
-        <div style="font-size:18px;margin-bottom:6px">🔥</div>
-        <div id="home-streak" style="font-size:20px;font-weight:500;color:var(--tx)">--</div>
-        <div style="font-size:11px;color:var(--tx2)">연속 학습</div>
-        <div id="home-streak-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
-      </div>
-      <!-- 이번 주 학습일 -->
-      <div class="sc">
-        <div style="font-size:18px;margin-bottom:6px">⭐</div>
-        <div id="home-weekdays" style="font-size:20px;font-weight:500;color:var(--tx)">--</div>
-        <div style="font-size:11px;color:var(--tx2)">이번 주 학습</div>
-        <div id="home-weekdays-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
-      </div>
-      <!-- 암기 마스터 -->
-      <div class="sc">
-        <div style="font-size:18px;margin-bottom:6px">🏆</div>
-        <div id="home-total" style="font-size:20px;font-weight:500;color:var(--tx)">--</div>
-        <div style="font-size:11px;color:var(--tx2)">암기 완료</div>
-        <div id="home-total-delta" style="font-size:11px;color:var(--tx3);margin-top:4px">--</div>
-      </div>
-    </div>
     <div style="height:20px"></div>
   </div>
   <div class="nav">
@@ -2783,6 +2837,26 @@ const AUTH_SESSION_KEY = 'vs-session'; // 현재 로그인 세션
 
 // ── 디버그 도구 ─────────────────────────────────
 function openDebugInfo() {
+  // 클라이언트 학습 이력 진단
+  let learnedWords = 0, masteredLocal = 0, reviewLocal = 0, learningLocal = 0;
+  try {
+    for(let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if(key && key.startsWith('vs-word-')) {
+        try {
+          const h = JSON.parse(localStorage.getItem(key) || 'null');
+          if(h && (h.knowCount > 0 || h.dontCount > 0)) {
+            learnedWords++;
+            const st = computeStatusFromCounts(h.knowCount || 0, h.dontCount || 0);
+            if(st === 'mastered') masteredLocal++;
+            else if(st === 'review') reviewLocal++;
+            else if(st === 'learning') learningLocal++;
+          }
+        } catch(e) {}
+      }
+    }
+  } catch(e) {}
+
   const info = {
     '빌드 버전': window.APP_BUILD || '(없음)',
     '현재 URL': location.href,
@@ -2792,6 +2866,8 @@ function openDebugInfo() {
     'getUserIdParam()': (typeof getUserIdParam === 'function') ? getUserIdParam() : '(함수 없음)',
     'getSheetsUrl()': (typeof getSheetsUrl === 'function') ? getSheetsUrl() : '(함수 없음)',
     'Service Worker': navigator.serviceWorker?.controller?.scriptURL || '(없음)',
+    '🎯 학습 이력 (로컬)': `${learnedWords}개 단어 (mastered: ${masteredLocal} / review: ${reviewLocal} / learning: ${learningLocal})`,
+    '💎 XP': `${getXP ? getXP() : '?'} (Lv.${levelFromXP ? levelFromXP(getXP()) : '?'})`,
   };
 
   // 캐시 정보 추가
@@ -4036,8 +4112,8 @@ function updateRpgCard() {
   const xp     = getXP();
   const level  = levelFromXP(xp);
   const tier   = getTier(level);
-  const curLvXP  = xpForLevel(level);     // 현재 레벨 시작 XP
-  const nextLvXP = xpForLevel(level + 1); // 다음 레벨 시작 XP
+  const curLvXP  = xpForLevel(level);
+  const nextLvXP = xpForLevel(level + 1);
   const xpInLevel = xp - curLvXP;
   const xpNeeded  = nextLvXP - curLvXP;
   const xpToNext  = nextLvXP - xp;
@@ -4052,6 +4128,14 @@ function updateRpgCard() {
 
   const bar = document.getElementById('rpg-xp-bar');
   if(bar) bar.style.width = pct + '%';
+
+  // 미니 스탯 (연속 학습, 최고 콤보, 이번 주)
+  const streak    = Number(localStorage.getItem('vs-streak') || 0);
+  const bestCombo = Number(localStorage.getItem('vs-best-combo') || 0);
+  const weekDays  = typeof getWeekStudyDays === 'function' ? getWeekStudyDays() : 0;
+  setText('rpg-streak',     streak);
+  setText('rpg-best-combo', bestCombo);
+  setText('rpg-weekdays',   weekDays + '/7');
 }
 
 // 학습 시 XP 적립 (trackLearning에서 호출)
@@ -4149,6 +4233,168 @@ function showRpgInfo() {
 }
 // ─────────────────────────────────────────────────────
 
+// ── 일일 퀘스트 시스템 ──────────────────────────────
+// 매일 자정에 자동 리셋, 3개 미션
+const QUEST_TEMPLATES = [
+  // 학습량 미션 (항상 포함)
+  { id: 'learn', icon: '📖', title: '단어 학습하기', target: 10, xp: 20, getValue: () => Number(localStorage.getItem('vs-today-done') || 0), goal: 10 },
+  // 정답률 미션 (항상 포함)
+  { id: 'accuracy', icon: '🎯', title: '정답률 달성', target: 80, xp: 30, getValue: () => Number(localStorage.getItem('vs-today-acc') || 0), goal: 80, unit: '%' },
+];
+
+const QUEST_RANDOM_POOL = [
+  { id: 'combo', icon: '⚡', title: '콤보 달성', target: 10, xp: 50, getValue: () => Number(localStorage.getItem('vs-best-combo') || 0), goal: 10 },
+  { id: 'time',  icon: '⏰', title: '학습 시간', target: 15, xp: 40, getValue: () => Number(localStorage.getItem('vs-today-time') || 0), goal: 15, unit: '분' },
+  { id: 'master', icon: '🏆', title: '단어 마스터', target: 3, xp: 50, getValue: () => {
+    // 오늘 mastered 된 단어 수 (간단 추정: localStorage 기반)
+    let count = 0;
+    for(let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if(key && key.startsWith('vs-word-')) {
+        try {
+          const h = JSON.parse(localStorage.getItem(key) || 'null');
+          if(h && h.knowCount >= 2) count++;
+        } catch(e) {}
+      }
+    }
+    return count;
+  }, goal: 3 },
+  { id: 'review', icon: '🔄', title: '복습 학습', target: 5, xp: 30, getValue: () => Number(localStorage.getItem('vs-today-done') || 0), goal: 5 },
+];
+
+function getTodayQuests() {
+  const today = new Date().toISOString().split('T')[0];
+  const key   = 'vs-quest-' + today;
+  let quests  = null;
+  try {
+    const saved = localStorage.getItem(key);
+    if(saved) quests = JSON.parse(saved);
+  } catch(e) {}
+
+  if(!quests) {
+    // 새 퀘스트 생성: 학습량 + 정답률 + 랜덤 1개
+    const fixed  = QUEST_TEMPLATES.map(q => ({ id: q.id, icon: q.icon, title: q.title, target: q.target, xp: q.xp, unit: q.unit || '' }));
+    const random = QUEST_RANDOM_POOL[Math.floor(Math.random() * QUEST_RANDOM_POOL.length)];
+    quests = [...fixed, { id: random.id, icon: random.icon, title: random.title, target: random.target, xp: random.xp, unit: random.unit || '' }];
+    localStorage.setItem(key, JSON.stringify(quests));
+  }
+  return quests;
+}
+
+function getQuestProgress(quest) {
+  // 퀘스트 ID로 현재 값 가져오기
+  const templates = [...QUEST_TEMPLATES, ...QUEST_RANDOM_POOL];
+  const tmpl = templates.find(t => t.id === quest.id);
+  if(!tmpl) return { current: 0, completed: false };
+  const current   = tmpl.getValue();
+  const completed = current >= quest.target;
+  return { current, completed };
+}
+
+function renderQuests() {
+  const listEl = document.getElementById('quest-list');
+  if(!listEl) return;
+
+  const quests   = getTodayQuests();
+  let completedCount = 0;
+  const today    = new Date().toISOString().split('T')[0];
+  const claimedKey = 'vs-quest-claimed-' + today;
+  const claimedList = JSON.parse(localStorage.getItem(claimedKey) || '[]');
+
+  listEl.innerHTML = quests.map(q => {
+    const prog      = getQuestProgress(q);
+    const pct       = Math.min(100, Math.round((prog.current / q.target) * 100));
+    if(prog.completed) completedCount++;
+    const claimed   = claimedList.includes(q.id);
+    const canClaim  = prog.completed && !claimed;
+
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;${quests.indexOf(q) < quests.length - 1 ? 'border-bottom:0.5px solid var(--bd);' : ''}">
+        <div style="font-size:22px;width:36px;text-align:center;${prog.completed ? '' : 'opacity:.6'}">${q.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+            <span style="font-size:13px;font-weight:500;color:${prog.completed ? 'var(--grn)' : 'var(--tx)'}">${q.title}</span>
+            <span style="font-size:11px;color:var(--tx2)">+${q.xp} XP</span>
+          </div>
+          <div class="pb-bg" style="height:6px;margin-bottom:3px"><div class="pb-f" style="width:${pct}%;background:${prog.completed ? 'var(--grn)' : 'var(--acc)'}"></div></div>
+          <div style="font-size:11px;color:var(--tx2)">${prog.current}${q.unit} / ${q.target}${q.unit} ${prog.completed ? '✓' : ''}</div>
+        </div>
+        ${canClaim ? `<button onclick="claimQuestReward('${q.id}', ${q.xp})" style="background:var(--grn);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer">받기</button>` : ''}
+        ${claimed ? '<span style="font-size:11px;color:var(--grn);padding:6px 10px">✓ 완료</span>' : ''}
+      </div>
+    `;
+  }).join('');
+
+  // 진행률 헤더 업데이트
+  const progEl = document.getElementById('quest-progress');
+  if(progEl) {
+    progEl.textContent = `${completedCount}/${quests.length} 완료`;
+    progEl.style.background = completedCount === quests.length ? 'var(--grn-l)' : 'var(--sf2)';
+    progEl.style.color      = completedCount === quests.length ? 'var(--grn)' : 'var(--tx2)';
+  }
+
+  // 보너스 배너
+  const bonusKey   = 'vs-quest-bonus-' + today;
+  const bonusEl    = document.getElementById('quest-bonus-banner');
+  const allDone    = completedCount === quests.length;
+  const bonusTaken = localStorage.getItem(bonusKey) === '1';
+  if(bonusEl) {
+    if(allDone && !bonusTaken) {
+      bonusEl.style.display = 'block';
+      bonusEl.style.cursor  = 'pointer';
+      bonusEl.onclick = claimQuestBonus;
+    } else if(allDone && bonusTaken) {
+      bonusEl.style.display = 'block';
+      bonusEl.innerHTML     = '✨ 오늘의 모든 퀘스트 완료!';
+      bonusEl.style.background = 'var(--grn-l)';
+      bonusEl.style.color = 'var(--grn)';
+      bonusEl.style.cursor = 'default';
+      bonusEl.onclick = null;
+    } else {
+      bonusEl.style.display = 'none';
+    }
+  }
+}
+
+function claimQuestReward(questId, xp) {
+  const today = new Date().toISOString().split('T')[0];
+  const key   = 'vs-quest-claimed-' + today;
+  const list  = JSON.parse(localStorage.getItem(key) || '[]');
+  if(list.includes(questId)) return;
+  list.push(questId);
+  localStorage.setItem(key, JSON.stringify(list));
+  // XP 추가
+  addXP(xp, '퀘스트 완료');
+  // 토스트
+  showQuestToast(`+${xp} XP 획득!`, '#10b981');
+  // 다시 렌더
+  renderQuests();
+}
+
+function claimQuestBonus() {
+  const today = new Date().toISOString().split('T')[0];
+  const key   = 'vs-quest-bonus-' + today;
+  if(localStorage.getItem(key) === '1') return;
+  localStorage.setItem(key, '1');
+  addXP(100, '퀘스트 보너스');
+  showQuestToast('🎉 +100 XP 보너스!', '#10b981');
+  renderQuests();
+}
+
+function showQuestToast(text, color) {
+  const toast = document.createElement('div');
+  toast.style.cssText = `position:fixed;top:80px;left:50%;transform:translateX(-50%);background:${color};color:#fff;padding:12px 22px;border-radius:14px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);animation:levelUpPop .4s ease-out`;
+  toast.textContent = text;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'opacity .3s, transform .3s';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(-15px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 1800);
+}
+// ─────────────────────────────────────────────────────
+
 function trackLearning(isCorrect) {
   // 오늘 학습 카운트
   const done = Number(localStorage.getItem('vs-today-done')||0) + 1;
@@ -4182,6 +4428,9 @@ function trackLearning(isCorrect) {
 
   // 🎮 RPG XP 적립
   try { awardLearningXP(isCorrect); } catch(e) { console.warn('XP 적립 실패:', e); }
+
+  // 퀘스트 진행률 실시간 업데이트 (홈에 돌아왔을 때 즉시 반영)
+  try { renderQuests(); } catch(e) {}
 }
 
 // 홈 화면 실시간 업데이트 (학습 중 즉시 반영)
@@ -4479,7 +4728,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-111856';
+  window.APP_BUILD = '20260525-123516';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6259,6 +6508,10 @@ async function loadHomeData() {
 
     // 🎮 RPG 카드 업데이트
     try { updateRpgCard(); } catch(e) {}
+try { renderQuests(); } catch(e) {}
+
+    // 📜 일일 퀘스트 렌더링
+    try { renderQuests(); } catch(e) { console.warn('퀘스트 렌더 실패:', e); }
 
     // ⭐ 이번 주 학습일 카드
     const weekDays = getWeekStudyDays();
@@ -6291,21 +6544,61 @@ async function loadHomeData() {
     ]);
 
     if(stats && !stats.error) {
-      const total    = stats.total    || 0;
-      const mastered = stats.mastered || 0;
-      const due      = stats.dueToday || 0;
+      const total       = stats.total    || 0;
+      let masteredServer = stats.mastered || 0;
+      const due         = stats.dueToday || 0;
+
+      // 🔄 클라이언트 이력 기반 재계산 (서버 status 누락 보정)
+      // localStorage에 저장된 학습 이력을 활용해서 mastered 단어 직접 카운트
+      let masteredClient = 0;
+      try {
+        // Words 전체 목록을 캐시에서 가져오거나 stats에서 word IDs 추정
+        // 모든 vs-word-* 키를 스캔해서 mastered 상태 단어 카운트
+        for(let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if(key && key.startsWith('vs-word-')) {
+            try {
+              const h = JSON.parse(localStorage.getItem(key) || 'null');
+              if(h) {
+                const status = computeStatusFromCounts(h.knowCount || 0, h.dontCount || 0);
+                if(status === 'mastered') masteredClient++;
+              }
+            } catch(e) {}
+          }
+        }
+      } catch(e) { console.warn('client mastered count failed:', e); }
+
+      // 서버 값과 클라이언트 값 중 큰 값 사용 (둘 다 반영)
+      const mastered = Math.max(masteredServer, masteredClient);
       const ratePct  = total > 0 ? Math.round((mastered/total)*100) : 0;
 
       // 🏆 암기 완료 카드
       setText('home-total',       mastered);
-      setText('home-total-delta', total > 0 ? `전체 ${total}개 중 ${ratePct}%` : '단어를 추가하세요');
+      let deltaText = total > 0 ? `전체 ${total}개 중 ${ratePct}%` : '단어를 추가하세요';
+      // 서버보다 클라이언트 카운트가 크면 동기화 안내
+      if(masteredClient > masteredServer && masteredClient > 0) {
+        deltaText += ' (로컬)';
+      }
+      setText('home-total-delta', deltaText);
 
       setText('home-due-num', due);
+      setText('home-rate',        ratePct + '%');
+      setText('home-rate-total',  total);
       setText('profile-mastered', mastered);
       setText('profile-rate',     ratePct + '%');
 
+      // 망각 직전 단어 카드 조건부 표시
+      const dueCard = document.getElementById('home-due-card');
+      if(dueCard) dueCard.style.display = due > 0 ? 'flex' : 'none';
+
       // 통계 캐시
-      localStorage.setItem('vs-stats-cache', JSON.stringify({data:stats, ts:Date.now()}));
+      localStorage.setItem('vs-stats-cache', JSON.stringify({
+        data: { ...stats, mastered }, // 합친 값 캐시
+        ts: Date.now()
+      }));
+
+      // 디버그 로그
+      console.log('[Mastered] server:', masteredServer, '/ client:', masteredClient, '/ final:', mastered);
     }
 
     // 단어장 목록
