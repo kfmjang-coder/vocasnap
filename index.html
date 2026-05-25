@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-070105">
+<meta name="app-build" content="20260525-071446">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -663,6 +663,19 @@ body{
     <input id="extract-ws-name" placeholder="새 단어장 이름 입력"
       style="display:none;width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none;margin-bottom:8px;box-sizing:border-box">
     <button class="savbtn" id="savbtn" onclick="saveWordsToSheets()">단어 저장하기</button>
+  </div>
+
+  <!-- ══ 저장 진행 오버레이 ══ -->
+  <div id="save-loading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.7);z-index:60;flex-direction:column;align-items:center;justify-content:center;gap:18px;backdrop-filter:blur(4px)">
+    <div style="width:80px;height:80px;border-radius:20px;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 8px 24px rgba(127,119,221,.4)">💾</div>
+    <div style="text-align:center;padding:0 24px">
+      <div style="font-size:17px;font-weight:500;color:#fff;margin-bottom:6px">단어를 저장하는 중...</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.7)" id="save-status">Google Sheets에 저장 중</div>
+    </div>
+    <div style="width:240px;height:6px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden">
+      <div id="save-prog" style="height:100%;background:var(--acc);border-radius:3px;width:0%;transition:width .3s"></div>
+    </div>
+    <div id="save-count" style="font-size:14px;color:#fff;font-weight:500;background:rgba(255,255,255,.15);padding:6px 16px;border-radius:20px">0 / 0개 완료</div>
   </div>
 </div>
 
@@ -4048,7 +4061,7 @@ function qRestart(){qWrong=[];wrongWords=[];nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-070105';
+  window.APP_BUILD = '20260525-071446';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -4643,6 +4656,37 @@ async function sheetsPost(body){
     throw new Error('응답 파싱 실패: '+text.slice(0,50));
   }
 }
+// ── 저장 진행 오버레이 헬퍼 ──────────────────────────
+function showSaveOverlay(statusText, current, total) {
+  const overlay = document.getElementById('save-loading');
+  if(!overlay) return;
+  overlay.style.display = 'flex';
+  document.getElementById('save-status').textContent = statusText || 'Google Sheets에 저장 중';
+  document.getElementById('save-count').textContent  = `${current} / ${total}개 완료`;
+  const pct = total > 0 ? Math.round((current/total) * 100) : 0;
+  document.getElementById('save-prog').style.width = pct + '%';
+}
+
+function updateSaveOverlay(current, total, isComplete) {
+  const pct  = total > 0 ? Math.round((current/total) * 100) : 0;
+  const prog = document.getElementById('save-prog');
+  if(prog) prog.style.width = pct + '%';
+
+  const count = document.getElementById('save-count');
+  if(count) count.textContent = `${current} / ${total}개 완료`;
+
+  if(isComplete) {
+    const status = document.getElementById('save-status');
+    if(status) status.textContent = '✅ 저장 완료!';
+  }
+}
+
+function hideSaveOverlay() {
+  const overlay = document.getElementById('save-loading');
+  if(overlay) overlay.style.display = 'none';
+}
+// ─────────────────────────────────────────────────────
+
 // saveWordsToSheets - 중복 저장 방지 + 단어장 셀렉트 사용
 async function saveWordsToSheets(){
   // 중복 클릭 방지
@@ -4673,6 +4717,8 @@ async function saveWordsToSheets(){
     }
     btn.textContent = '단어장 생성 중...';
     btn.disabled = true;
+    // 오버레이 표시 (단어장 생성 단계)
+    showSaveOverlay('새 단어장 만드는 중...', 0, selected.length);
     try {
       const apiUrl = sheetsUrl + '?action=createWordSet' +
                      '&name=' + encodeURIComponent(wsName) +
@@ -4683,6 +4729,7 @@ async function saveWordsToSheets(){
       if(cData.error) throw new Error(cData.error);
       wsId = cData.id;
     } catch(e) {
+      hideSaveOverlay();
       btn.textContent = origText;
       btn.disabled = false;
       alert('단어장 생성 실패: ' + e.message);
@@ -4693,6 +4740,8 @@ async function saveWordsToSheets(){
   _isSaving = true;
   btn.textContent = '저장 중...'; btn.disabled = true;
   btn.style.opacity = '0.7';
+  // 오버레이 표시 (단어 저장 단계)
+  showSaveOverlay('Google Sheets에 저장 중', 0, selected.length);
 
   try {
     // URL 길이 제한 회피를 위해 배치 단위로 저장 (최대 30개씩)
@@ -4723,12 +4772,15 @@ async function saveWordsToSheets(){
       if(data.error) throw new Error(data.error);
       totalSaved += data.saved;
 
-      // 진행률 표시
+      // 진행률 표시 (오버레이 + 버튼)
+      updateSaveOverlay(totalSaved, selected.length);
       if(selected.length > batchSize) {
         btn.textContent = `저장 중... ${totalSaved}/${selected.length}`;
       }
     }
 
+    // 완료 상태 표시
+    updateSaveOverlay(totalSaved, selected.length, true);
     btn.textContent = `✅ ${totalSaved}개 저장 완료!`;
     btn.style.background = 'var(--grn)';
     btn.style.opacity = '1';
@@ -4742,6 +4794,7 @@ async function saveWordsToSheets(){
 
     setTimeout(() => {
       _isSaving = false;
+      hideSaveOverlay();
       // EW가 비어있으면 단어장 화면으로 이동
       if(EW.length === 0) {
         nav('s-wslist');
@@ -4753,6 +4806,7 @@ async function saveWordsToSheets(){
       }
     }, 1500);
   } catch(e) {
+    hideSaveOverlay();
     btn.textContent = '❌ 저장 실패';
     btn.style.background = 'var(--red)';
     btn.style.opacity = '1';
