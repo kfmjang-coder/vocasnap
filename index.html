@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-211345">
+<meta name="app-build" content="20260525-211923">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -5292,7 +5292,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-211345';
+  window.APP_BUILD = '20260525-211923';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -7215,6 +7215,48 @@ function renderWordSetList(wordSets, stats) {
   // 단어장 있으면 content 표시, empty 숨김
   if(emptyEl) emptyEl.style.display = 'none';
   if(contentEl) contentEl.style.display = 'block';
+
+  // 1차 렌더 (서버 값 사용)
+  renderWordSetListInner(wordSets, stats);
+
+  // 2차 렌더 (실제 단어 수 비동기 계산, 서버 값이 0인 경우만)
+  setTimeout(async () => {
+    let needRefresh = false;
+    const updated = [...wordSets];
+    for(let i = 0; i < updated.length; i++) {
+      const ws = updated[i];
+      const total = Number(ws.totalWords) || 0;
+      if(total === 0) {
+        // 실제로 단어가 있는지 확인
+        try {
+          const res = await sheetsGet('getWords', {wordSetId: ws.id});
+          if(res.words?.length) {
+            updated[i] = {
+              ...ws,
+              totalWords:    res.words.length,
+              masteredWords: res.words.filter(w => {
+                if(w.status === 'mastered') return true;
+                const k = Number(w.knowCount) || 0;
+                const d = Number(w.dontCount) || 0;
+                return k >= 2 && k > d;
+              }).length,
+            };
+            needRefresh = true;
+          }
+        } catch(e) { console.warn('단어 카운트 실패:', ws.id, e); }
+      }
+    }
+    if(needRefresh) {
+      console.log('[renderWordSetList] 실시간 카운트 적용 → 재렌더');
+      renderWordSetListInner(updated, stats);
+    }
+  }, 100);
+}
+
+// 실제 카드 렌더링 (1/2차 공용)
+function renderWordSetListInner(wordSets, stats) {
+  const itemsEl = document.getElementById('wslist-items');
+  if(!itemsEl) return;
 
   // 평균 정복률 계산
   let totalPct = 0, validCount = 0;
