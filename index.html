@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-111152">
+<meta name="app-build" content="20260525-111856">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -654,7 +654,35 @@ body{
       <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--acc-d);margin-bottom:3px">망각 직전 단어 <span id="home-due-num">--</span>개</div><div style="font-size:12px;color:var(--acc)">지금 복습하면 장기 기억 전환 가능!</div></div>
       <i class="ti ti-chevron-right" style="font-size:18px;color:var(--acc)"></i>
     </div>
-    <div class="sh"><span class="st">🎮 학습 현황</span></div>
+    <div class="sh">
+      <span class="st">🎮 학습 현황</span>
+      <span class="sl2" onclick="showRpgInfo()">규칙 보기 ⓘ</span>
+    </div>
+
+    <!-- 레벨 카드 (메인) -->
+    <div id="rpg-level-card" onclick="showRpgInfo()" style="margin:0 16px 12px;background:linear-gradient(135deg, #7F77DD, #5851BF);border-radius:14px;padding:16px;color:#fff;cursor:pointer;box-shadow:0 4px 12px rgba(127,119,221,.25)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div id="rpg-tier-emoji" style="font-size:30px;line-height:1">🥉</div>
+          <div>
+            <div id="rpg-level" style="font-size:20px;font-weight:600;line-height:1.1">Lv.1</div>
+            <div id="rpg-tier-name" style="font-size:11px;opacity:.85">Bronze</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div id="rpg-xp-current" style="font-size:18px;font-weight:600">0</div>
+          <div style="font-size:10px;opacity:.75">총 XP</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.2);height:8px;border-radius:4px;overflow:hidden;margin-bottom:4px">
+        <div id="rpg-xp-bar" style="background:#fff;height:100%;width:0%;border-radius:4px;transition:width .5s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.85">
+        <span id="rpg-xp-label">0 / 100 XP</span>
+        <span id="rpg-xp-next">다음 레벨까지 100 XP</span>
+      </div>
+    </div>
+
     <div class="sg">
       <!-- 오늘 목표 -->
       <div class="sc">
@@ -3927,6 +3955,200 @@ function showFcResult(){
   nav('s-qresult');
 }
 
+
+// ── RPG 시스템 (레벨/XP/등급) ────────────────────────
+// XP 공식: Lv.N → Lv.N+1 까지 필요한 XP = 50 * N * (N+1) - 50 * (N-1) * N = 100N
+// 누적 XP for Lv.N = 50 * (N-1) * N (Lv.1=0, Lv.2=100, Lv.3=300, Lv.4=600, Lv.5=1000...)
+function xpForLevel(level) {
+  return 50 * (level - 1) * level;
+}
+
+function levelFromXP(xp) {
+  // 누적 XP에서 현재 레벨 계산
+  // 50 * (L-1) * L <= xp < 50 * L * (L+1)
+  // L^2 - L - xp/50 <= 0
+  // L = (1 + sqrt(1 + xp/12.5)) / 2
+  if(xp <= 0) return 1;
+  const level = Math.floor((1 + Math.sqrt(1 + xp/12.5)) / 2);
+  return Math.max(1, level);
+}
+
+function getTier(level) {
+  if(level >= 81) return { name: 'Diamond',  emoji: '💠', color: '#B9F2FF' };
+  if(level >= 51) return { name: 'Platinum', emoji: '💎', color: '#00BFFF' };
+  if(level >= 26) return { name: 'Gold',     emoji: '🥇', color: '#FFD700' };
+  if(level >= 11) return { name: 'Silver',   emoji: '🥈', color: '#C0C0C0' };
+  return { name: 'Bronze', emoji: '🥉', color: '#CD7F32' };
+}
+
+function getXP() {
+  return Number(localStorage.getItem('vs-xp') || 0);
+}
+
+function addXP(amount, reason) {
+  const oldXP    = getXP();
+  const oldLevel = levelFromXP(oldXP);
+  const newXP    = oldXP + amount;
+  const newLevel = levelFromXP(newXP);
+
+  localStorage.setItem('vs-xp', String(newXP));
+
+  // 레벨업 체크
+  if(newLevel > oldLevel) {
+    showLevelUpToast(newLevel, getTier(newLevel));
+  }
+
+  // 홈 화면 업데이트
+  updateRpgCard();
+  console.log(`+${amount} XP (${reason || '학습'})`);
+}
+
+function showLevelUpToast(newLevel, tier) {
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position:fixed;top:80px;left:50%;transform:translateX(-50%);
+    background:linear-gradient(135deg, ${tier.color}, #7F77DD);
+    color:#fff;padding:14px 24px;border-radius:18px;
+    font-size:15px;font-weight:600;z-index:9999;
+    box-shadow:0 6px 20px rgba(0,0,0,.3);
+    display:flex;align-items:center;gap:10px;
+    animation:levelUpPop .5s ease-out;
+  `;
+  toast.innerHTML = `<span style="font-size:24px">${tier.emoji}</span><div><div style="font-size:11px;opacity:.9">레벨업!</div><div>Lv.${newLevel} ${tier.name}</div></div>`;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'opacity .3s, transform .3s';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(-20px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 2200);
+}
+
+// 레벨업 애니메이션 CSS
+if(!document.getElementById('rpg-anim-style')) {
+  const style = document.createElement('style');
+  style.id = 'rpg-anim-style';
+  style.textContent = '@keyframes levelUpPop { 0% { transform: translateX(-50%) scale(0.7); opacity: 0; } 50% { transform: translateX(-50%) scale(1.1); } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }';
+  document.head.appendChild(style);
+}
+
+function updateRpgCard() {
+  const xp     = getXP();
+  const level  = levelFromXP(xp);
+  const tier   = getTier(level);
+  const curLvXP  = xpForLevel(level);     // 현재 레벨 시작 XP
+  const nextLvXP = xpForLevel(level + 1); // 다음 레벨 시작 XP
+  const xpInLevel = xp - curLvXP;
+  const xpNeeded  = nextLvXP - curLvXP;
+  const xpToNext  = nextLvXP - xp;
+  const pct       = Math.round((xpInLevel / xpNeeded) * 100);
+
+  setText('rpg-level',      'Lv.' + level);
+  setText('rpg-tier-name',  tier.name);
+  setText('rpg-tier-emoji', tier.emoji);
+  setText('rpg-xp-current', xp.toLocaleString());
+  setText('rpg-xp-label',   `${xpInLevel} / ${xpNeeded} XP`);
+  setText('rpg-xp-next',    `다음까지 ${xpToNext} XP`);
+
+  const bar = document.getElementById('rpg-xp-bar');
+  if(bar) bar.style.width = pct + '%';
+}
+
+// 학습 시 XP 적립 (trackLearning에서 호출)
+function awardLearningXP(isCorrect) {
+  let xp = 5; // 학습 기본 보상
+  if(isCorrect) xp += 10; // 정답 보너스
+
+  // 콤보 보너스
+  const combo = Number(localStorage.getItem('vs-combo') || 0);
+  if(isCorrect) {
+    const newCombo = combo + 1;
+    localStorage.setItem('vs-combo', String(newCombo));
+    // 최고 콤보 갱신
+    const best = Number(localStorage.getItem('vs-best-combo') || 0);
+    if(newCombo > best) localStorage.setItem('vs-best-combo', String(newCombo));
+    // 5콤보 이상 보너스
+    if(newCombo >= 5) xp += 5;
+    if(newCombo >= 10) xp += 5;
+    if(newCombo >= 20) xp += 10;
+  } else {
+    localStorage.setItem('vs-combo', '0');
+  }
+
+  // 일일 목표 달성 보너스 (한 번만)
+  const done = Number(localStorage.getItem('vs-today-done') || 0);
+  const goal = Number(localStorage.getItem('vs-daily-goal') || 30);
+  const todayKey = 'vs-goal-bonus-' + new Date().toISOString().split('T')[0];
+  if(done >= goal && !localStorage.getItem(todayKey)) {
+    xp += 50;
+    localStorage.setItem(todayKey, '1');
+    setTimeout(() => {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;top:130px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:12px 20px;border-radius:14px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 4px 14px rgba(16,185,129,.4)';
+      toast.textContent = '🎉 일일 목표 달성! +50 XP 보너스';
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>toast.remove(), 300); }, 2000);
+    }, 600);
+  }
+
+  addXP(xp, isCorrect ? '정답' : '학습');
+}
+
+// 정보 모달
+function showRpgInfo() {
+  const xp    = getXP();
+  const level = levelFromXP(xp);
+  const tier  = getTier(level);
+  const bestCombo = Number(localStorage.getItem('vs-best-combo') || 0);
+  const curCombo  = Number(localStorage.getItem('vs-combo') || 0);
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div style="background:var(--sf);border-radius:18px;max-width:380px;width:100%;max-height:80vh;overflow-y:auto;padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:18px;font-weight:500;color:var(--tx)">🎮 RPG 시스템 안내</div>
+        <div onclick="this.closest('div[style*=fixed]').remove()" style="cursor:pointer;width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center"><i class="ti ti-x" style="font-size:14px"></i></div>
+      </div>
+
+      <div style="background:linear-gradient(135deg, ${tier.color}, #7F77DD);border-radius:12px;padding:16px;color:#fff;margin-bottom:16px;text-align:center">
+        <div style="font-size:36px">${tier.emoji}</div>
+        <div style="font-size:18px;font-weight:600;margin-top:4px">Lv.${level} ${tier.name}</div>
+        <div style="font-size:13px;opacity:.85">총 ${xp.toLocaleString()} XP</div>
+      </div>
+
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px">💎 XP 획득 방법</div>
+      <div style="background:var(--sf2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.8;color:var(--tx2)">
+        <div>📖 단어 학습 1회: <b style="color:var(--tx)">+5 XP</b></div>
+        <div>✅ 정답 (알아요): <b style="color:var(--tx)">+10 XP</b></div>
+        <div>🔥 5콤보 달성: <b style="color:var(--tx)">+5 XP 보너스</b></div>
+        <div>⚡ 10콤보 달성: <b style="color:var(--tx)">+10 XP 보너스</b></div>
+        <div>🚀 20콤보 달성: <b style="color:var(--tx)">+20 XP 보너스</b></div>
+        <div>🎯 일일 목표 달성: <b style="color:var(--tx)">+50 XP 보너스</b></div>
+      </div>
+
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px">🏆 등급 시스템</div>
+      <div style="background:var(--sf2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.8;color:var(--tx2)">
+        <div>🥉 <b style="color:#CD7F32">Bronze</b>: Lv.1 ~ Lv.10</div>
+        <div>🥈 <b style="color:#999">Silver</b>: Lv.11 ~ Lv.25</div>
+        <div>🥇 <b style="color:#FFD700">Gold</b>: Lv.26 ~ Lv.50</div>
+        <div>💎 <b style="color:#00BFFF">Platinum</b>: Lv.51 ~ Lv.80</div>
+        <div>💠 <b style="color:#7DD3FC">Diamond</b>: Lv.81+</div>
+      </div>
+
+      <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px">🔥 콤보 기록</div>
+      <div style="background:var(--sf2);border-radius:10px;padding:12px;font-size:12px;line-height:1.8;color:var(--tx2)">
+        <div>현재 콤보: <b style="color:var(--acc)">${curCombo}</b></div>
+        <div>최고 콤보: <b style="color:var(--amb)">${bestCombo}</b></div>
+        <div style="font-size:11px;margin-top:6px;color:var(--tx3)">정답을 연속으로 맞히면 콤보가 올라가요. 틀리면 0으로 리셋!</div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+// ─────────────────────────────────────────────────────
+
 function trackLearning(isCorrect) {
   // 오늘 학습 카운트
   const done = Number(localStorage.getItem('vs-today-done')||0) + 1;
@@ -3957,6 +4179,9 @@ function trackLearning(isCorrect) {
 
   // 스트릭 업데이트
   updateStreak();
+
+  // 🎮 RPG XP 적립
+  try { awardLearningXP(isCorrect); } catch(e) { console.warn('XP 적립 실패:', e); }
 }
 
 // 홈 화면 실시간 업데이트 (학습 중 즉시 반영)
@@ -4254,7 +4479,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-111152';
+  window.APP_BUILD = '20260525-111856';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6032,6 +6257,9 @@ async function loadHomeData() {
       setText('home-streak-delta', '오늘 시작!');
     }
 
+    // 🎮 RPG 카드 업데이트
+    try { updateRpgCard(); } catch(e) {}
+
     // ⭐ 이번 주 학습일 카드
     const weekDays = getWeekStudyDays();
     setText('home-weekdays',       weekDays + '/7일');
@@ -6758,6 +6986,7 @@ async function toggleNotif() {
     // OFF로 전환
     localStorage.setItem('vs-notif-enabled', '0');
     initNotifToggle();
+try { updateRpgCard(); } catch(e) {}
     return;
   }
   // ON 시도 - 브라우저 알림 권한 요청
