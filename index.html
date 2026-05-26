@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260526-150915">
+<meta name="app-build" content="20260526-151816">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1926,6 +1926,16 @@ body{
         </div>
         <span style="color:var(--tx3)">›</span>
       </div>
+      <div onclick="manualSyncGameData()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">🎮</span>
+          <div>
+            <div style="font-size:14px;color:var(--tx)">게임 데이터 동기화</div>
+            <div style="font-size:12px;color:var(--tx2)">XP, 콤보, 연속학습, 업적 동기화</div>
+          </div>
+        </div>
+        <span style="color:var(--tx3)">›</span>
+      </div>
       <div onclick="openDebugInfo()" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:0.5px solid var(--bd)">
         <div style="display:flex;align-items:center;gap:10px">
           <span style="font-size:18px">🔧</span>
@@ -3533,7 +3543,164 @@ function loginUser(user, remember) {
     loginAt:   Date.now(),
     expiresAt: expiresAt,
   }));
+
+  // 🎮 로그인 직후 서버에서 게임 데이터 자동 복원 (백그라운드)
+  setTimeout(() => {
+    restoreGameDataFromServer().catch(err => {
+      console.warn('게임 데이터 복원 실패:', err);
+    });
+  }, 500);
 }
+
+// ── 🎮 게임 데이터 양방향 동기화 ──────────────────────
+// 서버에서 게임 데이터 가져와서 localStorage 복원
+// 호출: 로그인 직후, 명시적 동기화 버튼
+async function restoreGameDataFromServer() {
+  const url = getSheetsUrl();
+  const user = getCurrentUser();
+  if(!url || !user || user.isGuest) return;
+
+  try {
+    const apiUrl = url + '?action=getGameData' + getUserIdParam();
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+
+    if(data.error || !data.success) {
+      console.warn('게임 데이터 조회 실패:', data.error);
+      return;
+    }
+
+    console.log('🎮 서버 게임 데이터:', data);
+
+    // localStorage와 비교해서 더 큰 값으로 업데이트
+    const localXp         = Number(localStorage.getItem('vs-xp')          || 0);
+    const localBestCombo  = Number(localStorage.getItem('vs-best-combo')  || 0);
+    const localBestStreak = Number(localStorage.getItem('vs-best-streak') || 0);
+    const localStreak     = Number(localStorage.getItem('vs-streak')      || 0);
+    const localStreakDate = String(localStorage.getItem('vs-streak-date') || '');
+    const localTotal      = Number(localStorage.getItem('vs-total-answered') || 0);
+    const localAch        = JSON.parse(localStorage.getItem('vs-achievements') || '[]');
+
+    // 큰 값으로 복원
+    if(data.xp > localXp)              localStorage.setItem('vs-xp', String(data.xp));
+    if(data.bestCombo > localBestCombo)   localStorage.setItem('vs-best-combo', String(data.bestCombo));
+    if(data.bestStreak > localBestStreak) localStorage.setItem('vs-best-streak', String(data.bestStreak));
+    if(data.totalAnswered > localTotal)   localStorage.setItem('vs-total-answered', String(data.totalAnswered));
+
+    // streak는 날짜 기준 (더 최근 날짜의 streak 사용)
+    if(data.streakDate >= localStreakDate) {
+      localStorage.setItem('vs-streak', String(data.streak));
+      localStorage.setItem('vs-streak-date', data.streakDate);
+    }
+
+    // achievements는 합집합
+    if(Array.isArray(data.achievements) && data.achievements.length > 0) {
+      const merged = Array.from(new Set([...localAch, ...data.achievements]));
+      localStorage.setItem('vs-achievements', JSON.stringify(merged));
+    }
+
+    // UI 즉시 업데이트
+    try { updateRpgCard(); } catch(e) {}
+    try { renderQuests(); } catch(e) {}
+    console.log('✅ 게임 데이터 복원 완료');
+  } catch(e) {
+    console.warn('게임 데이터 복원 오류:', e);
+  }
+}
+
+// localStorage → 서버로 게임 데이터 백업
+// 호출: 10단어마다, 통계 화면 진입 시
+async function backupGameDataToServer() {
+  const url = getSheetsUrl();
+  const user = getCurrentUser();
+  if(!url || !user || user.isGuest) return;
+
+  try {
+    const xp            = getXP();
+    const level         = levelFromXP(xp);
+    const bestCombo     = Number(localStorage.getItem('vs-best-combo')      || 0);
+    const bestStreak    = Number(localStorage.getItem('vs-best-streak')     || 0);
+    const streak        = Number(localStorage.getItem('vs-streak')          || 0);
+    const streakDate    = String(localStorage.getItem('vs-streak-date')     || '');
+    const totalAnswered = Number(localStorage.getItem('vs-total-answered')  || 0);
+    let achievements    = [];
+    try { achievements  = JSON.parse(localStorage.getItem('vs-achievements') || '[]'); } catch(e) {}
+
+    const gameData = {
+      xp, level, bestCombo, bestStreak, streak, streakDate, totalAnswered, achievements
+    };
+
+    // POST 우선 사용 (URL 길이 회피)
+    let result;
+    try {
+      result = await sheetsPost({
+        action: 'syncGameData',
+        userId: user.id,
+        data:   gameData,
+      });
+    } catch(postErr) {
+      // POST 실패 시 GET fallback
+      const dataParam = encodeURIComponent(JSON.stringify(gameData));
+      const apiUrl = url + '?action=syncGameData&data=' + dataParam + getUserIdParam();
+      if(apiUrl.length > 8000) {
+        console.warn('데이터가 너무 큼, 동기화 스킵');
+        return;
+      }
+      const res = await fetch(apiUrl);
+      result = await res.json();
+    }
+
+    if(result.error) {
+      console.warn('동기화 실패:', result.error);
+      return;
+    }
+
+    // 서버 응답으로 다시 복원 (서버가 더 큰 값을 가지고 있을 수 있음)
+    if(result.success) {
+      if(result.xp > xp) localStorage.setItem('vs-xp', String(result.xp));
+      if(result.bestCombo > bestCombo) localStorage.setItem('vs-best-combo', String(result.bestCombo));
+      if(result.bestStreak > bestStreak) localStorage.setItem('vs-best-streak', String(result.bestStreak));
+      // achievements 합집합
+      if(Array.isArray(result.achievements) && result.achievements.length > achievements.length) {
+        localStorage.setItem('vs-achievements', JSON.stringify(result.achievements));
+      }
+    }
+
+    console.log('💾 게임 데이터 백업 완료');
+  } catch(e) {
+    console.warn('게임 데이터 백업 오류:', e);
+  }
+}
+
+// 수동 동기화 (사용자 요청)
+async function manualSyncGameData() {
+  const user = getCurrentUser();
+  if(!user || user.isGuest) {
+    alert('회원가입/로그인이 필요해요');
+    return;
+  }
+  if(!getSheetsUrl()) {
+    alert('Google Sheets 연결이 필요해요');
+    return;
+  }
+
+  // 진행 표시
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:14px;gap:14px';
+  overlay.innerHTML = '<div style="font-size:36px">🔄</div><div>게임 데이터 동기화 중...</div>';
+  document.body.appendChild(overlay);
+
+  try {
+    await backupGameDataToServer();
+    await restoreGameDataFromServer();
+    document.body.removeChild(overlay);
+    alert('✅ 동기화 완료!\n\nXP, 콤보, 연속 학습, 업적 모두 서버와 동기화됐어요.');
+  } catch(e) {
+    document.body.removeChild(overlay);
+    alert('동기화 실패: ' + e.message);
+  }
+}
+// ─────────────────────────────────────────────────────
 
 async function doLogout() {
   if(!confirm('정말 로그아웃 하시겠어요?\n학습 기록은 남아있어요.')) return;
@@ -4986,16 +5153,14 @@ function trackLearning(isCorrect) {
   // 🏆 업적 자동 체크
   try { checkAchievements(); } catch(e) {}
 
-  // ⭐ XP 서버 동기화 (10개마다)
+  // ⭐ 게임 데이터 서버 백업 (10개마다)
   try {
     const todayDone = Number(localStorage.getItem('vs-today-done') || 0);
     if(todayDone % 10 === 0 && todayDone > 0) {
-      const url = getSheetsUrl();
       const user = getCurrentUser();
-      if(url && user && !user.isGuest) {
-        const xp = getXP();
-        const level = levelFromXP(xp);
-        fetch(url + '?action=updateUserXP&xp=' + xp + '&level=' + level + getUserIdParam()).catch(()=>{});
+      if(user && !user.isGuest && getSheetsUrl()) {
+        // 전체 게임 데이터 백업 (XP, 콤보, 연속, 업적 모두)
+        backupGameDataToServer().catch(()=>{});
       }
     }
   } catch(e) {}
@@ -5310,7 +5475,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260526-150915';
+  window.APP_BUILD = '20260526-151816';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6884,11 +7049,9 @@ async function loadRanking(force) {
     return;
   }
 
-  // 본인 XP를 먼저 서버에 동기화
+  // 본인 게임 데이터를 서버에 동기화 (XP, 콤보, 연속, 업적 모두)
   try {
-    const xp = getXP();
-    const level = levelFromXP(xp);
-    await fetch(url + '?action=updateUserXP&xp=' + xp + '&level=' + level + getUserIdParam()).catch(()=>{});
+    await backupGameDataToServer();
   } catch(e) {}
 
   // 랭킹 조회
