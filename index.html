@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260526-152619">
+<meta name="app-build" content="20260526-153203">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -569,7 +569,7 @@ body{
       <div style="font-size:11px;color:var(--tx2);margin-bottom:8px;line-height:1.5">랭킹에 표시될 이름이에요. 비워두면 실명 일부가 마스킹되어 표시돼요 (예: "김OO")</div>
       <input id="ranking-nickname-input" type="text" maxlength="12" placeholder="닉네임 (1~12자)"
         style="width:100%;padding:11px;border:1px solid var(--bd);border-radius:8px;font-size:14px;background:var(--sf2);color:var(--tx);outline:none;box-sizing:border-box">
-      <button onclick="saveNickname()" style="width:100%;margin-top:10px;padding:11px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">
+      <button id="save-nickname-btn" onclick="saveNickname()" style="width:100%;margin-top:10px;padding:11px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s">
         닉네임 저장
       </button>
     </div>
@@ -710,7 +710,7 @@ body{
       </div>
     </div>
 
-    <!-- ══ 📜 일일 퀘스트 ══ -->
+    <!-- ══ 📜 오늘의 퀘스트 (학습 시작 통합) ══ -->
     <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;padding:16px;border:1px solid var(--bd)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:8px">
@@ -728,43 +728,21 @@ body{
       <div id="quest-bonus-banner" style="display:none;margin-top:10px;background:linear-gradient(135deg, #10b981, #059669);color:#fff;padding:10px 12px;border-radius:10px;text-align:center;font-size:12px;font-weight:500">
         🎉 모든 퀘스트 완료! +100 XP 보너스 받기
       </div>
-    </div>
 
-    <!-- ══ ⚡ 오늘의 도전 (학습 시작) ══ -->
-    <div style="margin:0 16px 14px;background:var(--sf);border-radius:14px;padding:18px;border:1px solid var(--bd)">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span style="font-size:18px">⚡</span>
-        <span style="font-size:14px;font-weight:600;color:var(--tx)">오늘의 도전</span>
-      </div>
-
-      <!-- 진행률 바 -->
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-        <span style="font-size:13px;color:var(--tx2)">목표 진행률</span>
-        <span style="font-size:13px;font-weight:500;color:var(--tx)"><span id="home-done">0</span> / <span id="home-goal">30</span></span>
-      </div>
-      <div class="pb-bg" style="margin-bottom:14px"><div class="pb-f" id="home-pct-bar" style="width:0%"></div></div>
-
-      <!-- 미니 스탯 2개 -->
-      <div style="display:flex;gap:10px;margin-bottom:14px">
-        <div style="flex:1;background:var(--sf2);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:18px;font-weight:500;color:var(--grn)" id="home-acc">--%</div>
-          <div style="font-size:11px;color:var(--tx2);margin-top:2px">정답률</div>
-        </div>
-        <div style="flex:1;background:var(--sf2);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:18px;font-weight:500;color:var(--tx)" id="home-time">0분</div>
-          <div style="font-size:11px;color:var(--tx2);margin-top:2px">학습 시간</div>
-        </div>
-      </div>
-
-      <!-- CTA 버튼 -->
-      <button class="cta" id="home-cta" onclick="startLearning()" style="width:100%">
+      <!-- 학습 시작 CTA (통합) -->
+      <button class="cta" id="home-cta" onclick="startLearning()" style="width:100%;margin-top:12px">
         <i class="ti ti-player-play" id="home-cta-icon" style="font-size:16px"></i>
         <span id="home-cta-txt"> 학습 시작하기</span>
       </button>
-
-      <!-- 숨겨진 텍스트 (호환성 유지) -->
-      <span id="home-pct-txt" style="display:none">0%</span>
     </div>
+
+    <!-- 호환성 유지용 숨김 요소 (오늘의 도전 카드 제거됨, 퀘스트로 통합) -->
+    <span id="home-done" style="display:none">0</span>
+    <span id="home-goal" style="display:none">30</span>
+    <span id="home-pct-bar" style="display:none"></span>
+    <span id="home-acc" style="display:none">--%</span>
+    <span id="home-time" style="display:none">0분</span>
+    <span id="home-pct-txt" style="display:none">0%</span>
 
     <!-- 호환성 유지용 숨김 요소 (망각 카드 제거됨, 통계 화면으로 이동) -->
     <span id="home-due-num" style="display:none">0</span>
@@ -5475,7 +5453,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260526-152619';
+  window.APP_BUILD = '20260526-153203';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -7232,8 +7210,14 @@ function closeRankingSettings() {
   document.getElementById('ranking-settings-modal').style.display = 'none';
 }
 
+let _isSavingNickname = false;
+
 async function saveNickname() {
+  // 중복 클릭 방지
+  if(_isSavingNickname) return;
+
   const input = document.getElementById('ranking-nickname-input');
+  const btn   = document.getElementById('save-nickname-btn');
   const nickname = input.value.trim();
   if(nickname.length > 12) {
     alert('닉네임은 12자 이내로 입력해주세요');
@@ -7246,6 +7230,16 @@ async function saveNickname() {
     return;
   }
 
+  // 저장 중 상태로 전환 (버튼 비활성화 + 시각 피드백)
+  _isSavingNickname = true;
+  const originalText = btn?.textContent || '닉네임 저장';
+  if(btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    btn.style.cursor = 'not-allowed';
+    btn.textContent = '⏳ 저장 중...';
+  }
+
   try {
     const res = await fetch(url + '?action=updateNickname&nickname=' + encodeURIComponent(nickname) + getUserIdParam());
     const data = await res.json();
@@ -7254,12 +7248,28 @@ async function saveNickname() {
       return;
     }
     localStorage.setItem('vs-nickname', nickname);
+    if(btn) {
+      btn.textContent = '✅ 저장됨';
+      btn.style.background = 'var(--grn)';
+    }
     alert('✅ 닉네임이 변경되었어요');
     _rankingLoaded = false; // 캐시 무효화
     refreshProfileNickname();
     loadRanking(true);
   } catch(e) {
     alert('닉네임 변경 실패: ' + e.message);
+  } finally {
+    // 1초 후 버튼 원상복귀
+    setTimeout(() => {
+      _isSavingNickname = false;
+      if(btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        btn.style.background = 'var(--acc)';
+        btn.textContent = originalText;
+      }
+    }, 1000);
   }
 }
 
