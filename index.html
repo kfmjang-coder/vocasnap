@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260526-151816">
+<meta name="app-build" content="20260526-152619">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -5475,7 +5475,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260526-151816';
+  window.APP_BUILD = '20260526-152619';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6389,6 +6389,7 @@ let VOICE = {
   total: 0,       // 답한 문제 수
   wrongList: [],  // 틀린 단어
   playCount: [],  // 문제별 발음 재생 횟수
+  answered: [],   // 문제별 응답 상태: 'correct' | 'wrong' | 'skipped' | null (미답)
   recognition: null,  // SpeechRecognition 인스턴스
   isListening: false,
   graded: false,  // 현재 문제 채점 완료 여부
@@ -6509,6 +6510,7 @@ async function startVoiceDictation() {
   VOICE.total     = 0;
   VOICE.wrongList = [];
   VOICE.playCount = new Array(VOICE.words.length).fill(0);
+  VOICE.answered  = new Array(VOICE.words.length).fill(null); // 응답 상태 추적
   VOICE.graded    = false;
   VOICE.startTime = Date.now();
 
@@ -6582,14 +6584,38 @@ function voiceRender() {
     }
   }
 
-  // 결과 영역 초기화
+  // 결과 영역 초기화 / 또는 이미 답한 문제는 결과 표시
   const resultArea = document.getElementById('voice-result-area');
-  if(resultArea) resultArea.style.display = 'none';
   const nextBtn = document.getElementById('voice-next-btn');
-  if(nextBtn) nextBtn.style.display = 'none';
+  const verdict = document.getElementById('voice-verdict');
+  const prevState = VOICE.answered[i];
 
-  setText('voice-mic-status', '마이크 버튼을 눌러 한글 뜻을 말해주세요');
-  VOICE.graded = false;
+  if(prevState === 'correct' || prevState === 'wrong') {
+    // 이미 답한 문제 - 결과 표시 복원
+    const isCorrect = prevState === 'correct';
+    const correctAnswer = (w?.ko || '').replace(/\s+/g, ' ').trim();
+
+    if(resultArea) {
+      resultArea.style.display = 'block';
+      resultArea.style.background = isCorrect ? 'var(--grn-l)' : 'var(--red-l)';
+      resultArea.style.border = '0.5px solid ' + (isCorrect ? 'var(--grn)' : 'var(--red)');
+    }
+    if(verdict) {
+      verdict.textContent = isCorrect ? '✅ 정답!' : '❌ 아쉬워요';
+      verdict.style.color = isCorrect ? 'var(--grn)' : 'var(--red)';
+    }
+    setText('voice-heard', '(이미 답한 문제)');
+    setText('voice-answer', (w?.en || '') + ' → ' + correctAnswer);
+    if(nextBtn) nextBtn.style.display = 'block';
+    setText('voice-mic-status', '이미 답한 문제예요. 다음으로 넘어가세요.');
+    VOICE.graded = true; // 다시 풀지 못하게 막음
+  } else {
+    // 미답 또는 건너뛴 문제 - 풀 수 있게 초기화
+    if(resultArea) resultArea.style.display = 'none';
+    if(nextBtn) nextBtn.style.display = 'none';
+    setText('voice-mic-status', prevState === 'skipped' ? '⏭️ 건너뛴 문제예요. 다시 풀어보세요.' : '마이크 버튼을 눌러 한글 뜻을 말해주세요');
+    VOICE.graded = false;
+  }
 }
 
 function voiceSpeak() {
@@ -6674,8 +6700,13 @@ function voiceGrade(recognizedList) {
   // 결과 UI 표시
   VOICE.graded = true;
   VOICE.total++;
-  if(isCorrect) VOICE.correct++;
-  else VOICE.wrongList.push({...w});
+  if(isCorrect) {
+    VOICE.correct++;
+    VOICE.answered[VOICE.idx] = 'correct';
+  } else {
+    VOICE.wrongList.push({...w});
+    VOICE.answered[VOICE.idx] = 'wrong';
+  }
 
   setText('voice-heard',   recognized.join(' / ') || '(인식 안 됨)');
   setText('voice-answer',  w.en + ' → ' + correct);
@@ -6726,23 +6757,61 @@ function normalizeKorean(s) {
 }
 
 function voiceSkip() {
-  // 건너뛰기 - 오답 처리하지 않고 다음으로
-  VOICE.idx++;
-  if(VOICE.idx >= VOICE.words.length) {
-    showVoiceResult();
-  } else {
+  // 현재 문제 skipped 표시 (모의테스트와 동일)
+  if(VOICE.idx < VOICE.words.length) {
+    VOICE.answered[VOICE.idx] = 'skipped';
+  }
+
+  if(VOICE.idx < VOICE.words.length - 1) {
+    // 다음 문제로
+    VOICE.idx++;
     voiceRender();
     setTimeout(voiceSpeak, 300);
+  } else {
+    // 마지막 문제에서 건너뛰기 → 답 안 한 첫 문제로 이동
+    const firstEmpty = findFirstUnansweredVoice();
+    if(firstEmpty >= 0) {
+      VOICE.idx = firstEmpty;
+      voiceRender();
+      setTimeout(voiceSpeak, 300);
+    } else {
+      // 모두 응답 완료 → 결과 화면으로
+      showVoiceResult();
+    }
   }
 }
 
+// 답 안 한 (skipped 포함 안 함, 정답/오답도 답한 것으로 침) 첫 문제 찾기
+// 단, 모의테스트는 skipped를 미답으로 봐서 재방문 허용
+// 음성 받아쓰기도 동일하게: 'correct' / 'wrong' 만 답한 것으로 간주
+function findFirstUnansweredVoice() {
+  for(let i = 0; i < VOICE.words.length; i++) {
+    const state = VOICE.answered[i];
+    // 정답/오답이 아닌 모든 상태 = 미답 (null, undefined, skipped 모두 재방문)
+    if(state !== 'correct' && state !== 'wrong') return i;
+  }
+  return -1;
+}
+
 function voiceNext() {
-  VOICE.idx++;
-  if(VOICE.idx >= VOICE.words.length) {
-    showVoiceResult();
-  } else {
+  // 채점 완료된 경우 (정답/오답)
+  // 이전에 채점되었다면 answered 상태 유지
+
+  if(VOICE.idx < VOICE.words.length - 1) {
+    VOICE.idx++;
     voiceRender();
     setTimeout(voiceSpeak, 300);
+  } else {
+    // 마지막 문제에서 다음 → 답 안 한 첫 문제로 이동 (모의테스트와 동일)
+    const firstEmpty = findFirstUnansweredVoice();
+    if(firstEmpty >= 0) {
+      VOICE.idx = firstEmpty;
+      voiceRender();
+      setTimeout(voiceSpeak, 300);
+    } else {
+      // 모두 응답 완료
+      showVoiceResult();
+    }
   }
 }
 
