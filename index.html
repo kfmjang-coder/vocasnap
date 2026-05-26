@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260526-153203">
+<meta name="app-build" content="20260526-153656">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -3311,7 +3311,50 @@ function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+
+// ── 🛡️ 중복 클릭 방지 통합 시스템 ──────────────────
+const _busyFlags = {}; // 함수별 진행 중 플래그
+
+function withButtonLock(flagKey, buttonSelector, loadingText, fn) {
+  // 이미 진행 중이면 차단
+  if(_busyFlags[flagKey]) {
+    console.log(`[중복 클릭 차단] ${flagKey} 진행 중`);
+    return Promise.resolve();
+  }
+
+  _busyFlags[flagKey] = true;
+  const btn = buttonSelector ? document.querySelector(buttonSelector) : null;
+  let originalText = '';
+  let originalBg = '';
+
+  if(btn) {
+    originalText = btn.textContent;
+    originalBg   = btn.style.background;
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    btn.style.cursor = 'not-allowed';
+    if(loadingText) btn.textContent = loadingText;
+  }
+
+  return Promise.resolve(fn()).finally(() => {
+    setTimeout(() => {
+      _busyFlags[flagKey] = false;
+      if(btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        btn.textContent = originalText;
+        if(originalBg) btn.style.background = originalBg;
+      }
+    }, 500);
+  });
+}
+// ─────────────────────────────────────────────────────
+
 async function doSignup() {
+  // 중복 클릭 방지
+  if(_busyFlags.signup) return;
+
   const name      = document.getElementById('signup-name').value.trim();
   const email     = document.getElementById('signup-email').value.trim().toLowerCase();
   const password  = document.getElementById('signup-password').value;
@@ -3327,23 +3370,45 @@ async function doSignup() {
   if(password !== password2) return showAuthError('signup', '비밀번호가 일치하지 않아요');
   if(!agreed) return showAuthError('signup', '이용약관에 동의해주세요');
 
+  // 진행 중 락
+  _busyFlags.signup = true;
+  const signupBtn = document.querySelector('button[onclick="doSignup()"]');
+  let _sOrig = '';
+  if(signupBtn) {
+    _sOrig = signupBtn.textContent;
+    signupBtn.disabled = true;
+    signupBtn.style.opacity = '0.6';
+    signupBtn.textContent = '⏳ 가입 중...';
+  }
+
+  const _signupUnlock = () => {
+    setTimeout(() => {
+      _busyFlags.signup = false;
+      if(signupBtn) {
+        signupBtn.disabled = false;
+        signupBtn.style.opacity = '1';
+        signupBtn.textContent = _sOrig || '회원가입';
+      }
+    }, 500);
+  };
+
   // 중복 확인
   const users = getUsers();
   if(users.find(u => u.email === email)) {
-    return showAuthError('signup', '이미 가입된 이메일이에요');
+    return _signupUnlock(); showAuthError('signup', '이미 가입된 이메일이에요');
   }
 
   // Firebase 비활성화 - 로컬 모드만 사용
   if(false && isFirebaseConfigured() && initFirebase() && firebaseAuth) {
     try {
-      showAuthError('signup', '⏳ 가입 중...');
+      _signupUnlock(); showAuthError('signup', '⏳ 가입 중...');
       const fbUser = await fbSignup(email, password, name);
       // 로컬 세션도 저장 (호환성)
       const user = {
         id: fbUser.uid, name, email, password: simpleHash(password),
         createdAt: new Date().toISOString(), firebase: true,
       };
-      loginUser(user, true);
+      _signupUnlock(); loginUser(user, true);
       localStorage.setItem('vs-profile-name',  name);
       localStorage.setItem('vs-profile-email', email);
       if(!localStorage.getItem('vs-profile-avatar')) localStorage.setItem('vs-profile-avatar', '😊');
@@ -3356,7 +3421,7 @@ async function doSignup() {
                   e.code === 'auth/weak-password' ? '비밀번호가 너무 약해요 (6자 이상)' :
                   e.code === 'auth/invalid-email' ? '올바른 이메일이 아니에요' :
                   '가입 실패: ' + e.message;
-      showAuthError('signup', msg);
+      _signupUnlock(); showAuthError('signup', msg);
       return;
     }
   }
@@ -3365,7 +3430,7 @@ async function doSignup() {
   const sheetsUrl = getSheetsUrl();
   if(sheetsUrl) {
     try {
-      showAuthError('signup', '⏳ 가입 중...');
+      _signupUnlock(); showAuthError('signup', '⏳ 가입 중...');
       const passwordHash = simpleHash(password);
       const url = sheetsUrl + '?action=signup' +
         '&name=' + encodeURIComponent(name) +
@@ -3376,7 +3441,7 @@ async function doSignup() {
       if(text.trim().startsWith('<')) throw new Error('Apps Script 재배포가 필요해요');
       const data = JSON.parse(text);
       if(data.error) {
-        showAuthError('signup', data.error);
+        _signupUnlock(); showAuthError('signup', data.error);
         return;
       }
 
@@ -3396,7 +3461,7 @@ async function doSignup() {
       return;
     } catch(e) {
       console.warn('Sheets 가입 실패, 로컬로 fallback:', e);
-      showAuthError('signup', 'Sheets 저장 실패: ' + e.message);
+      _signupUnlock(); showAuthError('signup', 'Sheets 저장 실패: ' + e.message);
       return;
     }
   }
@@ -3422,12 +3487,37 @@ async function doSignup() {
 }
 
 async function doLogin() {
+  // 중복 클릭 방지
+  if(_busyFlags.login) return;
+
   const email    = document.getElementById('login-email').value.trim().toLowerCase();
   const password = document.getElementById('login-password').value;
   const remember = document.getElementById('login-remember').checked;
 
   if(!email) return showAuthError('login', '이메일을 입력해주세요');
   if(!password) return showAuthError('login', '비밀번호를 입력해주세요');
+
+  // 진행 중 락
+  _busyFlags.login = true;
+  const loginBtn = document.querySelector('button[onclick="doLogin()"]');
+  let _lOrig = '';
+  if(loginBtn) {
+    _lOrig = loginBtn.textContent;
+    loginBtn.disabled = true;
+    loginBtn.style.opacity = '0.6';
+    loginBtn.textContent = '⏳ 로그인 중...';
+  }
+
+  const _loginUnlock = () => {
+    setTimeout(() => {
+      _busyFlags.login = false;
+      if(loginBtn) {
+        loginBtn.disabled = false;
+        loginBtn.style.opacity = '1';
+        loginBtn.textContent = _lOrig || '로그인';
+      }
+    }, 500);
+  };
 
   // Firebase 비활성화 - 로컬 모드만 사용
   if(false && isFirebaseConfigured() && initFirebase() && firebaseAuth) {
@@ -3436,7 +3526,7 @@ async function doLogin() {
       const fbUser = await fbLogin(email, password);
       const name = fbUser.displayName || email.split('@')[0];
       const user = { id: fbUser.uid, name, email, firebase: true };
-      loginUser(user, remember);
+      _loginUnlock(); loginUser(user, remember);
       localStorage.setItem('vs-profile-name',  name);
       localStorage.setItem('vs-profile-email', email);
       // 클라우드 데이터 복원
@@ -3499,9 +3589,9 @@ async function doLogin() {
   // 로컬 모드 (Sheets URL 미설정)
   const users = getUsers();
   const user  = users.find(u => u.email === email);
-  if(!user) return showAuthError('login', '등록되지 않은 이메일이에요');
+  if(!user) _loginUnlock(); return showAuthError('login', '등록되지 않은 이메일이에요');
   if(user.password !== simpleHash(password)) {
-    return showAuthError('login', '비밀번호가 일치하지 않아요');
+    _loginUnlock(); return showAuthError('login', '비밀번호가 일치하지 않아요');
   }
   loginUser(user, remember);
   localStorage.setItem('vs-profile-name',  user.name);
@@ -3652,6 +3742,12 @@ async function backupGameDataToServer() {
 
 // 수동 동기화 (사용자 요청)
 async function manualSyncGameData() {
+  // 중복 클릭 방지
+  if(_busyFlags.gameSync) {
+    console.log('[중복 클릭 차단] 이미 동기화 중');
+    return;
+  }
+
   const user = getCurrentUser();
   if(!user || user.isGuest) {
     alert('회원가입/로그인이 필요해요');
@@ -3661,6 +3757,8 @@ async function manualSyncGameData() {
     alert('Google Sheets 연결이 필요해요');
     return;
   }
+
+  _busyFlags.gameSync = true;
 
   // 진행 표시
   const overlay = document.createElement('div');
@@ -3676,6 +3774,8 @@ async function manualSyncGameData() {
   } catch(e) {
     document.body.removeChild(overlay);
     alert('동기화 실패: ' + e.message);
+  } finally {
+    setTimeout(() => { _busyFlags.gameSync = false; }, 500);
   }
 }
 // ─────────────────────────────────────────────────────
@@ -5453,7 +5553,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260526-153203';
+  window.APP_BUILD = '20260526-153656';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6865,6 +6965,12 @@ async function saveReviewToSheets(wordId,sm2Result){
 // ── 학습 이력 일괄 동기화 ────────────────────────────
 // localStorage에 저장된 학습 이력을 Sheets에 일괄 반영
 async function syncLearningHistory() {
+  // 중복 클릭 방지
+  if(_busyFlags.syncHistory) {
+    console.log('[중복 클릭 차단] 이미 동기화 중');
+    return;
+  }
+  _busyFlags.syncHistory = true;
   const url = getSheetsUrl();
   if(!url) {
     alert('Google Sheets 연결이 필요해요');
@@ -6968,7 +7074,9 @@ async function syncLearningHistory() {
     alert(`✅ 동기화 완료!\n\n성공: ${synced}개\n실패: ${failed}개\n\n홈으로 돌아가서 암기 완료 카드를 확인해보세요`);
   } catch(e) {
     alert('동기화 실패: ' + e.message);
-  }
+  } finally {
+  setTimeout(() => { _busyFlags.syncHistory = false; }, 500);
+}
 }
 // ─────────────────────────────────────────────────────
 (function(){
@@ -8517,6 +8625,10 @@ function cancelReceiveShare() {
 
 // 코드로 단어장 미리보기 조회
 async function lookupShareCode() {
+  // 중복 클릭 방지
+  if(_busyFlags.lookupShareCode) return;
+  _busyFlags.lookupShareCode = true;
+  const _lookupUnlock = () => setTimeout(() => { _busyFlags.lookupShareCode = false; }, 500);
   const code = document.getElementById('receive-code-input').value.trim().toUpperCase();
   if(code.length !== 6) {
     alert('6자리 코드를 입력해주세요');
@@ -8557,7 +8669,9 @@ async function lookupShareCode() {
     document.getElementById('receive-loading').style.display = 'none';
     document.getElementById('receive-error').style.display   = 'block';
     document.getElementById('receive-error-msg').textContent = '서버 통신 실패: ' + e.message;
-  }
+  } finally {
+  _lookupUnlock();
+}
 }
 
 // 받기 확정 - 단어장 + 단어 복제
