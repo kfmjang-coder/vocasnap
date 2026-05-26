@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260526-162143">
+<meta name="app-build" content="20260526-164134">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -4329,7 +4329,7 @@ async function startLearning(){
   currentWordSet = null;
   FC_WORDSET_ID  = null;
   WORDS = [];
-  fcReverse = false; // 홈은 항상 정방향 // 초기화해서 loadFcWords가 전체 단어 로드하게 함
+  fcReverse = false; // 홈은 항상 정방향
 
   // 전체 단어 미리 로드 후 이동
   if(getSheetsUrl()) {
@@ -4340,22 +4340,75 @@ async function startLearning(){
     try {
       const res = await sheetsGet('getWords');
       if(!res.error && res.words?.length) {
-        WORDS = res.words.map(w=>({
-          id:w.id, en:w.word||w.en||'', ko:w.meaning||w.ko||'',
-          pos:w.pos||'', ph:w.phonetic||'', ex:w.example||'',
-          status:w.status||'new',
-        })).filter(w=>w.en);
-        DIST.length=0; WORDS.forEach(w=>{if(w.ko)DIST.push(w.ko);});
+        // 모든 단어 로드
+        const allWords = res.words.map(w => ({
+          id: w.id, en: w.word || w.en || '', ko: w.meaning || w.ko || '',
+          pos: w.pos || '', ph: w.phonetic || '', ex: w.example || '',
+          status: w.status || 'new',
+          nextReview: w.nextReview || '',
+        })).filter(w => w.en);
+
+        // ⭐ 가중치 기반 우선순위 필터링
+        // 1. localStorage 학습 이력 병합하여 정확한 status 재계산
+        // 2. mastered 단어 제외 (이미 외운 단어는 안 풀음)
+        // 3. 우선순위: due (망각 직전) > learning (학습 중) > new (미학습)
+        const today = new Date().toISOString().split('T')[0];
+        const enriched = allWords.map(w => {
+          // localStorage 이력 우선 (더 최신)
+          const hist = getWordHistory(w.id);
+          let status = w.status;
+          if(hist && (hist.knowCount > 0 || hist.dontCount > 0)) {
+            status = computeStatusFromCounts(hist.knowCount, hist.dontCount);
+          }
+          // due 판정 (mastered 아니고, nextReview 도래)
+          const isDue = status !== 'mastered' &&
+                        (!w.nextReview || String(w.nextReview) <= today);
+          return { ...w, status, isDue };
+        });
+
+        // mastered 제외하고 우선순위 정렬
+        const filtered = enriched.filter(w => w.status !== 'mastered');
+        const priority = (w) => {
+          if(w.isDue && w.status === 'review')   return 0; // 망각 직전 (review인데 due)
+          if(w.isDue && w.status === 'learning') return 1; // 학습 중인데 복습 시점
+          if(w.status === 'learning')             return 2; // 학습 중
+          if(w.status === 'new')                  return 3; // 미학습
+          return 4;
+        };
+        filtered.sort((a, b) => priority(a) - priority(b));
+
+        WORDS = filtered;
+        DIST.length = 0;
+        // 객관식 보기는 전체 단어에서 (마스터 포함 - 다양성)
+        allWords.forEach(w => { if(w.ko) DIST.push(w.ko); });
       }
-    } catch(e) {}
+    } catch(e) {
+      console.warn('단어 로드 실패:', e);
+    }
     toast.remove();
   }
 
-  if(!WORDS.length) { alert('단어가 없어요. 단어를 먼저 추가해주세요.'); return; }
+  if(!WORDS.length) {
+    // 마스터 안 한 단어가 하나도 없으면 → 모두 마스터한 상태일 수 있음
+    const sheetsAvailable = !!getSheetsUrl();
+    if(sheetsAvailable) {
+      alert('🎉 학습할 단어가 없어요!\n\n모든 단어를 마스터했거나, 단어가 아직 추가되지 않았어요.\n새 단어를 추가하거나 복습 모드를 이용해보세요.');
+    } else {
+      alert('단어가 없어요. 단어를 먼저 추가해주세요.');
+    }
+    return;
+  }
 
-  setText('fc-ws-title',  '전체 단어장');
-  setText('fc-mode-label','플래시카드 모드');
-  fcIdx=0; fcKnow=0; fcDont=0; fcFlipped=false; wrongWords=[]; resetReviewButtons();
+  // 상태별 카운트 (디버그 로그)
+  const dueCount      = WORDS.filter(w => w.isDue).length;
+  const learningCount = WORDS.filter(w => w.status === 'learning').length;
+  const newCount      = WORDS.filter(w => w.status === 'new').length;
+  console.log(`🎯 이어서 학습 - 총 ${WORDS.length}개 (망각 직전 ${dueCount} · 학습중 ${learningCount} · 미학습 ${newCount})`);
+
+  setText('fc-ws-title',  '이어서 학습 (마스터 제외)');
+  setText('fc-mode-label', `${WORDS.length}개 · 우선순위 학습`);
+  fcIdx = 0; fcKnow = 0; fcDont = 0; fcFlipped = false;
+  wrongWords = []; resetReviewButtons();
   const inner = document.getElementById('fc-inner');
   if(inner) inner.classList.remove('flipped');
   nav('s-fc');
@@ -5664,7 +5717,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260526-162143';
+  window.APP_BUILD = '20260526-164134';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6431,62 +6484,70 @@ function hideSaveOverlay() {
 // ─────────────────────────────────────────────────────
 
 // saveWordsToSheets - 중복 저장 방지 + 단어장 셀렉트 사용
-async function saveWordsToSheets(){
-  // 중복 클릭 방지
-  if(_isSaving) { console.log('이미 저장 중'); return; }
+// ── 💾 공통 단어 일괄 저장 함수 ────────────────────────
+// 촬영(saveWordsToSheets)과 임포트(impSave)에서 공유
+// 기능:
+//   - 단어장 'new' 선택 시 자동 생성 (같은 이름 재사용 지원)
+//   - 크기 기반 자동 배치 분할
+//   - POST → GET → 재귀 분할 자동 처리
+//   - 캐시 자동 무효화
+//   - failed to fetch 친절한 안내
+async function saveExtractedWords(opts) {
+  const words    = opts.words || [];
+  let wsId       = opts.wsId   || 'new';
+  const wsName   = (opts.wsName || '').trim();
+  const reuseExistingByName = opts.reuseExistingByName !== false; // 기본 true
+  const callbacks = opts.callbacks || {};
+
+  const onStart    = callbacks.onStart    || (() => {});
+  const onProgress = callbacks.onProgress || (() => {});
+  const onSuccess  = callbacks.onSuccess  || (() => {});
+  const onError    = callbacks.onError    || (() => {});
+
+  if(!words.length) {
+    onError('저장할 단어가 없어요');
+    return { success: false };
+  }
 
   const sheetsUrl = getSheetsUrl();
-  if(!sheetsUrl){
-    if(confirm('Google Sheets가 연결되지 않았어요.\n지금 설정하러 갈까요?')){nav('s-profile');setTimeout(openSheetsModal,400);}
-    return;
+  if(!sheetsUrl) {
+    onError('Google Sheets를 먼저 연결해주세요');
+    return { success: false };
   }
-  const selected = EW.filter(w=>w.checked);
-  if(!selected.length){alert('저장할 단어를 선택해주세요');return;}
 
-  // 단어장 결정 (셀렉트 박스 값 사용 - impSave와 동일한 방식)
-  const sel    = document.getElementById('extract-ws-select');
-  const nameEl = document.getElementById('extract-ws-name');
-  const btn    = document.getElementById('savbtn');
-  let wsId     = sel?.value || 'new';
-  const origText = btn.textContent;
-
-  // 'new' 선택 시 단어장 자동 생성
+  // 'new' 선택 시 단어장 생성 (또는 동일 이름 재사용)
   if(wsId === 'new') {
-    const wsName = nameEl?.value.trim();
     if(!wsName) {
-      alert('새 단어장 이름을 입력해주세요');
-      nameEl?.focus();
-      return;
+      onError('새 단어장 이름을 입력해주세요');
+      return { success: false };
     }
 
-    // ⭐ 같은 이름의 단어장이 이미 있으면 재사용 (사용자가 모르고 중복 만드는 것 방지)
-    try {
-      const cached = localStorage.getItem('vs-wslist-cache');
-      let existingSets = [];
-      if(cached) {
-        try {
-          const {data} = JSON.parse(cached);
-          existingSets = data?.wordSets || [];
-        } catch(e) {}
-      }
-      if(!existingSets.length) {
-        const res = await sheetsGet('getWordSets');
-        existingSets = res.wordSets || [];
-      }
-      const duplicate = existingSets.find(ws => String(ws.name).trim() === wsName);
-      if(duplicate) {
-        // 기존 단어장에 추가 (모르고 중복 만드는 것 방지)
-        console.log('동일 이름 단어장 발견, 재사용:', duplicate.id);
-        wsId = duplicate.id;
-      }
-    } catch(e) { console.warn('중복 체크 실패, 새로 생성:', e); }
+    // ⭐ 같은 이름 단어장이 있으면 재사용 (중복 방지)
+    if(reuseExistingByName) {
+      try {
+        const cached = localStorage.getItem('vs-wslist-cache');
+        let existingSets = [];
+        if(cached) {
+          try {
+            const {data} = JSON.parse(cached);
+            existingSets = data?.wordSets || [];
+          } catch(e) {}
+        }
+        if(!existingSets.length) {
+          const res = await sheetsGet('getWordSets');
+          existingSets = res.wordSets || [];
+        }
+        const duplicate = existingSets.find(ws => String(ws.name).trim() === wsName);
+        if(duplicate) {
+          console.log('동일 이름 단어장 발견, 재사용:', duplicate.id);
+          wsId = duplicate.id;
+        }
+      } catch(e) { console.warn('중복 체크 실패, 새로 생성:', e); }
+    }
 
+    // 진짜로 새로 만들어야 할 때만
     if(wsId === 'new') {
-      // 진짜로 새로 만들어야 할 때만
-      btn.textContent = '단어장 생성 중...';
-      btn.disabled = true;
-      // 오버레이 표시 (단어장 생성 단계)
-      showSaveOverlay('새 단어장 만드는 중...', 0, selected.length);
+      onStart('새 단어장 만드는 중...', 0, words.length);
       try {
         const apiUrl = sheetsUrl + '?action=createWordSet' +
                        '&name=' + encodeURIComponent(wsName) +
@@ -6497,35 +6558,29 @@ async function saveWordsToSheets(){
         if(cData.error) throw new Error(cData.error);
         wsId = cData.id;
       } catch(e) {
-        hideSaveOverlay();
-        btn.textContent = origText;
-        btn.disabled = false;
-        alert('단어장 생성 실패: ' + e.message);
-        return;
+        onError('단어장 생성 실패: ' + e.message, e);
+        return { success: false };
       }
     }
   }
 
-  _isSaving = true;
-  btn.textContent = '저장 중...'; btn.disabled = true;
-  btn.style.opacity = '0.7';
-  // 오버레이 표시 (단어 저장 단계)
-  showSaveOverlay('Google Sheets에 저장 중', 0, selected.length);
+  // 세션 정보
+  const session = JSON.parse(localStorage.getItem('vs-session') || 'null');
+  const userParam = getUserIdParam();
+  if(!userParam) {
+    onError('로그인 정보가 없어요. 로그아웃 후 다시 로그인해주세요.');
+    return { success: false };
+  }
+  const userId = session?.userId || '';
 
+  onStart('Google Sheets에 저장 중', 0, words.length);
+
+  // 크기 기반 자동 분할
+  const batches = splitWordsByBatch(words, POST_MAX_BYTES);
+  console.log(`💾 저장 시작 - userId: ${userId}, wsId: ${wsId}, 단어 ${words.length}개를 ${batches.length}개 배치로 분할`);
+
+  let totalSaved = 0;
   try {
-    // ⭐ 크기 기반 자동 분할 (URL 8KB 제한 안전 회피)
-    const session = JSON.parse(localStorage.getItem('vs-session') || 'null');
-    const userParam = getUserIdParam();
-    if(!userParam) {
-      throw new Error('로그인 정보가 없어요. 로그아웃 후 다시 로그인해주세요.\n\n세션: ' + JSON.stringify(session));
-    }
-    const userId = session?.userId || '';
-
-    // 데이터 크기에 따라 자동으로 안전한 배치로 분할
-    const batches = splitWordsByBatch(selected, POST_MAX_BYTES);
-    console.log(`💾 저장 시작 - userId: ${userId}, wsId: ${wsId}, 단어 ${selected.length}개를 ${batches.length}개 배치로 분할`);
-
-    let totalSaved = 0;
     for(let bi = 0; bi < batches.length; bi++) {
       const batch = batches[bi];
       console.log(`  배치 ${bi+1}/${batches.length}: ${batch.length}개 단어`);
@@ -6534,68 +6589,125 @@ async function saveWordsToSheets(){
       const data = await safeSaveBatch(batch, wsId, userId, userParam);
       totalSaved += (Number(data.saved) || batch.length);
 
-      // 진행률 표시
-      updateSaveOverlay(totalSaved, selected.length);
-      if(batches.length > 1) {
-        btn.textContent = `저장 중... ${totalSaved}/${selected.length}`;
-      }
+      onProgress(totalSaved, words.length);
     }
 
-    // 완료 상태 표시
-    updateSaveOverlay(totalSaved, selected.length, true);
-    btn.textContent = `✅ ${totalSaved}개 저장 완료!`;
-    btn.style.background = 'var(--grn)';
-    btn.style.opacity = '1';
+    // 캐시 무효화
     localStorage.removeItem('vs-wslist-cache');
     localStorage.removeItem('vs-stats-cache');
 
-    // 저장된 단어 메모리에서 제거 (재저장 방지)
-    // EW가 const 배열이라 재할당 대신 in-place 수정
-    const remaining = EW.filter(w => !w.checked);
-    EW.length = 0;
-    EW.push(...remaining);
-    // 단어 목록 새로 그리기
-    if(typeof renderExtract === 'function') renderExtract();
+    onSuccess(totalSaved, wsId);
+    return { success: true, savedCount: totalSaved, wsId };
 
-    setTimeout(() => {
-      _isSaving = false;
-      hideSaveOverlay();
-      // EW가 비어있으면 단어장 화면으로 이동
-      if(EW.length === 0) {
-        nav('s-wslist');
-      } else {
-        // 일부만 저장한 경우 (체크 안한 단어가 남음) - 버튼 복귀
-        btn.textContent = '나머지 단어 저장하기';
-        btn.style.background = 'var(--acc)';
-        btn.disabled = false;
-      }
-    }, 1500);
   } catch(e) {
-    hideSaveOverlay();
-    btn.textContent = '❌ 저장 실패';
-    btn.style.background = 'var(--red)';
-    btn.style.opacity = '1';
-    setTimeout(() => {
-      _isSaving = false;
-      btn.textContent = origText;
-      btn.style.background = 'var(--acc)';
-      btn.disabled = false;
-    }, 2500);
-
-    // failed to fetch는 네트워크 오류지만 실제 저장됐을 가능성이 큼
+    // failed to fetch 친절한 안내
     let errMsg = e.message;
     if(errMsg.includes('Failed to fetch') || errMsg.includes('failed to fetch') || errMsg.includes('NetworkError')) {
-      errMsg = '⚠️ 통신은 끊겼지만 단어가 저장됐을 수 있어요.\n\n' +
-               '단어장 메뉴에서 새로고침 후 확인해주세요.\n' +
-               '저장이 됐으면 추가 작업 불필요, 안 됐으면 다시 시도해주세요.\n\n' +
-               '원본 에러: ' + e.message;
+      errMsg = '통신은 끊겼지만 단어가 저장됐을 수 있어요. 단어장 메뉴 새로고침 후 확인해주세요.';
       // 캐시 무효화 (실제 저장됐을 수 있으니)
       localStorage.removeItem('vs-wslist-cache');
       localStorage.removeItem('vs-stats-cache');
     }
-    alert('저장 실패: ' + errMsg);
-    console.error('saveWordsToSheets error:', e);
+    onError(errMsg, e);
+    return { success: false };
   }
+}
+// ─────────────────────────────────────────────────────
+
+async function saveWordsToSheets(){
+  // 중복 클릭 방지
+  if(_isSaving) { console.log('이미 저장 중'); return; }
+
+  const sheetsUrl = getSheetsUrl();
+  if(!sheetsUrl){
+    if(confirm('Google Sheets가 연결되지 않았어요.\n지금 설정하러 갈까요?')){
+      nav('s-profile');
+      setTimeout(openSheetsModal,400);
+    }
+    return;
+  }
+
+  const selected = EW.filter(w => w.checked);
+  if(!selected.length) {
+    alert('저장할 단어를 선택해주세요');
+    return;
+  }
+
+  // 단어장 결정
+  const sel    = document.getElementById('extract-ws-select');
+  const nameEl = document.getElementById('extract-ws-name');
+  const btn    = document.getElementById('savbtn');
+  const wsId   = sel?.value || 'new';
+  const wsName = nameEl?.value.trim() || '';
+
+  if(wsId === 'new' && !wsName) {
+    alert('새 단어장 이름을 입력해주세요');
+    nameEl?.focus();
+    return;
+  }
+
+  const origText = btn.textContent;
+  _isSaving = true;
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+
+  // 공통 저장 함수 호출
+  const result = await saveExtractedWords({
+    words:  selected,
+    wsId:   wsId,
+    wsName: wsName,
+    reuseExistingByName: true, // 같은 이름 단어장 재사용
+    callbacks: {
+      onStart: (msg, saved, total) => {
+        btn.textContent = msg;
+        showSaveOverlay(msg, saved, total);
+      },
+      onProgress: (saved, total) => {
+        updateSaveOverlay(saved, total);
+        btn.textContent = `저장 중... ${saved}/${total}`;
+      },
+      onSuccess: (totalSaved, savedWsId) => {
+        updateSaveOverlay(totalSaved, selected.length, true);
+        btn.textContent = `✅ ${totalSaved}개 저장 완료!`;
+        btn.style.background = 'var(--grn)';
+        btn.style.opacity = '1';
+
+        // 저장된 단어 메모리에서 제거 (재저장 방지)
+        // EW가 const 배열이라 재할당 대신 in-place 수정
+        const remaining = EW.filter(w => !w.checked);
+        EW.length = 0;
+        EW.push(...remaining);
+        if(typeof renderExtract === 'function') renderExtract();
+
+        setTimeout(() => {
+          _isSaving = false;
+          hideSaveOverlay();
+          if(EW.length === 0) {
+            nav('s-wslist');
+          } else {
+            // 일부만 저장한 경우 (체크 안한 단어가 남음) - 버튼 복귀
+            btn.textContent = '나머지 단어 저장하기';
+            btn.style.background = 'var(--acc)';
+            btn.disabled = false;
+          }
+        }, 1500);
+      },
+      onError: (errMsg, originalErr) => {
+        hideSaveOverlay();
+        btn.textContent = '❌ 저장 실패';
+        btn.style.background = 'var(--red)';
+        btn.style.opacity = '1';
+        setTimeout(() => {
+          _isSaving = false;
+          btn.textContent = origText;
+          btn.style.background = 'var(--acc)';
+          btn.disabled = false;
+        }, 2500);
+        alert('저장 실패: ' + errMsg);
+        if(originalErr) console.error('saveWordsToSheets error:', originalErr);
+      }
+    }
+  });
 }
 
 // ── 음성 받아쓰기 시스템 ──────────────────────────────
@@ -10332,94 +10444,63 @@ async function impSave(){
     return;
   }
 
-  const sheetsUrl = getSheetsUrl();
-  if(!sheetsUrl){
-    impShowStatus('❌ Google Sheets를 먼저 연결해주세요', 'error');
-    return;
-  }
-
   // 단어장 결정
   const sel    = document.getElementById('imp-ws-select');
   const nameEl = document.getElementById('imp-ws-name');
   const btn    = document.getElementById('imp-save-btn');
-  let wsId     = sel?.value || 'default';
-  let wsName   = '';
+  const wsId   = sel?.value || 'new';
+  const wsName = nameEl?.value.trim() || '';
 
-  if(wsId === 'new'){
-    wsName = nameEl?.value.trim();
-    if(!wsName){ impShowStatus('⚠️ 새 단어장 이름을 입력해주세요', 'warn'); nameEl?.focus(); return; }
-    // 새 단어장 생성
-    try {
-      const apiUrl = getSheetsUrl() + '?action=createWordSet&name=' + encodeURIComponent(wsName) + '&color=' + encodeURIComponent('#7F77DD') + getUserIdParam();
-      const cRes = await fetch(apiUrl);
-      const cData = await cRes.json();
-      if(cData.error) throw new Error(cData.error);
-      wsId = cData.id;
-    } catch(e){
-      impShowStatus('❌ 단어장 생성 실패: '+e.message, 'error');
-      return;
-    }
+  if(wsId === 'new' && !wsName) {
+    impShowStatus('⚠️ 새 단어장 이름을 입력해주세요', 'warn');
+    nameEl?.focus();
+    return;
   }
 
   _isSaving = true;
-  btn.textContent = `저장 중... (0/${impWords.length})`;
   btn.disabled = true;
   btn.style.opacity = '0.7';
   impShowStatus('⏳ Sheets에 저장하는 중...', 'ok');
 
-  // ⭐ 크기 기반 자동 분할
-  const userParam = getUserIdParam();
-  const session = JSON.parse(localStorage.getItem('vs-session') || 'null');
-  const userId = session?.userId || '';
+  // 공통 저장 함수 호출
+  await saveExtractedWords({
+    words:  impWords,
+    wsId:   wsId,
+    wsName: wsName,
+    reuseExistingByName: true,
+    callbacks: {
+      onStart: (msg, saved, total) => {
+        btn.textContent = `저장 중... (${saved}/${total})`;
+      },
+      onProgress: (saved, total) => {
+        btn.textContent = `저장 중... (${saved}/${total})`;
+      },
+      onSuccess: (totalSaved, savedWsId) => {
+        impShowStatus(`✅ ${totalSaved}개 단어를 저장했어요!`, 'ok');
+        btn.textContent = `✅ ${totalSaved}개 저장 완료!`;
+        btn.style.background = 'var(--grn)';
+        btn.style.opacity = '1';
 
-  // 데이터 크기에 따라 자동으로 안전한 배치로 분할
-  const batches = splitWordsByBatch(impWords, POST_MAX_BYTES);
-  console.log(`💾 임포트 저장 - ${impWords.length}개 단어를 ${batches.length}개 배치로 분할`);
-
-  let saved = 0;
-  try {
-    for(let bi = 0; bi < batches.length; bi++) {
-      const batch = batches[bi];
-      // safeSaveBatch가 POST → GET → 분할 재시도 자동 처리
-      const data = await safeSaveBatch(batch, wsId, userId, userParam);
-      saved += (Number(data.saved) || batch.length);
-      btn.textContent = `저장 중... (${saved}/${impWords.length})`;
+        setTimeout(() => {
+          _isSaving = false;
+          closeImportModal();
+          loadWordSets(true);
+          btn.textContent = '단어 저장하기';
+          btn.style.background = 'var(--acc)';
+          btn.disabled = false;
+        }, 1500);
+      },
+      onError: (errMsg, originalErr) => {
+        _isSaving = false;
+        impShowStatus('❌ 저장 실패: ' + errMsg, 'error');
+        btn.textContent = '단어 저장하기';
+        btn.style.background = 'var(--acc)';
+        btn.style.opacity = '1';
+        btn.disabled = false;
+        if(originalErr) console.error('impSave error:', originalErr);
+      }
     }
-
-    impShowStatus(`✅ ${saved}개 단어를 저장했어요!`, 'ok');
-    btn.textContent = `✅ ${saved}개 저장 완료!`;
-    btn.style.background = 'var(--grn)';
-    btn.style.opacity = '1';
-
-    // 캐시 초기화 + 단어장 목록 새로고침
-    localStorage.removeItem('vs-wslist-cache');
-    localStorage.removeItem('vs-stats-cache');
-
-    setTimeout(()=>{
-      _isSaving = false;
-      closeImportModal();
-      loadWordSets(true);
-      btn.textContent = '단어 저장하기';
-      btn.style.background = 'var(--acc)';
-      btn.disabled = false;
-    }, 1500);
-
-  } catch(e){
-    _isSaving = false;
-    // failed to fetch 친절한 안내
-    let errMsg = e.message;
-    if(errMsg.includes('Failed to fetch') || errMsg.includes('failed to fetch') || errMsg.includes('NetworkError')) {
-      errMsg = '통신은 끊겼지만 단어가 저장됐을 수 있어요. 단어장 메뉴 새로고침 후 확인해주세요.';
-      // 캐시 무효화
-      localStorage.removeItem('vs-wslist-cache');
-      localStorage.removeItem('vs-stats-cache');
-    }
-    impShowStatus('❌ 저장 실패: '+errMsg, 'error');
-    btn.textContent = '단어 저장하기';
-    btn.style.background = 'var(--acc)';
-    btn.style.opacity = '1';
-    btn.disabled = false;
-  }
+  });
 }
 
 function impShowStatus(msg, type){
