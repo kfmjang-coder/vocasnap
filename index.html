@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260526-154620">
+<meta name="app-build" content="20260526-161406">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -5664,7 +5664,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260526-154620';
+  window.APP_BUILD = '20260526-161406';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -6048,6 +6048,77 @@ function openGalleryPicker(){
   document.getElementById('gallery-input').click();
 }
 
+// ── 🤖 공통 Gemini 단어 추출 함수 ─────────────────────
+// 두 호출자(촬영/임포트)에서 동일한 로직 사용
+// callbacks: { onProgress(msg, pct), onSuccess(words), onError(err) }
+async function extractWordsFromImage(file, callbacks) {
+  callbacks = callbacks || {};
+  const onProgress = callbacks.onProgress || (() => {});
+
+  const key = getApiKey();
+  if(!key) {
+    throw new Error('Gemini API 키가 설정되지 않았어요');
+  }
+
+  // 1. 이미지 → base64
+  onProgress('이미지 준비 중', 15);
+  const base64    = await fileToBase64(file);
+  const mediaType = file.type || 'image/jpeg';
+
+  // 2. Gemini Vision API 호출
+  onProgress('Gemini AI 분석 중', 40);
+  const url = GEMINI_API + '?key=' + key;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: mediaType, data: base64 } },
+          { text: EXTRACT_PROMPT }
+        ]
+      }],
+      generationConfig: { maxOutputTokens: 16384, temperature: 0.2, responseMimeType: "application/json" }
+    })
+  });
+
+  if(!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || 'Gemini API 오류');
+  }
+
+  // 3. 결과 정리
+  onProgress('단어 추출 중', 70);
+  const data = await res.json();
+  const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+
+  onProgress('결과 정리 중', 90);
+  const parsed = parseGeminiJson(raw);
+  if(!parsed.length) {
+    throw new Error('단어를 찾을 수 없어요. 영어 단어가 보이는 이미지를 사용해주세요.');
+  }
+
+  // 4. 표준 단어 객체로 변환 + 빈 단어 필터링
+  const words = parsed
+    .map(w => ({
+      en:         w.en || w.word    || '',
+      ko:         w.ko || w.meaning || '',
+      pos:        w.pos        || 'noun',
+      difficulty: w.difficulty || 2,
+      phonetic:   w.phonetic   || '',
+      example:    w.example    || '',
+    }))
+    .filter(w => w.en); // 영어 단어 없으면 제외
+
+  if(!words.length) {
+    throw new Error('유효한 영어 단어를 찾을 수 없어요. 다시 시도해주세요.');
+  }
+
+  onProgress(`${words.length}개 단어 추출 완료!`, 100);
+  return words;
+}
+// ─────────────────────────────────────────────────────
+
 async function handleImageFile(e){
   const file = e.target.files[0];
   if(!file) return;
@@ -6076,63 +6147,17 @@ async function handleImageFile(e){
   prog.style.width = '0%';
 
   try {
-    // 이미지 → base64
-    status.textContent = '이미지 준비 중';
-    prog.style.width = '15%';
-    const base64 = await fileToBase64(file);
-    const mediaType = file.type || 'image/jpeg';
-
-    // Gemini Vision API 호출
-    status.textContent = 'Gemini AI 분석 중';
-    prog.style.width = '40%';
-
-    const url = GEMINI_API + '?key=' + key;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: mediaType, data: base64 } },
-            { text: EXTRACT_PROMPT }
-          ]
-        }],
-        generationConfig: { maxOutputTokens: 16384, temperature: 0.2, responseMimeType: "application/json" }
-      })
+    // 공통 함수로 추출
+    const words = await extractWordsFromImage(file, {
+      onProgress: (msg, pct) => {
+        status.textContent = msg;
+        prog.style.width = pct + '%';
+      }
     });
 
-    status.textContent = '단어 추출 중';
-    prog.style.width = '70%';
-
-    if(!res.ok){
-      const err = await res.json();
-      throw new Error(err.error?.message || 'API 오류');
-    }
-
-    const data = await res.json();
-    const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-
-    // JSON 파싱 (마크다운, 싱글쿼트, 불필요 텍스트 모두 처리)
-    status.textContent = '결과 정리 중';
-    prog.style.width = '90%';
-
-    let words = parseGeminiJson(raw);
-    if(!words.length) throw new Error('단어를 찾을 수 없어요. 영어 단어가 보이는 이미지를 사용해주세요.');
-
-    // extractWords 전역 배열 업데이트
+    // EW 전역 배열 업데이트 (checked 추가)
     EW.length = 0;
-    words.forEach(w => EW.push({
-      en:         w.en || '',
-      ko:         w.ko || '',
-      pos:        w.pos || 'noun',
-      difficulty: w.difficulty || 2,
-      phonetic:   w.phonetic || '',
-      example:    w.example  || '',
-      checked:    true,
-    }));
-
-    prog.style.width = '100%';
-    status.textContent = `${words.length}개 단어 추출 완료!`;
+    words.forEach(w => EW.push({ ...w, checked: true }));
 
     setTimeout(() => {
       overlay.style.display = 'none';
@@ -6525,7 +6550,10 @@ async function saveWordsToSheets(){
     localStorage.removeItem('vs-stats-cache');
 
     // 저장된 단어 메모리에서 제거 (재저장 방지)
-    EW = EW.filter(w => !w.checked);
+    // EW가 const 배열이라 재할당 대신 in-place 수정
+    const remaining = EW.filter(w => !w.checked);
+    EW.length = 0;
+    EW.push(...remaining);
     // 단어 목록 새로 그리기
     if(typeof renderExtract === 'function') renderExtract();
 
@@ -9908,49 +9936,15 @@ async function impHandleCapture(e){
   prog.style.width='0%';
 
   try {
-    status.textContent='이미지 준비 중';
-    prog.style.width='20%';
-    const base64    = await fileToBase64(file);
-    const mediaType = file.type||'image/jpeg';
-
-    status.textContent='Gemini AI 분석 중';
-    prog.style.width='50%';
-
-    const url = GEMINI_API + '?key=' + key;
-    const res = await fetch(url, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        contents:[{parts:[
-          {inline_data:{mime_type:mediaType, data:base64}},
-          {text: EXTRACT_PROMPT}
-        ]}],
-        generationConfig:{maxOutputTokens:16384, temperature:0.2, responseMimeType:"application/json"}
-      })
+    // 공통 함수로 추출
+    const words = await extractWordsFromImage(file, {
+      onProgress: (msg, pct) => {
+        status.textContent = msg;
+        prog.style.width = pct + '%';
+      }
     });
 
-    status.textContent='단어 추출 중';
-    prog.style.width='80%';
-
-    if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'API 오류');}
-    const data = await res.json();
-    const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
-
-    // JSON 파싱
-    const words = parseGeminiJson(raw);
-    if(!words.length) throw new Error('단어를 찾을 수 없어요');
-
-    impWords = words.map(w => ({
-      en:         w.en || w.word    || '',
-      ko:         w.ko || w.meaning || '',
-      pos:        w.pos || 'noun',
-      difficulty: w.difficulty || 2,
-      phonetic:   w.phonetic   || '',
-      example:    w.example    || '',
-    })).filter(w => w.en);
-
-    prog.style.width='100%';
-    status.textContent=`${impWords.length}개 단어 추출 완료!`;
+    impWords = words;
 
     setTimeout(()=>{
       loading.style.display='none';
@@ -9959,7 +9953,7 @@ async function impHandleCapture(e){
 
   } catch(err) {
     loading.style.display='none';
-    alert('추출 실패: '+err.message);
+    alert('추출 실패: ' + err.message);
   }
 }
 // ─────────────────────────────────────────────────────
