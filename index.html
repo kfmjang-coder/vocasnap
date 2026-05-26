@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260526-153656">
+<meta name="app-build" content="20260526-154620">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1208,9 +1208,19 @@ body{
     </div>
     <div style="text-align:center;font-size:12px;color:var(--tx3);margin-bottom:12px" id="fc-hint">↻ 카드를 탭해서 뜻을 확인하세요</div>
     <div class="fc-act">
-      <div class="fc-btn" style="background:var(--red-l);border-color:var(--red)" onclick="fcAns('dont')"><i class="ti ti-x" style="font-size:20px;color:var(--red)"></i><span style="font-size:14px;font-weight:500;color:var(--red)">몰라요</span><span style="font-size:11px;color:var(--red);opacity:.7">다시 볼게요</span></div>
+      <div class="fc-btn" id="fc-dont-btn" style="background:var(--red-l);border-color:var(--red);position:relative;overflow:hidden" onclick="fcAns('dont')">
+        <div id="fc-dont-cooldown" style="position:absolute;bottom:0;left:0;height:3px;background:var(--red);width:0%;transition:width .1s linear"></div>
+        <i class="ti ti-x" style="font-size:20px;color:var(--red)"></i>
+        <span style="font-size:14px;font-weight:500;color:var(--red)">몰라요</span>
+        <span style="font-size:11px;color:var(--red);opacity:.7" id="fc-dont-sub">다시 볼게요</span>
+      </div>
       <div class="fc-flip" onclick="fcFlip()"><i class="ti ti-rotate-clockwise-2"></i></div>
-      <div class="fc-btn" style="background:var(--grn-l);border-color:var(--grn)" onclick="fcAns('know')"><i class="ti ti-check" style="font-size:20px;color:var(--grn)"></i><span style="font-size:14px;font-weight:500;color:var(--grn)">알아요</span><span style="font-size:11px;color:var(--grn);opacity:.7">외웠어요</span></div>
+      <div class="fc-btn" id="fc-know-btn" style="background:var(--grn-l);border-color:var(--grn);position:relative;overflow:hidden" onclick="fcAns('know')">
+        <div id="fc-know-cooldown" style="position:absolute;bottom:0;left:0;height:3px;background:var(--grn);width:0%;transition:width .1s linear"></div>
+        <i class="ti ti-check" style="font-size:20px;color:var(--grn)"></i>
+        <span style="font-size:14px;font-weight:500;color:var(--grn)">알아요</span>
+        <span style="font-size:11px;color:var(--grn);opacity:.7" id="fc-know-sub">외웠어요</span>
+      </div>
     </div>
     <div class="nav2">
       <div class="nb" onclick="fcPrev()"><i class="ti ti-arrow-left"></i></div>
@@ -4398,7 +4408,98 @@ function fcRender(){
   setText('fc-dont', fcDont);
   setText('fc-hint', fcFlipped ? '알고 있나요?' : '↻ 카드를 탭해서 뜻을 확인하세요');
 
+  // 🛡️ 적응형 학습 대기 시간 시작 (어뷰징 방지)
+  startFcCooldown(w);
 }
+
+// ── 🛡️ 플래시카드 적응형 대기 시스템 ──────────────────
+// 단어 상태별로 대기 시간 차등:
+// - new (첫 노출):       3초 (단어 충분히 보게)
+// - learning (학습 중):  2초
+// - review (알아요 1회): 1.5초
+// - mastered (마스터):   0.5초 (이미 외웠으니 빠르게)
+let _fcCooldownTimer = null;
+let _fcCooldownStart = 0;
+let _fcCooldownDuration = 0;
+let _fcCooldownAnimFrame = null;
+
+function getFcCooldownDuration(word) {
+  if(!word) return 2000;
+
+  // 단어 상태 확인 (localStorage 기반)
+  const hist = (typeof getWordHistory === 'function' && word.id) ? getWordHistory(word.id) : null;
+  const knowCount = hist ? (Number(hist.knowCount) || 0) : 0;
+  const dontCount = hist ? (Number(hist.dontCount) || 0) : 0;
+
+  // 상태별 대기 시간
+  if(knowCount >= 2 && knowCount > dontCount) return 500;  // mastered
+  if(knowCount >= 1) return 1500;                          // review
+  if(knowCount > 0 || dontCount > 0) return 2000;          // learning
+  return 2000;                                              // new
+}
+
+function startFcCooldown(word) {
+  // 이전 타이머 정리
+  if(_fcCooldownTimer) clearTimeout(_fcCooldownTimer);
+  if(_fcCooldownAnimFrame) cancelAnimationFrame(_fcCooldownAnimFrame);
+
+  const knowBtn = document.getElementById('fc-know-btn');
+  const dontBtn = document.getElementById('fc-dont-btn');
+  const knowSub = document.getElementById('fc-know-sub');
+  const dontSub = document.getElementById('fc-dont-sub');
+  const knowCd  = document.getElementById('fc-know-cooldown');
+  const dontCd  = document.getElementById('fc-dont-cooldown');
+  if(!knowBtn || !dontBtn) return;
+
+  const duration = getFcCooldownDuration(word);
+  _fcCooldownDuration = duration;
+  _fcCooldownStart = Date.now();
+
+  // 버튼 비활성 상태로 (시각 피드백)
+  knowBtn.style.opacity   = '0.45';
+  knowBtn.style.pointerEvents = 'none';
+  knowBtn.style.cursor    = 'wait';
+  dontBtn.style.opacity   = '0.45';
+  dontBtn.style.pointerEvents = 'none';
+  dontBtn.style.cursor    = 'wait';
+
+  // 서브 텍스트에 카운트다운 표시
+  const totalSec = (duration / 1000).toFixed(1);
+  if(knowSub) knowSub.textContent = `${totalSec}초 후 활성화`;
+  if(dontSub) dontSub.textContent = `${totalSec}초 후 활성화`;
+
+  // 진행 바 + 카운트다운 애니메이션
+  function tick() {
+    const elapsed = Date.now() - _fcCooldownStart;
+    const pct = Math.min(100, (elapsed / duration) * 100);
+    const remain = Math.max(0, (duration - elapsed) / 1000);
+
+    if(knowCd) knowCd.style.width = pct + '%';
+    if(dontCd) dontCd.style.width = pct + '%';
+    if(knowSub) knowSub.textContent = remain > 0 ? `${remain.toFixed(1)}초 후 활성화` : '외웠어요';
+    if(dontSub) dontSub.textContent = remain > 0 ? `${remain.toFixed(1)}초 후 활성화` : '다시 볼게요';
+
+    if(elapsed < duration) {
+      _fcCooldownAnimFrame = requestAnimationFrame(tick);
+    }
+  }
+  _fcCooldownAnimFrame = requestAnimationFrame(tick);
+
+  // 대기 시간 끝나면 활성화
+  _fcCooldownTimer = setTimeout(() => {
+    knowBtn.style.opacity = '1';
+    knowBtn.style.pointerEvents = 'auto';
+    knowBtn.style.cursor = 'pointer';
+    dontBtn.style.opacity = '1';
+    dontBtn.style.pointerEvents = 'auto';
+    dontBtn.style.cursor = 'pointer';
+    if(knowCd) knowCd.style.width = '0%';
+    if(dontCd) dontCd.style.width = '0%';
+    if(knowSub) knowSub.textContent = '외웠어요';
+    if(dontSub) dontSub.textContent = '다시 볼게요';
+  }, duration);
+}
+// ─────────────────────────────────────────────────────
 
 // 자동 발음 실행 (사용자 제스처 후 호출)
 
@@ -4501,6 +4602,16 @@ function fcFlip(){
   document.getElementById('fc-hint').textContent=fcFlipped?'알고 있나요?':'↻ 카드를 탭해서 뜻을 확인하세요';
 }
 function fcAns(type){
+  // 🛡️ 대기 시간 체크 (이중 안전망)
+  // pointer-events:none으로 1차 차단되지만, 키보드/스크립트 호출 방어
+  if(_fcCooldownStart && _fcCooldownDuration) {
+    const elapsed = Date.now() - _fcCooldownStart;
+    if(elapsed < _fcCooldownDuration) {
+      console.log('[학습 가드] 대기 시간 미완료:', elapsed, '/', _fcCooldownDuration);
+      return; // 조용히 무시
+    }
+  }
+
   const know = type === 'know';
   if(know) fcKnow++; else fcDont++;
 
@@ -5553,7 +5664,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260526-153656';
+  window.APP_BUILD = '20260526-154620';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
