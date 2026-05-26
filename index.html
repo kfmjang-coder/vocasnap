@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260525-215340">
+<meta name="app-build" content="20260526-150915">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1259,7 +1259,11 @@ body{
       <div class="qtag">객관식</div>
       <div style="font-size:13px;color:rgba(255,255,255,.75);margin-bottom:10px">다음 단어의 뜻은?</div>
       <div style="font-size:30px;font-weight:500;color:#fff;margin-bottom:6px" id="q-word">eloquent</div>
-      <div style="font-size:14px;color:rgba(255,255,255,.65)" id="q-pos">adj</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.65);margin-bottom:10px" id="q-pos">adj</div>
+      <button onclick="qSpeakWord()" style="background:rgba(255,255,255,.2);color:#fff;border:0.5px solid rgba(255,255,255,.3);border-radius:20px;padding:8px 16px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+        <i class="ti ti-volume" style="font-size:16px"></i>
+        <span>발음 듣기</span>
+      </button>
     </div>
     <div id="q-choices"></div>
     <div class="fbk" id="q-fbk" style="display:none"></div>
@@ -5130,6 +5134,20 @@ function qRender(){
       <div class="clbl">${['①','②','③','④'][i]}</div>
       <span style="font-size:14px;color:var(--tx)">${o}</span>
     </div>`).join('');
+
+  // 🔊 자동 발음 (설정 켜져있을 때만 - vs-auto-speak 기본값 '1')
+  if(localStorage.getItem('vs-auto-speak') !== '0') {
+    const en = w.en || w.word || '';
+    if(en) setTimeout(() => speakWord(en), 300); // 화면 전환 후 살짝 딜레이
+  }
+}
+
+// 퀴즈 발음 듣기 버튼
+function qSpeakWord() {
+  if(!WORDS.length) return;
+  const w = WORDS[qIdx % WORDS.length];
+  const en = w.en || w.word || '';
+  if(en) speakWord(en);
 }
 function qPick(chosen,ans){
   if(!ans) return;
@@ -5292,7 +5310,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260525-215340';
+  window.APP_BUILD = '20260526-150915';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
