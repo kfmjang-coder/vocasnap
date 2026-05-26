@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260526-164134">
+<meta name="app-build" content="20260526-234819">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -199,7 +199,6 @@ body{
 <body>
 <!-- 상태바 제거됨 - safe-area-inset으로 처리 -->
 
-
 <!-- ══ AUTH (로그인/회원가입) ══ -->
 <div class="scr on" id="s-auth">
   <div style="background:linear-gradient(135deg,var(--acc) 0%,#5A52C9 100%);min-height:100vh;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 40px) 24px 24px">
@@ -302,7 +301,6 @@ body{
   </div>
 </div>
 
-
 <!-- ══ Firebase 설정 모달 ══ -->
 <div id="firebase-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;padding:16px;overflow-y:auto">
   <div style="background:var(--sf);border-radius:16px;width:100%;max-width:430px;max-height:90vh;overflow-y:auto;padding:20px">
@@ -376,7 +374,6 @@ body{
   </div>
 </div>
 
-
 <!-- ══ 디버그 모달 ══ -->
 <div id="debug-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;padding:20px;overflow-y:auto;color:#fff;font-family:monospace;font-size:13px;line-height:1.6">
   <div style="max-width:500px;margin:0 auto">
@@ -391,7 +388,6 @@ body{
     </div>
   </div>
 </div>
-
 
 <!-- ══ 복습 알림 설정 모달 ══ -->
 <div id="notif-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-end;justify-content:center">
@@ -424,7 +420,6 @@ body{
     <button onclick="saveNotifSettings()" style="width:100%;padding:14px;background:var(--acc);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer">저장하기</button>
   </div>
 </div>
-
 
 <!-- ══ 단어장 공유 모달 (코드 발급) ══ -->
 <div id="share-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:16px">
@@ -1017,9 +1012,9 @@ body{
           <i class="ti ti-plus" style="font-size:18px"></i>
           <span style="font-size:13px">새 단어장</span>
         </div>
-        <div onclick="openImportModal()" style="flex:1;border:1.5px dashed var(--bd);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--acc-l)">
-          <i class="ti ti-file-upload" style="font-size:18px;color:var(--acc)"></i>
-          <span style="font-size:13px;color:var(--acc)">단어 임포트</span>
+        <div onclick="nav('s-cam')" style="flex:1;border:1.5px dashed var(--bd);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--acc-l)">
+          <i class="ti ti-camera" style="font-size:18px;color:var(--acc)"></i>
+          <span style="font-size:13px;color:var(--acc)">단어 추가</span>
         </div>
       </div>
       <div style="height:20px"></div>
@@ -1139,11 +1134,11 @@ body{
         <div style="font-size:11px;color:var(--tx2)">학습한 단어만</div>
         <div style="font-size:10px;color:var(--grn);margin-top:2px">기억 복원</div>
       </div>
-      <div class="mcard" onclick="openImportModal()" style="position:relative">
-        <i class="ti ti-file-upload" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i>
-        <div style="font-size:13px;font-weight:500;color:var(--tx)">📥 단어 임포트</div>
-        <div style="font-size:11px;color:var(--tx2)">촬영 / 직접 입력</div>
-        <div style="font-size:10px;color:var(--tx3);margin-top:2px">단어 추가</div>
+      <div class="mcard" onclick="nav('s-cam')" style="position:relative">
+        <i class="ti ti-camera" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i>
+        <div style="font-size:13px;font-weight:500;color:var(--tx)">📷 단어 추가</div>
+        <div style="font-size:11px;color:var(--tx2)">촬영 / 갤러리</div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:2px">AI 자동 추출</div>
       </div>
     </div>
     <div style="height:20px"></div>
@@ -1281,10 +1276,6 @@ body{
     <div style="height:20px"></div>
   </div>
 </div>
-
-
-
-
 
 <!-- ══ 음성 받아쓰기 설정 모달 ══ -->
 <div id="voice-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-end;justify-content:center">
@@ -1488,7 +1479,6 @@ body{
     <button id="mock-submit-btn" class="savbtn" onclick="confirmSubmitMock()" style="background:var(--grn)">제출하기</button>
   </div>
 </div>
-
 
 <!-- ══ 모의테스트 결과 ══ -->
 <div class="scr" id="s-mock-result">
@@ -1956,11 +1946,6 @@ body{
   </div>
 </div>
 
-
-
-
-
-
 <!-- ══ 통계 설명 모달 ══ -->
 <div id="stats-info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--sf);border-radius:16px;width:100%;max-width:400px;max-height:85vh;overflow-y:auto">
@@ -2029,7 +2014,6 @@ body{
     </div>
   </div>
 </div>
-
 
 <!-- ══ 모의테스트 설정 모달 ══ -->
 <div id="mock-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:flex-end;justify-content:center">
@@ -2287,124 +2271,7 @@ body{
   </div>
 </div>
 
-
 <!-- ══ IMPORT MODAL ══ -->
-<div id="import-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:flex-end;justify-content:center">
-  <div style="background:var(--sf);border-radius:20px 20px 0 0;width:100%;max-width:430px;max-height:90vh;overflow-y:auto">
-
-    <!-- 헤더 -->
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 20px 12px">
-      <div style="font-size:17px;font-weight:500;color:var(--tx)">단어 임포트</div>
-      <div onclick="closeImportModal()" style="width:28px;height:28px;border-radius:14px;background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer">
-        <i class="ti ti-x" style="font-size:14px;color:var(--tx2)"></i>
-      </div>
-    </div>
-
-    <!-- 탭 -->
-    <div style="display:flex;border-bottom:0.5px solid var(--bd);margin:0 20px">
-      <div id="imp-tab-csv" onclick="impTab('csv')" style="flex:1;text-align:center;padding:10px;font-size:13px;font-weight:500;color:var(--acc);border-bottom:2px solid var(--acc);cursor:pointer">📷 촬영</div>
-      <div id="imp-tab-text" onclick="impTab('text')" style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--tx2);border-bottom:2px solid transparent;cursor:pointer">✏️ 직접 입력</div>
-    </div>
-
-    <!-- 촬영 탭 -->
-    <div id="imp-panel-csv" style="padding:16px 20px">
-      <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:10px">
-        <div style="font-size:12px;color:var(--acc-d);line-height:1.8">
-          교재나 단어장을 촬영하면<br>
-          <b>Gemini AI</b>가 영어 단어와 뜻을 자동으로 추출해요
-        </div>
-      </div>
-      <!-- API 사용 안내 -->
-      <div style="background:var(--amb-l);border-radius:10px;padding:10px 12px;margin-bottom:16px">
-        <div style="display:flex;align-items:flex-start;gap:6px;color:var(--amb)">
-          <i class="ti ti-info-circle" style="font-size:14px;margin-top:1px;flex-shrink:0"></i>
-          <div style="font-size:11px;line-height:1.6">
-            <strong>Gemini API 무료 버전 사용 중</strong>이에요.<br>
-            여러 장을 추출할 땐 <strong>1~2분 간격</strong>을 두고 시도해주세요.
-          </div>
-        </div>
-      </div>
-      <!-- 촬영 버튼 -->
-      <div onclick="impOpenCamera()"
-        style="border:2px dashed var(--bd);border-radius:12px;padding:32px 16px;text-align:center;cursor:pointer;margin-bottom:12px;transition:all .2s"
-        id="imp-cam-zone">
-        <div style="font-size:48px;margin-bottom:10px">📷</div>
-        <div style="font-size:15px;font-weight:500;color:var(--tx);margin-bottom:4px">카메라로 촬영하기</div>
-        <div style="font-size:12px;color:var(--tx2)">교재, 단어카드, 노트 등 촬영</div>
-      </div>
-      <input type="file" id="imp-cam-input" accept="image/*" capture="environment" style="display:none" onchange="impHandleCapture(event)">
-
-      <!-- 갤러리 선택 -->
-      <div onclick="impOpenGallery()"
-        style="border:1px solid var(--bd);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:12px;background:var(--sf2)">
-        <i class="ti ti-photo" style="font-size:22px;color:var(--tx2)"></i>
-        <div>
-          <div style="font-size:14px;font-weight:500;color:var(--tx)">갤러리에서 선택</div>
-          <div style="font-size:12px;color:var(--tx2)">저장된 사진 불러오기</div>
-        </div>
-        <i class="ti ti-chevron-right" style="font-size:16px;color:var(--tx3);margin-left:auto"></i>
-      </div>
-      <input type="file" id="imp-gallery-input" accept="image/*" style="display:none" onchange="impHandleCapture(event)">
-
-      <!-- 추출 미리보기 -->
-      <div id="imp-preview" style="display:none;margin-bottom:12px">
-        <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">추출된 단어 미리보기</div>
-        <div id="imp-preview-list" style="background:var(--sf2);border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto"></div>
-        <div id="imp-preview-info" style="font-size:12px;color:var(--tx2);margin-top:6px;text-align:center"></div>
-      </div>
-
-      <!-- AI 처리 중 -->
-      <div id="imp-ai-loading" style="display:none;text-align:center;padding:20px">
-        <div style="font-size:28px;margin-bottom:8px">🤖</div>
-        <div style="font-size:14px;font-weight:500;color:var(--tx);margin-bottom:4px">Gemini AI 분석 중...</div>
-        <div id="imp-ai-status" style="font-size:12px;color:var(--tx2)">이미지에서 단어 추출 중</div>
-        <div style="margin:12px auto;width:160px;height:4px;border-radius:2px;background:var(--sf2);overflow:hidden">
-          <div id="imp-ai-prog" style="height:100%;background:var(--acc);border-radius:2px;width:0%;transition:width .3s"></div>
-        </div>
-      </div>
-
-      <!-- Gemini API 키 없음 안내 -->
-      <div id="imp-no-key" style="display:none;background:var(--amb-l);border-radius:10px;padding:12px;margin-bottom:12px">
-        <div style="font-size:12px;color:var(--amb);line-height:1.7">
-          ⚠️ Gemini API 키가 필요해요<br>
-          <span onclick="closeImportModal();nav('s-profile');setTimeout(openApiModal,400)"
-            style="color:var(--acc);cursor:pointer;text-decoration:underline">내 정보에서 설정하기 →</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 직접 입력 탭 -->
-    <div id="imp-panel-text" style="display:none;padding:16px 20px">
-      <div style="background:var(--acc-l);border-radius:10px;padding:12px;margin-bottom:14px">
-        <div style="font-size:12px;color:var(--acc-d);line-height:1.7">
-          한 줄에 하나씩 입력하세요<br>
-          <b>형식:</b> 영어단어 = 한국어뜻<br>
-          <b>예시:</b> achieve = 달성하다, 이루다
-        </div>
-      </div>
-      <textarea id="imp-text-input" placeholder="achieve = 달성하다, 이루다&#10;ambiguous = 모호한, 애매한&#10;circumstance = 상황, 환경&#10;..." style="width:100%;height:200px;padding:12px;border:1px solid var(--bd);border-radius:10px;font-size:13px;background:var(--sf2);color:var(--tx);resize:none;outline:none;line-height:1.8" oninput="impParseText()"></textarea>
-      <div id="imp-text-count" style="font-size:12px;color:var(--tx2);margin-top:6px;text-align:right">0개 입력됨</div>
-    </div>
-
-
-
-    <!-- 공통 하단 - 단어장 선택 + 저장 -->
-    <div style="padding:0 20px 16px">
-      <div style="margin-bottom:10px">
-        <div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px">저장할 단어장</div>
-        <div style="display:flex;gap:8px">
-          <select id="imp-ws-select" style="flex:1;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none">
-            <option value="new">+ 새 단어장 만들기</option>
-          </select>
-        </div>
-        <input id="imp-ws-name" placeholder="새 단어장 이름 입력" style="width:100%;margin-top:8px;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;font-size:13px;background:var(--sf2);color:var(--tx);outline:none">
-      </div>
-      <div id="imp-status" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:10px"></div>
-      <button id="imp-save-btn" onclick="impSave()" style="width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:8px">단어 저장하기</button>
-      <div style="padding-bottom:env(safe-area-inset-bottom,0px)"></div>
-    </div>
-  </div>
-</div>
 
 <!-- ══ INSTALL BANNER ══ -->
 <div id="install-banner">
@@ -2433,8 +2300,6 @@ let lastResultMode = 'quiz'; // 'quiz' or 'flashcard' - 결과 화면 어느 흐
 let qIdx=0,qCorrect=0,qTotal=0,qSec=0,qTimer=null,qAnswered=false,qWrong=[];
 
 // ── NAVIGATION ──
-
-
 
 // ── Firestore 데이터 계층 (단어장/단어 CRUD) ─────────
 // 구조: users/{uid}/wordSets/{wsId}/words/{wordId}
@@ -2678,7 +2543,6 @@ async function fsGetStats() {
   return { wordSetCount: wordSets.length, totalWords };
 }
 // ─────────────────────────────────────────────────────
-
 
 // ── 데이터 어댑터 (Firestore 전환) ────────────────────
 // 모든 데이터 호출이 이 함수를 거치도록 함
@@ -3128,7 +2992,6 @@ const _origTrackLearning = window.trackLearning;
 const AUTH_USERS_KEY = 'vs-users';     // 사용자 DB (localStorage)
 const AUTH_SESSION_KEY = 'vs-session'; // 현재 로그인 세션
 
-
 // ── 디버그 도구 ─────────────────────────────────
 function openDebugInfo() {
   // 클라이언트 학습 이력 진단
@@ -3238,7 +3101,6 @@ function getUserIdParam() {
 }
 // ─────────────────────────────────────────────────────
 
-
 // 간단한 해시 함수 (보안 강한 건 아니지만 평문 저장 방지)
 function simpleHash(str) {
   let h = 0;
@@ -3320,7 +3182,6 @@ function showAuthError(formId, msg) {
 function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
-
 
 // ── 🛡️ 중복 클릭 방지 통합 시스템 ──────────────────
 const _busyFlags = {}; // 함수별 진행 중 플래그
@@ -4740,7 +4601,6 @@ function showFcResult(){
   nav('s-qresult');
 }
 
-
 // ── RPG 시스템 (레벨/XP/등급) ────────────────────────
 // XP 공식: Lv.N → Lv.N+1 까지 필요한 XP = 50 * N * (N+1) - 50 * (N-1) * N = 100N
 // 누적 XP for Lv.N = 50 * (N-1) * N (Lv.1=0, Lv.2=100, Lv.3=300, Lv.4=600, Lv.5=1000...)
@@ -5115,7 +4975,6 @@ function showQuestToast(text, color) {
   }, 1800);
 }
 // ─────────────────────────────────────────────────────
-
 
 // ── 🏆 업적 시스템 ──────────────────────────────────
 const ACHIEVEMENTS = [
@@ -5684,7 +5543,6 @@ function reviewWrongWords(type){
 }
 // ─────────────────────────────────────────────────────
 
-
 // ── 결과 화면 → 단어장으로 돌아가기 ────────────────
 function goBackToWordSet() {
   // 복습 모드(통계에서 시작)면 통계로 복귀
@@ -5717,7 +5575,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260526-164134';
+  window.APP_BUILD = '20260526-234819';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
@@ -5868,7 +5726,6 @@ function initDarkToggle(){
 }
 // ─────────────────────────────────────────────────────
 
-
 function camTab(tab){
   const isCam = tab==='cam';
   document.getElementById('cam-panel').style.display = isCam?'flex':'none';
@@ -5910,11 +5767,7 @@ function simulateCapture(){
   },600);
 }
 
-
 // ── Claude Vision API ──────────────────────────────
-
-
-
 
 // ── Gemini JSON 파싱 (잘린 응답 자동 복구) ─────────
 function parseGeminiJson(raw) {
@@ -6184,28 +6037,22 @@ async function handleImageFile(e){
 
   const key = getApiKey();
   if(!key){
-    // API 키 없으면 설정 유도
-    if(confirm('Gemini API 키가 필요해요. (무료)\n지금 설정하러 갈까요?')){
+    // API 키 없으면 토스트로 안내 + 설정 화면 이동
+    showToast('Gemini API 키가 필요해요. 설정 화면으로 이동합니다.', 'warn', 2000);
+    setTimeout(() => {
       nav('s-profile');
       setTimeout(openApiModal, 400);
-    }
+    }, 600);
     return;
   }
 
-  // 로딩 표시
-  const overlay = document.getElementById('ai-loading');
-  const prog    = document.getElementById('ai-prog');
-  const status  = document.getElementById('ai-status');
-  overlay.style.display = 'flex';
-  prog.style.width = '0%';
+  // 풀스크린 로딩 오버레이 (공통)
+  showExtractOverlay('이미지 분석 중', 0);
 
   try {
     // 공통 함수로 추출
     const words = await extractWordsFromImage(file, {
-      onProgress: (msg, pct) => {
-        status.textContent = msg;
-        prog.style.width = pct + '%';
-      }
+      onProgress: (msg, pct) => updateExtractOverlay(msg, pct)
     });
 
     // EW 전역 배열 업데이트 (checked 추가)
@@ -6213,7 +6060,7 @@ async function handleImageFile(e){
     words.forEach(w => EW.push({ ...w, checked: true }));
 
     setTimeout(() => {
-      overlay.style.display = 'none';
+      hideExtractOverlay();
       // 추출 결과 헤더 업데이트
       setText('extract-wordcnt', words.length + '개 단어 인식됨');
       setText('extract-ai-label', 'Gemini AI 추출');
@@ -6221,8 +6068,8 @@ async function handleImageFile(e){
     }, 600);
 
   } catch(err) {
-    overlay.style.display = 'none';
-    alert('단어 추출 실패: ' + err.message + '\n\nGemini API 키를 확인하거나 다시 시도해주세요.');
+    hideExtractOverlay();
+    showToast('단어 추출 실패: ' + err.message, 'error', 3500);
   }
 }
 
@@ -6240,7 +6087,6 @@ function fileToBase64(file){
   if(getApiKey()) updateApiKeyBadge(true);
 })();
 // ───────────────────────────────────────────────────
-
 
 // ── Google Sheets (Apps Script) API ────────────────
 const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbz_DYwee5U9U-ZMwHcGG3-H9LVDdbhsJlFc64CqPcRFTjvpk0_nXG3Ne_GYB2dfOitZ/exec';
@@ -6453,6 +6299,89 @@ async function safeSaveBatch(batch, wsId, userId, userParam) {
 // ─────────────────────────────────────────────────────
 
 // ── 저장 진행 오버레이 헬퍼 ──────────────────────────
+// ── 🍞 공통 토스트 시스템 ──────────────────────────────
+// 화면 어디서든 사용 가능한 일관된 안내 메시지
+// type: 'info' | 'success' | 'warn' | 'error'
+function showToast(message, type, duration) {
+  type = type || 'info';
+  duration = duration || 2500;
+
+  const colors = {
+    info:    { bg: 'rgba(0,0,0,.78)',                  text: '#fff' },
+    success: { bg: 'linear-gradient(135deg, #10b981, #059669)', text: '#fff' },
+    warn:    { bg: 'linear-gradient(135deg, #f59e0b, #d97706)', text: '#fff' },
+    error:   { bg: 'linear-gradient(135deg, #ef4444, #dc2626)', text: '#fff' },
+  };
+  const icons = {
+    info:    'ℹ️',
+    success: '✅',
+    warn:    '⚠️',
+    error:   '❌',
+  };
+  const color = colors[type] || colors.info;
+  const icon = icons[type] || '';
+
+  // 기존 토스트 정리 (중복 방지)
+  const existingToasts = document.querySelectorAll('.vs-toast');
+  existingToasts.forEach(t => t.remove());
+
+  const toast = document.createElement('div');
+  toast.className = 'vs-toast';
+  toast.style.cssText = `
+    position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-10px);
+    background:${color.bg};color:${color.text};
+    padding:12px 20px;border-radius:14px;
+    font-size:13px;font-weight:500;line-height:1.5;
+    z-index:99999;
+    box-shadow:0 6px 20px rgba(0,0,0,.25);
+    max-width:90%;
+    display:flex;align-items:center;gap:8px;
+    opacity:0;
+    transition:opacity .25s ease, transform .25s ease;
+  `;
+  toast.innerHTML = `<span style="font-size:16px;flex-shrink:0">${icon}</span><span style="flex:1">${message}</span>`;
+
+  document.body.appendChild(toast);
+
+  // 페이드 인
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+  });
+
+  // 페이드 아웃 후 제거
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(-10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+// 공통 추출 로딩 오버레이 (촬영/임포트 모두 사용)
+// 풀스크린 오버레이로 통일
+function showExtractOverlay(statusText, pct) {
+  const overlay = document.getElementById('ai-loading');
+  if(!overlay) return;
+  overlay.style.display = 'flex';
+  const statusEl = document.getElementById('ai-status');
+  const progEl   = document.getElementById('ai-prog');
+  if(statusEl) statusEl.textContent = statusText || '이미지 분석 중';
+  if(progEl)   progEl.style.width   = (pct || 0) + '%';
+}
+
+function updateExtractOverlay(statusText, pct) {
+  const statusEl = document.getElementById('ai-status');
+  const progEl   = document.getElementById('ai-prog');
+  if(statusEl) statusEl.textContent = statusText;
+  if(progEl)   progEl.style.width   = pct + '%';
+}
+
+function hideExtractOverlay() {
+  const overlay = document.getElementById('ai-loading');
+  if(overlay) overlay.style.display = 'none';
+}
+// ─────────────────────────────────────────────────────
+
 function showSaveOverlay(statusText, current, total) {
   const overlay = document.getElementById('save-loading');
   if(!overlay) return;
@@ -6485,7 +6414,7 @@ function hideSaveOverlay() {
 
 // saveWordsToSheets - 중복 저장 방지 + 단어장 셀렉트 사용
 // ── 💾 공통 단어 일괄 저장 함수 ────────────────────────
-// 촬영(saveWordsToSheets)과 임포트(impSave)에서 공유
+// 촬영(saveWordsToSheets)에서 사용
 // 기능:
 //   - 단어장 'new' 선택 시 자동 생성 (같은 이름 재사용 지원)
 //   - 크기 기반 자동 배치 분할
@@ -6629,7 +6558,7 @@ async function saveWordsToSheets(){
 
   const selected = EW.filter(w => w.checked);
   if(!selected.length) {
-    alert('저장할 단어를 선택해주세요');
+    showToast('저장할 단어를 선택해주세요', 'warn');
     return;
   }
 
@@ -6641,7 +6570,7 @@ async function saveWordsToSheets(){
   const wsName = nameEl?.value.trim() || '';
 
   if(wsId === 'new' && !wsName) {
-    alert('새 단어장 이름을 입력해주세요');
+    showToast('새 단어장 이름을 입력해주세요', 'warn');
     nameEl?.focus();
     return;
   }
@@ -6703,7 +6632,7 @@ async function saveWordsToSheets(){
           btn.style.background = 'var(--acc)';
           btn.disabled = false;
         }, 2500);
-        alert('저장 실패: ' + errMsg);
+        showToast('저장 실패: ' + errMsg, 'error', 3500);
         if(originalErr) console.error('saveWordsToSheets error:', originalErr);
       }
     }
@@ -7338,7 +7267,6 @@ async function syncLearningHistory() {
 })();
 // ─────────────────────────────────────────────────────
 
-
 // ── 통계 Sheets 연동 ────────────────────────────────
 async function loadStats(forceRefresh){
   const url = getSheetsUrl();
@@ -7408,7 +7336,6 @@ async function loadStats(forceRefresh){
     document.getElementById('stats-updated').textContent = '⚠️ 불러오기 실패: ' + e.message;
   }
 }
-
 
 // ── 🏆 랭킹 시스템 ──────────────────────────────────
 let _rankingLoaded = false;
@@ -7836,7 +7763,6 @@ function setText(id, val){
   if(el) el.textContent = val;
 }
 // ─────────────────────────────────────────────────────
-
 
 // ── 단어장 목록 Sheets 연동 ──────────────────────────
 
@@ -8330,7 +8256,6 @@ async function showCreateWordSet() {
 }
 // ─────────────────────────────────────────────────────
 
-
 // ── 홈 실시간 데이터 ────────────────────────────────
 async function loadHomeData() {
   try {
@@ -8571,7 +8496,6 @@ async function renderHomeWordSetsDynamic(wordSets) {
 }
 // ─────────────────────────────────────────────────────
 
-
 // ── 하루 목표 설정 ──────────────────────────────────
 function setSessionGoal() {
   const current = localStorage.getItem('vs-session-count') || '20';
@@ -8609,7 +8533,6 @@ function initGoalDisplay() {
   window._studyStart = Date.now();
 }
 // ─────────────────────────────────────────────────────
-
 
 // ── CSV 내보내기 ────────────────────────────────────
 async function exportCSV() {
@@ -8654,7 +8577,6 @@ async function exportCSV() {
 }
 // ─────────────────────────────────────────────────────
 
-
 // ── 로그아웃 ────────────────────────────────────────
 function logout() {
   if(!confirm('로그아웃 하면 저장된 API 키와 설정이 모두 삭제돼요.\n계속할까요?')) return;
@@ -8670,7 +8592,6 @@ function logout() {
   document.getElementById('s-ob').classList.add('on');
 }
 // ─────────────────────────────────────────────────────
-
 
 // ── SM-2 망각 곡선 알고리즘 ────────────────────────
 
@@ -8694,7 +8615,6 @@ function saveWordHistory(wordId, history) {
   if(!wordId) return;
   localStorage.setItem('vs-word-' + wordId, JSON.stringify(history));
 }
-
 
 // ── 품사 정규화 (영어 약어로 통일) ──────────────────
 function normalizePos(pos) {
@@ -8728,7 +8648,6 @@ function normalizePos(pos) {
   return '';
 }
 // ─────────────────────────────────────────────────────
-
 
 // ── 단어장 공유 시스템 ──────────────────────────────
 let _shareData = null; // 현재 받기 모달의 임시 데이터
@@ -9081,7 +9000,6 @@ function checkDailyReset() {
 }
 // ─────────────────────────────────────────────────────
 
-
 // ── TTS 발음 듣기 ────────────────────────────────────
 function speakWord(word) {
   if(!word || !word.trim()) return;
@@ -9141,7 +9059,6 @@ function toggleAutoSpeak() {
   // 테스트 발음
   if(next) speakWord('hello');
 }
-
 
 // ── 복습 알림 시스템 ──────────────────────────────────
 function getNotifSettings() {
@@ -9282,7 +9199,6 @@ function initAutoSpeakToggle() {
 }
 // ─────────────────────────────────────────────────────
 
-
 // ── 내정보 로드 ──────────────────────────────────────
 async function loadProfile() {
   // 프로필 정보 적용
@@ -9317,8 +9233,6 @@ async function loadProfile() {
   } catch(e) {}
 }
 // ─────────────────────────────────────────────────────
-
-
 
 // ── 모의테스트 ───────────────────────────────────────
 let MOCK = {
@@ -9359,7 +9273,6 @@ function setMockCount(n) {
     document.getElementById('mock-custom-count').value = n;
   }
 }
-
 
 function setMockMode(mode) {
   MOCK.mode = mode;
@@ -9842,7 +9755,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 // ─────────────────────────────────────────────────────
 
-
 // ── 모의테스트 이력 관리 ─────────────────────────────
 const MOCK_HISTORY_KEY = 'vs-mock-history';
 const MOCK_HISTORY_MAX = 30; // 최근 30개만 보관
@@ -9978,114 +9890,10 @@ function showMockHistoryDetail(id) {
 }
 // ─────────────────────────────────────────────────────
 
-// ── 단어 임포트 기능 ────────────────────────────────
-let impWords = []; // 파싱된 단어들
-let impMode  = 'csv'; // 현재 탭
-
-function openImportModal(){
-  const modal = document.getElementById('import-modal');
-  modal.style.display = 'flex';
-  impWords = [];
-  impMode  = 'csv';
-  // Gemini API 키 없으면 안내
-  setTimeout(()=>{
-    const noKey = document.getElementById('imp-no-key');
-    if(noKey) noKey.style.display = getApiKey() ? 'none' : 'block';
-  }, 100);
-  // 단어장 목록 드롭다운 채우기
-  loadWsSelectOptions();
-}
-
-function closeImportModal(){
-  document.getElementById('import-modal').style.display = 'none';
-  impWords = [];
-  _isSaving = false; // 저장 플래그 초기화
-  // 미리보기 초기화
-  document.getElementById('imp-preview').style.display = 'none';
-  const ta = document.getElementById('imp-text-input');
-  if(ta) ta.value = '';
-}
-
-
-// ── 임포트 모달 촬영 기능 ───────────────────────────
-function impOpenCamera(){
-  const key = getApiKey();
-  if(!key){
-    document.getElementById('imp-no-key').style.display='block';
-    return;
-  }
-  document.getElementById('imp-no-key').style.display='none';
-  document.getElementById('imp-cam-input').click();
-}
-function impOpenGallery(){
-  const key = getApiKey();
-  if(!key){
-    document.getElementById('imp-no-key').style.display='block';
-    return;
-  }
-  document.getElementById('imp-no-key').style.display='none';
-  document.getElementById('imp-gallery-input').click();
-}
-
-async function impHandleCapture(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  e.target.value='';
-
-  const key = getApiKey();
-  if(!key){
-    document.getElementById('imp-no-key').style.display='block';
-    return;
-  }
-
-  // AI 로딩 표시
-  const loading = document.getElementById('imp-ai-loading');
-  const prog    = document.getElementById('imp-ai-prog');
-  const status  = document.getElementById('imp-ai-status');
-  const preview = document.getElementById('imp-preview');
-  loading.style.display='block';
-  preview.style.display='none';
-  prog.style.width='0%';
-
-  try {
-    // 공통 함수로 추출
-    const words = await extractWordsFromImage(file, {
-      onProgress: (msg, pct) => {
-        status.textContent = msg;
-        prog.style.width = pct + '%';
-      }
-    });
-
-    impWords = words;
-
-    setTimeout(()=>{
-      loading.style.display='none';
-      impShowPreview();
-    }, 500);
-
-  } catch(err) {
-    loading.style.display='none';
-    alert('추출 실패: ' + err.message);
-  }
-}
 // ─────────────────────────────────────────────────────
 
-function impTab(tab){
-  impMode = tab;
-  ['csv','text'].forEach(t => {
-    const panel = document.getElementById('imp-panel-'+t);
-    const tabEl = document.getElementById('imp-tab-'+t);
-    if(panel) panel.style.display = t===tab ? 'block' : 'none';
-    if(tabEl){
-      tabEl.style.color        = t===tab ? 'var(--acc)' : 'var(--tx2)';
-      tabEl.style.borderBottom = t===tab ? '2px solid var(--acc)' : '2px solid transparent';
-      tabEl.style.fontWeight   = t===tab ? '500' : '400';
-    }
-  });
-}
-
 // ── 🎯 공통 단어장 선택 UI 함수 ────────────────────────
-// 촬영(s-extract)과 단어 임포트 모달에서 공유
+// 촬영(s-extract 화면)에서 사용
 // 기능:
 //   - 캐시 우선 (빠른 로딩)
 //   - 오늘 단어장 자동 탐색 (📅 표시)
@@ -10247,271 +10055,7 @@ async function loadWordSetSelector(opts) {
 }
 // ─────────────────────────────────────────────────────
 
-async function loadWsSelectOptions(){
-  // 단어 임포트 모달용 (공통 함수 호출)
-  await loadWordSetSelector({
-    selectId:      'imp-ws-select',
-    nameInputId:   'imp-ws-name',
-    useCache:      true,
-    suggestToday:  false,    // 임포트는 오늘 단어장 자동 추천 안 함
-    preferCurrent: true,     // 단어장 상세에서 임포트 시 그 단어장 우선
-  });
-}
-
-// ── CSV/파일 처리 ────────────────────────────────────
-function impDragOver(e){
-  e.preventDefault();
-  document.getElementById('imp-drop-zone').style.borderColor = 'var(--acc)';
-  document.getElementById('imp-drop-zone').style.background  = 'var(--acc-l)';
-}
-function impDragLeave(e){
-  document.getElementById('imp-drop-zone').style.borderColor = 'var(--bd)';
-  document.getElementById('imp-drop-zone').style.background  = '';
-}
-function impDrop(e){
-  e.preventDefault();
-  impDragLeave(e);
-  const file = e.dataTransfer.files[0];
-  if(file) impProcessFile(file);
-}
-function impHandleFile(e){
-  const file = e.target.files[0];
-  if(file) impProcessFile(file);
-  e.target.value = '';
-}
-
-function impProcessFile(file){
-  const ext = file.name.split('.').pop().toLowerCase();
-  if(ext === 'csv' || ext === 'txt'){
-    const reader = new FileReader();
-    reader.onload = e => {
-      const text = e.target.result;
-      impWords = parseCSV(text);
-      impShowPreview();
-    };
-    reader.readAsText(file, 'UTF-8');
-  } else if(ext === 'xlsx' || ext === 'xls'){
-    impShowStatus('⚠️ Excel 파일은 CSV로 변환 후 업로드해주세요.\nExcel에서 파일 → 다른 이름으로 저장 → CSV', 'warn');
-  } else {
-    impShowStatus('❌ CSV 또는 TXT 파일만 지원해요', 'error');
-  }
-}
-
-function parseCSV(text){
-  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
-  if(!lines.length) return [];
-
-  // 헤더 감지
-  const firstLine = lines[0].toLowerCase();
-  const hasHeader = firstLine.includes('word') || firstLine.includes('영어') || firstLine.includes('en');
-  const dataLines = hasHeader ? lines.slice(1) : lines;
-
-  // 헤더 컬럼 매핑
-  let cols = {word:0, meaning:1, pos:2, difficulty:3, phonetic:4, example:5};
-  if(hasHeader){
-    const headers = splitCSVLine(lines[0]).map(h=>h.toLowerCase().trim().replace(/['"]/g,''));
-    const map = {
-      word:    ['word','영어','en','english','단어'],
-      meaning: ['meaning','뜻','ko','korean','한국어','meaning'],
-      pos:     ['pos','품사','part'],
-      difficulty:['difficulty','난이도','level'],
-      phonetic:['phonetic','발음','pronunciation'],
-      example: ['example','예문','예시','ex'],
-    };
-    Object.entries(map).forEach(([key, aliases]) => {
-      const idx = headers.findIndex(h => aliases.some(a => h.includes(a)));
-      if(idx >= 0) cols[key] = idx;
-    });
-  }
-
-  return dataLines.map(line => {
-    if(!line.trim()) return null;
-    const parts = splitCSVLine(line);
-    const word = (parts[cols.word]||'').trim().replace(/^["']|["']$/g,'');
-    const meaning = (parts[cols.meaning]||'').trim().replace(/^["']|["']$/g,'');
-    if(!word || !meaning) return null;
-    return {
-      en: word, ko: meaning,
-      pos: (parts[cols.pos]||'').trim().replace(/^["']|["']$/g,'') || 'noun',
-      difficulty: Number((parts[cols.difficulty]||'').trim()) || 2,
-      phonetic: (parts[cols.phonetic]||'').trim().replace(/^["']|["']$/g,''),
-      example:  (parts[cols.example]||'').trim().replace(/^["']|["']$/g,''),
-    };
-  }).filter(Boolean);
-}
-
-function splitCSVLine(line){
-  const result = [];
-  let cur = '', inQuote = false;
-  for(let i=0; i<line.length; i++){
-    const c = line[i];
-    if(c === '"' && !inQuote){ inQuote=true; continue; }
-    if(c === '"' && inQuote){ inQuote=false; continue; }
-    if(c === ',' && !inQuote){ result.push(cur); cur=''; continue; }
-    cur += c;
-  }
-  result.push(cur);
-  return result;
-}
-
-// ── 직접 입력 파싱 ───────────────────────────────────
-function impParseText(){
-  const ta = document.getElementById('imp-text-input');
-  if(!ta) return;
-  const lines = ta.value.split('\n').filter(l=>l.trim());
-  impWords = lines.map(line => {
-    // "단어 = 뜻" 또는 "단어 : 뜻" 또는 "단어\t뜻" 또는 "단어 뜻"
-    const sep = line.includes('=') ? '=' : line.includes(':') ? ':' : line.includes('\t') ? '\t' : null;
-    let word, meaning;
-    if(sep){
-      const idx = line.indexOf(sep);
-      word    = line.slice(0, idx).trim();
-      meaning = line.slice(idx+1).trim();
-    } else {
-      const parts = line.trim().split(/\s+/);
-      word    = parts[0];
-      meaning = parts.slice(1).join(' ');
-    }
-    if(!word || !meaning) return null;
-    return { en: word, ko: meaning, pos: 'noun', difficulty: 2, phonetic: '', example: '' };
-  }).filter(Boolean);
-
-  const countEl = document.getElementById('imp-text-count');
-  if(countEl) countEl.textContent = impWords.length + '개 입력됨';
-}
-
-// ── URL 임포트 ───────────────────────────────────────
-async function impFetchUrl(){
-  const urlEl = document.getElementById('imp-url-input');
-  const statusEl = document.getElementById('imp-url-status');
-  if(!urlEl?.value.trim()){ if(statusEl) statusEl.textContent='URL을 입력해주세요'; return; }
-
-  const sheetsUrl = urlEl.value.trim();
-  // Google Sheets URL에서 ID 추출
-  const match = sheetsUrl.match(/\/d\/([\w-]+)/);
-  if(!match){ if(statusEl) statusEl.textContent='올바른 Google Sheets URL이 아니에요'; return; }
-
-  if(statusEl) statusEl.textContent = '⏳ 불러오는 중...';
-  const sheetId = match[1];
-  const csvUrl  = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
-
-  try {
-    const res = await fetch(csvUrl);
-    if(!res.ok) throw new Error('공유 설정을 확인해주세요 (링크가 있는 모든 사용자)');
-    const text = await res.text();
-    impWords = parseCSV(text);
-    if(statusEl) statusEl.textContent = `✅ ${impWords.length}개 단어를 불러왔어요!`;
-    impShowPreview();
-  } catch(e){
-    if(statusEl) statusEl.textContent = '❌ 실패: ' + e.message;
-  }
-}
-
-// ── 미리보기 ─────────────────────────────────────────
-function impShowPreview(){
-  const previewEl = document.getElementById('imp-preview');
-  const listEl    = document.getElementById('imp-preview-list');
-  const infoEl    = document.getElementById('imp-preview-info');
-  if(!previewEl || !listEl) return;
-
-  if(!impWords.length){
-    impShowStatus('⚠️ 인식된 단어가 없어요. 형식을 확인해주세요.', 'warn');
-    return;
-  }
-
-  previewEl.style.display = 'block';
-  const show = impWords.slice(0, 5);
-  listEl.innerHTML = show.map((w, i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;${i<show.length-1?'border-bottom:0.5px solid var(--bd)':''}">
-      <span style="font-size:13px;font-weight:500;color:var(--tx);flex:1">${w.en}</span>
-      <span style="font-size:12px;color:var(--tx2)">${w.ko}</span>
-      <span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--acc-l);color:var(--acc-d)">${w.pos}</span>
-    </div>`).join('');
-
-  if(infoEl) infoEl.textContent = `총 ${impWords.length}개 단어 · 상위 ${show.length}개 미리보기`;
-}
-
 // ── 저장 ─────────────────────────────────────────────
-async function impSave(){
-  // 중복 클릭 방지 (촬영 흐름과 동일한 _isSaving 플래그 공유)
-  if(_isSaving) { console.log('이미 저장 중'); return; }
-
-  // 현재 탭에 맞는 단어 수집
-  if(impMode === 'text') impParseText();
-
-  if(!impWords.length){
-    impShowStatus('⚠️ 저장할 단어가 없어요', 'warn');
-    return;
-  }
-
-  // 단어장 결정
-  const sel    = document.getElementById('imp-ws-select');
-  const nameEl = document.getElementById('imp-ws-name');
-  const btn    = document.getElementById('imp-save-btn');
-  const wsId   = sel?.value || 'new';
-  const wsName = nameEl?.value.trim() || '';
-
-  if(wsId === 'new' && !wsName) {
-    impShowStatus('⚠️ 새 단어장 이름을 입력해주세요', 'warn');
-    nameEl?.focus();
-    return;
-  }
-
-  _isSaving = true;
-  btn.disabled = true;
-  btn.style.opacity = '0.7';
-  impShowStatus('⏳ Sheets에 저장하는 중...', 'ok');
-
-  // 공통 저장 함수 호출
-  await saveExtractedWords({
-    words:  impWords,
-    wsId:   wsId,
-    wsName: wsName,
-    reuseExistingByName: true,
-    callbacks: {
-      onStart: (msg, saved, total) => {
-        btn.textContent = `저장 중... (${saved}/${total})`;
-      },
-      onProgress: (saved, total) => {
-        btn.textContent = `저장 중... (${saved}/${total})`;
-      },
-      onSuccess: (totalSaved, savedWsId) => {
-        impShowStatus(`✅ ${totalSaved}개 단어를 저장했어요!`, 'ok');
-        btn.textContent = `✅ ${totalSaved}개 저장 완료!`;
-        btn.style.background = 'var(--grn)';
-        btn.style.opacity = '1';
-
-        setTimeout(() => {
-          _isSaving = false;
-          closeImportModal();
-          loadWordSets(true);
-          btn.textContent = '단어 저장하기';
-          btn.style.background = 'var(--acc)';
-          btn.disabled = false;
-        }, 1500);
-      },
-      onError: (errMsg, originalErr) => {
-        _isSaving = false;
-        impShowStatus('❌ 저장 실패: ' + errMsg, 'error');
-        btn.textContent = '단어 저장하기';
-        btn.style.background = 'var(--acc)';
-        btn.style.opacity = '1';
-        btn.disabled = false;
-        if(originalErr) console.error('impSave error:', originalErr);
-      }
-    }
-  });
-}
-
-function impShowStatus(msg, type){
-  const el = document.getElementById('imp-status');
-  if(!el) return;
-  el.style.display = 'block';
-  const colors = {ok:'var(--grn-l)/var(--grn)', error:'var(--red-l)/var(--red)', warn:'var(--amb-l)/var(--amb)'};
-  const [bg, color] = (colors[type]||'var(--sf2)/var(--tx2)').split('/');
-  el.style.cssText = `display:block;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:10px;background:${bg};color:${color}`;
-  el.textContent = msg;
-}
 
 // ── 샘플 CSV 다운로드 ────────────────────────────────
 function downloadSample(){
@@ -10532,7 +10076,6 @@ function downloadSample(){
   URL.revokeObjectURL(a.href);
 }
 // ─────────────────────────────────────────────────────
-
 
 // ── 단어장 관리 (내정보) ─────────────────────────────
 async function loadManageWordSets() {
@@ -10669,7 +10212,6 @@ async function deleteWordSet(wsId, name) {
 }
 // ─────────────────────────────────────────────────────
 
-
 // ── 추출 결과 단어장 선택 ───────────────────────────
 // 오늘 날짜로 단어장 이름 생성
 function getTodayWordSetName() {
@@ -10694,7 +10236,6 @@ async function loadExtractWsOptions() {
   });
 }
 // ─────────────────────────────────────────────────────
-
 
 // ── 단어장 상세 대시보드 업데이트 ──────────────────
 
@@ -10746,7 +10287,6 @@ async function refreshWsdFromSheets() {
   } catch(e) { console.warn('단어장 갱신 실패:', e); }
 }
 // ─────────────────────────────────────────────────────
-
 
 // ── 프로필 편집 ──────────────────────────────────────
 const AVATARS = ['👤','😊','😎','🤓','📚','🎯','🏆','🔥','⚡','🌟','🦁','🐯','🦊','🐧','🦋'];
@@ -10889,7 +10429,6 @@ function renderWeekChart(){
   `).join('');
 }
 
-
 // ── 이번 주 학습일 수 계산 (월요일 ~ 일요일 기준) ──
 function getWeekStudyDays() {
   const now = new Date();
@@ -10933,7 +10472,6 @@ initNotifToggle();
 // 알림 체크는 로그인 후 약간 지연시켜 호출 (Sheets URL 확보 대기)
 setTimeout(() => { try { checkNotifications(); } catch(e){} }, 2000);
 applyProfile();
-
 
 </script>
 </body>
