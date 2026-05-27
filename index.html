@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260526-234819">
+<meta name="app-build" content="20260526-235930">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1085,6 +1085,13 @@ body{
         <div style="font-size:11px;color:var(--tx2)">한국어 → 영어</div>
         <div style="font-size:10px;color:#FFD700;margin-top:2px">⭐⭐</div>
       </div>
+      <div class="mcard" onclick="startWordSetLearning('review')" style="position:relative">
+        <div style="position:absolute;top:8px;right:8px;background:var(--grn-l);color:var(--grn);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">+5 XP</div>
+        <i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i>
+        <div style="font-size:13px;font-weight:500;color:var(--tx)">🧠 복습 모드</div>
+        <div style="font-size:11px;color:var(--tx2)">학습한 단어만</div>
+        <div style="font-size:10px;color:var(--grn);margin-top:2px">기억 복원</div>
+      </div>
     </div>
 
     <!-- 🛡️ 시험 도전 -->
@@ -1119,26 +1126,17 @@ body{
       </div>
     </div>
 
-    <!-- 🔧 도구 -->
-    <div style="padding:14px 16px 4px">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-        <div style="width:3px;height:14px;background:var(--grn);border-radius:2px"></div>
-        <span style="font-size:11px;font-weight:600;color:var(--grn);letter-spacing:.5px">🔧 도구</span>
-      </div>
-    </div>
-    <div class="mgrid">
-      <div class="mcard" onclick="startWordSetLearning('review')" style="position:relative">
-        <div style="position:absolute;top:8px;right:8px;background:var(--grn-l);color:var(--grn);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">+5 XP</div>
-        <i class="ti ti-brain" style="font-size:22px;color:var(--grn);margin-bottom:6px"></i>
-        <div style="font-size:13px;font-weight:500;color:var(--tx)">🧠 복습 모드</div>
-        <div style="font-size:11px;color:var(--tx2)">학습한 단어만</div>
-        <div style="font-size:10px;color:var(--grn);margin-top:2px">기억 복원</div>
-      </div>
-      <div class="mcard" onclick="nav('s-cam')" style="position:relative">
-        <i class="ti ti-camera" style="font-size:22px;color:var(--acc);margin-bottom:6px"></i>
-        <div style="font-size:13px;font-weight:500;color:var(--tx)">📷 단어 추가</div>
-        <div style="font-size:11px;color:var(--tx2)">촬영 / 갤러리</div>
-        <div style="font-size:10px;color:var(--tx3);margin-top:2px">AI 자동 추출</div>
+    <!-- 📷 단어 추가 (별도 액션, 도전 영역과 분리) -->
+    <div style="padding:18px 16px 4px">
+      <div onclick="nav('s-cam')" style="background:var(--sf2);border:1px dashed var(--bd);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--acc-l);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="ti ti-camera" style="font-size:20px;color:var(--acc)"></i>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500;color:var(--tx)">📷 단어 추가하기</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:2px">촬영 / 갤러리 · AI 자동 추출</div>
+        </div>
+        <i class="ti ti-chevron-right" style="font-size:18px;color:var(--tx3)"></i>
       </div>
     </div>
     <div style="height:20px"></div>
@@ -5575,7 +5573,7 @@ function qRestart(){qWrong=[];wrongWords=[];resetReviewButtons();nav('s-quiz');}
 
 // ── PWA: SERVICE WORKER (강제 업데이트 + 캐시 무효화) ──
 if('serviceWorker' in navigator){
-  window.APP_BUILD = '20260526-234819';
+  window.APP_BUILD = '20260526-235930';
   console.log('App build:', window.APP_BUILD);
 
   // 강제 캐시 정리 - 옛 캐시/SW 모두 제거
